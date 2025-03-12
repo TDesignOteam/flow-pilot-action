@@ -1,0 +1,56 @@
+{
+  "name": "flow-pilot-action",
+  "private": true,
+  "packageManager": "pnpm@9.12.1",
+  "description": "",
+  "author": "tdesign",
+  "license": "MIT",
+  "homepage": "https://github.com/TDesignOteam/flow-pilot-action#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TDesignOteam/flow-pilot-action.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TDesignOteam/flow-pilot-action/issues"
+  },
+  "main": "src/index.ts",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "prebuild": "rimraf dist/*",
+    "build": "ncc build --license license.txt",
+    "lint": "eslint . ",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:update": "vitest run -u",
+    "prepare": "simple-git-hooks"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/exec": "^1.1.1",
+    "@actions/github": "^6.0.0",
+    "@manypkg/get-packages": "^2.2.2",
+    "marked": "^15.0.7"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^3.16.0",
+    "@octokit/plugin-rest-endpoint-methods": "^13.3.1",
+    "@types/node": "^22.13.10",
+    "@vercel/ncc": "^0.38.3",
+    "eslint": "^9.22.0",
+    "eslint-plugin-format": "^1.0.1",
+    "lint-staged": "^15.4.3",
+    "rimraf": "^6.0.1",
+    "simple-git-hooks": "^2.11.1",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.8"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint-staged"
+  },
+  "lint-staged": {
+    "*": "eslint --fix"
+  }
+}

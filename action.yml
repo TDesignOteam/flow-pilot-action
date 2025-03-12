@@ -1,0 +1,15 @@
+name: tdesign-pr-trigger-action
+description: tdesign-pr-trigger-action
+author: TDesign
+inputs:
+  packages:
+    description: packages
+    required: true
+
+  token:
+    description: personal access token
+    required: true
+
+runs:
+  using: node20
+  main: dist/index.js
