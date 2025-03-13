@@ -10,7 +10,7 @@ export function renderChangelog(markdown: string, pkgs: object) {
   const logNode = parseMarkdown('### 📝 更新日志')[0]
 
   md.forEach((token) => {
-    if (token.type === 'heading' && token.depth === logNode[0].depth && token.text === logNode[0].text) {
+    if (token.type === 'heading' && token.depth === logNode.depth && token.text === logNode.text) {
       token.text = `${pkgs[0]}: ${token.text}`
     }
   })
