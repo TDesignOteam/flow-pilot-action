@@ -1,6 +1,18 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`utils > renderChangelog 1`] = `
+exports[`utils > renderChangelog > repo1 pkg-b是私有包，不收集日志 1`] = `
+{
+  "pkg-a": [
+    "feat(Button): New Component",
+    "feat(Hook): add renderNodeJSX",
+  ],
+  "pkg-c": [
+    "feat(Button): New Component",
+  ],
+}
+`;
+
+exports[`utils > renderChangelog > repo2 无私有包 1`] = `
 {
   "pkg-a": [
     "feat(Button): New Component",

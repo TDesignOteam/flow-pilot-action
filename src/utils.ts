@@ -1,6 +1,7 @@
 import type { Tokens, TokensList } from 'marked'
 import { getPackagesSync } from '@manypkg/get-packages'
 import { marked } from 'marked'
+import { SKIP_CHANGELOG_REG } from './consts'
 
 export function parseMarkdown(markdown: string): TokensList {
   return marked.lexer(markdown)
@@ -11,6 +12,9 @@ function getChangelogHeading() {
 }
 
 export function renderChangelog(markdown: string, pkgNames: string[]) {
+  if (SKIP_CHANGELOG_REG.test(markdown)) {
+    return null
+  }
   const md = parseMarkdown(markdown)
   const changelogHeading = getChangelogHeading()
   const pkgDepth = changelogHeading.depth + 1
@@ -30,9 +34,11 @@ export function renderChangelog(markdown: string, pkgNames: string[]) {
       pkgName = token.text
     }
     if (collectLogs && token.type === 'list' && pkgNames.includes(pkgName)) {
-      token.items.forEach((item) => {
-        if (item.type === 'list_item') {
-          pkgLogs[pkgName].push(item.text.replaceAll('\r\n', '').replaceAll('\n', ''))
+      const items = token.items as Tokens.ListItem[]
+      items.forEach((item) => {
+        if (item.type === 'list_item' && item.tokens.length) {
+          const token = item.tokens[0] as Tokens.Text
+          pkgLogs[pkgName].push(token.text)
         }
       })
     }
