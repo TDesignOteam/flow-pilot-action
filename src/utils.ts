@@ -10,15 +10,34 @@ function getChangelogHeading() {
   return parseMarkdown('### 📝 更新日志')[0] as Tokens.Heading
 }
 
-export function renderChangelog(markdown: string, pkgs: object) {
+export function renderChangelog(markdown: string, pkgNames: string[]) {
   const md = parseMarkdown(markdown)
-  const logNode = getChangelogHeading()
+  const changelogHeading = getChangelogHeading()
+  const pkgDepth = changelogHeading.depth + 1
+  let pkgName = ''
+  const pkgLogs = {}
+  pkgNames.forEach((name) => {
+    pkgLogs[name] = []
+  })
+  let collectLogs = false
 
   md.forEach((token) => {
-    if (token.type === 'heading' && token.depth === logNode.depth && token.text === logNode.text) {
-      token.text = `${pkgs[0]}: ${token.text}`
+    if (token.type === changelogHeading.type && token.depth === changelogHeading.depth) {
+      collectLogs = token.text === changelogHeading.text
+    }
+
+    if (collectLogs && token.type === 'heading' && token.depth === pkgDepth) {
+      pkgName = token.text
+    }
+    if (collectLogs && token.type === 'list' && pkgNames.includes(pkgName)) {
+      token.items.forEach((item) => {
+        if (item.type === 'list_item') {
+          pkgLogs[pkgName].push(item.text.replaceAll('\r\n', '').replaceAll('\n', ''))
+        }
+      })
     }
   })
+  return pkgLogs
 }
 
 export function renderPackages(path: string) {
