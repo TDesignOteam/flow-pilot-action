@@ -1,0 +1,16 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`utils > renderChangelog 1`] = `
+{
+  "pkg-a": [
+    "feat(Button): New Component",
+    "feat(Hook): add renderNodeJSX",
+  ],
+  "pkg-b": [
+    "chore(utils): add \`isString\` function",
+  ],
+  "pkg-c": [
+    "feat(Button): New Component",
+  ],
+}
+`;
