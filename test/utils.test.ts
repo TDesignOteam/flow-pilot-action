@@ -1,7 +1,7 @@
 import type { Tokens } from 'marked'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { parseMarkdown, renderChangelog, renderPackages } from '../src/utils'
+import { extractChangelog, parseMarkdown, renderPackages } from '../src/utils'
 
 describe('utils', () => {
   it('parseMarkdown', () => {
@@ -16,18 +16,20 @@ describe('utils', () => {
   it('renderPackages', () => {
     const packages = renderPackages('fixtures/repo1')
     expect(packages.length).toBe(2)
+    expect(packages[0].packageJson.name).toBe('pkg-a')
     expect(packages[0].relativeDir).toBe('packages/pkg-a')
+    expect(packages[1].packageJson.name).toBe('pkg-c')
     expect(packages[1].relativeDir).toBe('packages/pkg-c')
   })
 
-  describe('renderChangelog', () => {
+  describe('extractChangelog', () => {
     it('repo1 pkg-b是私有包，不收集日志', () => {
       const packages = renderPackages('fixtures/repo1')
       expect(packages.length).toBe(2)
       expect(packages[0].relativeDir).toBe('packages/pkg-a')
       expect(packages[1].relativeDir).toBe('packages/pkg-c')
       const body = readFileSync('fixtures/pull_request_body/pr_body1.md', 'utf8').replaceAll('\n', '\r\n')
-      const log = renderChangelog(body, packages.map(pkg => pkg.packageJson.name))
+      const log = extractChangelog(body, packages.map(pkg => pkg.packageJson.name))
       expect(log).toMatchSnapshot()
     })
     it('repo2 无私有包', () => {
@@ -37,14 +39,14 @@ describe('utils', () => {
       expect(packages[1].relativeDir).toBe('packages/pkg-b')
       expect(packages[2].relativeDir).toBe('packages/pkg-c')
       const body = readFileSync('fixtures/pull_request_body/pr_body1.md', 'utf8').replaceAll('\n', '\r\n')
-      const log = renderChangelog(body, packages.map(pkg => pkg.packageJson.name))
+      const log = extractChangelog(body, packages.map(pkg => pkg.packageJson.name))
       expect(log).toMatchSnapshot()
     })
     it('本条 PR 不需要纳入 Changelog', () => {
       const packages = renderPackages('fixtures/repo1')
 
       const body = readFileSync('fixtures/pull_request_body/pr_body2.md', 'utf8').replaceAll('\n', '\r\n')
-      const log = renderChangelog(body, packages.map(pkg => pkg.packageJson.name))
+      const log = extractChangelog(body, packages.map(pkg => pkg.packageJson.name))
       expect(log).toBe(null)
     })
   })

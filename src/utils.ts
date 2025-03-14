@@ -1,4 +1,5 @@
 import type { Tokens, TokensList } from 'marked'
+import type { PullRequestData } from './types'
 import { getPackagesSync } from '@manypkg/get-packages'
 import { marked } from 'marked'
 import { SKIP_CHANGELOG_REG } from './consts'
@@ -11,7 +12,7 @@ function getChangelogHeading() {
   return parseMarkdown('### 📝 更新日志')[0] as Tokens.Heading
 }
 
-export function renderChangelog(markdown: string, pkgNames: string[]) {
+export function extractChangelog(markdown: string, pkgNames: string[]) {
   if (SKIP_CHANGELOG_REG.test(markdown)) {
     return null
   }
@@ -49,4 +50,24 @@ export function renderChangelog(markdown: string, pkgNames: string[]) {
 export function renderPackages(path: string) {
   const { packages } = getPackagesSync(path)
   return packages.filter(pkg => pkg.packageJson?.private !== true)
+}
+
+export function isExtractPRLog(prData: PullRequestData) {
+  if (prData.user.type === 'Bot') {
+    return false
+  }
+
+  if (prData.labels.find(label => label.name === 'skip-changelog')) {
+    return false
+  }
+
+  if (prData.body && SKIP_CHANGELOG_REG.test(prData.body)) {
+    return false
+  }
+
+  if (prData.head.ref.startsWith('release/')) {
+    return false
+  }
+
+  return true
 }
