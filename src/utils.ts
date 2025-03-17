@@ -80,7 +80,7 @@ export function stashPrChangelog(prData: PullRequestData, packages: Package[], p
 
   packages.forEach((pkg) => {
     if (prChangelog[pkg.packageJson.name]) {
-      const changelogPath = `${pkg.relativeDir}/.changelog`
+      const changelogPath = `${pkg.dir}/.changelog`
       if (!existsSync(changelogPath)) {
         mkdirSync(changelogPath, { recursive: true })
       }

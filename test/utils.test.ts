@@ -94,7 +94,7 @@ describe('utils', () => {
     const log = extractChangelog(body, packages.map(pkg => pkg.packageJson.name))
     stashPrChangelog(pull_request_data, packages, log)
     packages.forEach((pkg) => {
-      const text = readFileSync(`${pkg.relativeDir}/.changelog/pr-${pull_request_data.number}.md`, 'utf8')
+      const text = readFileSync(`${pkg.dir}/.changelog/pr-${pull_request_data.number}.md`, 'utf8')
       expect(text).toMatchSnapshot()
     })
   })
