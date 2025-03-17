@@ -1,5 +1,7 @@
+import type { Package } from '@manypkg/get-packages'
 import type { Tokens, TokensList } from 'marked'
-import type { PullRequestData } from './types'
+import type { PackagesChangelog, PullRequestData } from './types'
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { getPackagesSync } from '@manypkg/get-packages'
 import { marked } from 'marked'
 import { SKIP_CHANGELOG_REG } from './consts'
@@ -37,14 +39,11 @@ export function isReleasePR(prData: PullRequestData) {
 }
 
 export function extractChangelog(markdown: string, pkgNames: string[]) {
-  if (SKIP_CHANGELOG_REG.test(markdown)) {
-    return null
-  }
   const md = parseMarkdown(markdown)
   const changelogHeading = getChangelogHeading()
   const pkgDepth = changelogHeading.depth + 1
   let pkgName = ''
-  const pkgLogs = {}
+  const pkgLogs: Record<string, string[]> = {}
   pkgNames.forEach((name) => {
     pkgLogs[name] = []
   })
@@ -74,4 +73,20 @@ export function extractChangelog(markdown: string, pkgNames: string[]) {
 export function getPackages(path: string) {
   const { packages } = getPackagesSync(path)
   return packages.filter(pkg => pkg.packageJson?.private !== true)
+}
+
+export function stashPullRequestChangelog(prData: PullRequestData, packages: Package[], prChangelog: PackagesChangelog) {
+  const mdHead = `---\npr_number:${prData.number}\ncontributor:${prData.user.login}\n---\n\n`
+
+  packages.forEach((pkg) => {
+    if (prChangelog[pkg.packageJson.name]) {
+      const changelogPath = `${pkg.dir}/.changelog`
+      if (!existsSync(changelogPath)) {
+        mkdirSync(changelogPath, { recursive: true })
+      }
+      const logs = prChangelog[pkg.packageJson.name].map(log => `- ${log}`).join('\n')
+      const content = `${mdHead}# Changelog\n\n${logs}\n`
+      writeFileSync(`${changelogPath}/pr-${prData.number}.md`, content, { flag: 'w' })
+    }
+  })
 }
