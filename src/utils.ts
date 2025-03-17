@@ -75,7 +75,7 @@ export function getPackages(path: string) {
   return packages.filter(pkg => pkg.packageJson?.private !== true)
 }
 
-export function stashPrChangelog(prData: PullRequestData, packages: Package[], prChangelog: PackagesChangelog) {
+export function stashPullRequestChangelog(prData: PullRequestData, packages: Package[], prChangelog: PackagesChangelog) {
   const mdHead = `---\npr_number:${prData.number}\ncontributor:${prData.user.login}\n---\n\n`
 
   packages.forEach((pkg) => {

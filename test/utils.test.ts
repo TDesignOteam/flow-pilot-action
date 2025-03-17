@@ -3,7 +3,7 @@ import type { PullRequestData } from '../src/types'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { pull_request_data } from '../fixtures/pull_request_data'
-import { extractChangelog, getPackages, isExtractPRLog, parseMarkdown, stashPrChangelog } from '../src/utils'
+import { extractChangelog, getPackages, isExtractPRLog, parseMarkdown, stashPullRequestChangelog } from '../src/utils'
 
 describe('utils', () => {
   it('parseMarkdown', () => {
@@ -92,7 +92,7 @@ describe('utils', () => {
     const packages = getPackages('fixtures/repo2')
     const body = readFileSync('fixtures/pull_request_body/pr_body1.md', 'utf8').replaceAll('\n', '\r\n')
     const log = extractChangelog(body, packages.map(pkg => pkg.packageJson.name))
-    stashPrChangelog(pull_request_data, packages, log)
+    stashPullRequestChangelog(pull_request_data, packages, log)
     packages.forEach((pkg) => {
       const text = readFileSync(`${pkg.dir}/.changelog/pr-${pull_request_data.number}.md`, 'utf8')
       expect(text).toMatchSnapshot()
