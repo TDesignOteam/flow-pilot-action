@@ -1,6 +1,6 @@
 ---
-pr_number:6
-contributor:liweijie0812
+pr_number: 6
+contributor: liweijie0812
 ---
 
 # Changelog

@@ -76,7 +76,7 @@ export function getPackages(path: string) {
 }
 
 export function stashPullRequestChangelog(prData: PullRequestData, packages: Package[], prChangelog: PackagesChangelog) {
-  const mdHead = `---\npr_number:${prData.number}\ncontributor:${prData.user.login}\n---\n\n`
+  const mdHead = `---\npr_number: ${prData.number}\ncontributor: ${prData.user.login}\n---\n\n`
 
   packages.forEach((pkg) => {
     if (prChangelog[pkg.packageJson.name]) {

@@ -29,8 +29,8 @@ exports[`utils > extractChangelog > repo2 无私有包 1`] = `
 
 exports[`utils > stashPullRequestChangelog 1`] = `
 "---
-pr_number:6
-contributor:liweijie0812
+pr_number: 6
+contributor: liweijie0812
 ---
 
 # Changelog
@@ -42,8 +42,8 @@ contributor:liweijie0812
 
 exports[`utils > stashPullRequestChangelog 2`] = `
 "---
-pr_number:6
-contributor:liweijie0812
+pr_number: 6
+contributor: liweijie0812
 ---
 
 # Changelog
@@ -54,8 +54,8 @@ contributor:liweijie0812
 
 exports[`utils > stashPullRequestChangelog 3`] = `
 "---
-pr_number:6
-contributor:liweijie0812
+pr_number: 6
+contributor: liweijie0812
 ---
 
 # Changelog
