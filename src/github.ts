@@ -12,8 +12,8 @@ export default function useGithub(owner, repo, token: string) {
   }
   async function getPullRequestFiles(pr_number: number) {
     const { data } = await octokit.rest.pulls.listFiles({
-      owner: 'TDesignOteam',
-      repo: 'flow-pilot-action',
+      owner,
+      repo,
       pull_number: pr_number,
     })
     return data
