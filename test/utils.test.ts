@@ -7,6 +7,7 @@ import {
   extractChangelog,
   getPackages,
   getPullRequestReleaseDirs,
+  getStashChangelog,
   isExtractPRLog,
   parseMarkdown,
   stashPullRequestChangelog,
@@ -94,21 +95,42 @@ describe('utils', () => {
     //   expect(log).toBe(null)
     // })
   })
+  describe('stashPullRequestChangelog', () => {
+    it('stashPullRequestChangelog1', () => {
+      const packages = getPackages('fixtures/repo2')
+      const body = readFileSync('fixtures/pull_request_body/pr_body1.md', 'utf8').replaceAll('\n', '\r\n')
+      const log = extractChangelog(body, packages.map(pkg => pkg.packageJson.name))
+      stashPullRequestChangelog(pull_request_data, packages, log)
 
-  it('stashPullRequestChangelog', () => {
-    const packages = getPackages('fixtures/repo2')
-    const body = readFileSync('fixtures/pull_request_body/pr_body1.md', 'utf8').replaceAll('\n', '\r\n')
-    const log = extractChangelog(body, packages.map(pkg => pkg.packageJson.name))
-    stashPullRequestChangelog(pull_request_data, packages, log)
-    packages.forEach((pkg) => {
-      const text = readFileSync(`${pkg.dir}/.changelog/pr-${pull_request_data.number}.md`, 'utf8')
-      expect(text).toMatchSnapshot()
+      packages.forEach((pkg) => {
+        const text = readFileSync(`${pkg.dir}/.changelog/pr-${pull_request_data.number}.md`, 'utf8')
+        expect(text).toMatchSnapshot()
+      })
+    })
+    it('stashPullRequestChangelog2', () => {
+      const packages = getPackages('fixtures/repo2')
+      const body = readFileSync('fixtures/pull_request_body/pr_body3.md', 'utf8').replaceAll('\n', '\r\n')
+      const log = extractChangelog(body, packages.map(pkg => pkg.packageJson.name))
+      pull_request_data.number = 7
+      stashPullRequestChangelog(pull_request_data, packages, log)
+
+      packages.forEach((pkg) => {
+        const text = readFileSync(`${pkg.dir}/.changelog/pr-${pull_request_data.number}.md`, 'utf8')
+        expect(text).toMatchSnapshot()
+      })
     })
   })
+
   it('getPullRequestReleaseDirs', () => {
     const paths = getPullRequestReleaseDirs(pull_request_files)
     expect(paths.length).toBe(2)
     expect(paths[0]).toBe('packages/pkg-a')
     expect(paths[1]).toBe('packages/pkg-c')
+  })
+
+  it('getStashChangelog', () => {
+    const changelog = getStashChangelog('./fixtures/repo2/packages/pkg-a')
+
+    expect(changelog).toMatchSnapshot()
   })
 })

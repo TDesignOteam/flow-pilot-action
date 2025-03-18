@@ -20,6 +20,9 @@ importers:
       '@manypkg/get-packages':
         specifier: ^2.2.2
         version: 2.2.2
+      glob:
+        specifier: ^11.0.1
+        version: 11.0.1
       marked:
         specifier: ^15.0.7
         version: 15.0.7

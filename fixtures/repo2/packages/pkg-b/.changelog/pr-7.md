@@ -1,0 +1,1 @@
+- other(utils): add `isBoolean` function @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))

@@ -1,9 +1,10 @@
 import type { Package } from '@manypkg/get-packages'
 import type { Tokens, TokensList } from 'marked'
 import type { PackagesChangelog, PullRequestData, PullRequestFiles } from './types'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { getPackagesSync } from '@manypkg/get-packages'
+import { globSync } from 'glob'
 import { marked } from 'marked'
 import { NEW_VERSION_REG, OLD_VERSION_REG, SKIP_CHANGELOG_REG } from './consts'
 
@@ -77,16 +78,16 @@ export function getPackages(path: string) {
 }
 
 export function stashPullRequestChangelog(prData: PullRequestData, packages: Package[], prChangelog: PackagesChangelog) {
-  const mdHead = `---\npr_number: ${prData.number}\ncontributor: ${prData.user.login}\n---\n\n`
-
   packages.forEach((pkg) => {
     if (prChangelog[pkg.packageJson.name]) {
       const changelogPath = `${pkg.dir}/.changelog`
       if (!existsSync(changelogPath)) {
         mkdirSync(changelogPath, { recursive: true })
       }
-      const logs = prChangelog[pkg.packageJson.name].map(log => `- ${log}`).join('\n')
-      const content = `${mdHead}# Changelog\n\n${logs}\n`
+      const logs = prChangelog[pkg.packageJson.name].map((log) => {
+        return `- ${log} @${prData.user.login} ([#${prData.number}](${prData.html_url}))`
+      }).join('\n')
+      const content = `${logs}\n`
       writeFileSync(`${changelogPath}/pr-${prData.number}.md`, content, { flag: 'w' })
     }
   })
@@ -114,4 +115,18 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
 
     return true
   }).map(file => dirname(file.filename))
+}
+
+export function getStashChangelog(path: string) {
+  const files = globSync(`${path}/.changelog/*.md`)
+  const changelogs: string[] = []
+  files.forEach((file) => {
+    readFileSync(file, 'utf8').split('\n').forEach((line) => {
+      if (line) {
+        changelogs.push(line)
+      }
+    },
+    )
+  })
+  return changelogs
 }

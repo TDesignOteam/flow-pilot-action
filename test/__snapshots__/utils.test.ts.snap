@@ -27,39 +27,41 @@ exports[`utils > extractChangelog > repo2 无私有包 1`] = `
 }
 `;
 
-exports[`utils > stashPullRequestChangelog 1`] = `
-"---
-pr_number: 6
-contributor: liweijie0812
----
+exports[`utils > getStashChangelog 1`] = `
+[
+  "- chore(Hook): add Hook @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))",
+  "- feat(Button): New Component @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))",
+  "- feat(Hook): add renderNodeJSX @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))",
+]
+`;
 
-# Changelog
-
-- feat(Button): New Component
-- feat(Hook): add renderNodeJSX
+exports[`utils > stashPullRequestChangelog > stashPullRequestChangelog1 1`] = `
+"- feat(Button): New Component @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
+- feat(Hook): add renderNodeJSX @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 "
 `;
 
-exports[`utils > stashPullRequestChangelog 2`] = `
-"---
-pr_number: 6
-contributor: liweijie0812
----
-
-# Changelog
-
-- chore(utils): add \`isString\` function
+exports[`utils > stashPullRequestChangelog > stashPullRequestChangelog1 2`] = `
+"- chore(utils): add \`isString\` function @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 "
 `;
 
-exports[`utils > stashPullRequestChangelog 3`] = `
-"---
-pr_number: 6
-contributor: liweijie0812
----
+exports[`utils > stashPullRequestChangelog > stashPullRequestChangelog1 3`] = `
+"- feat(Button): New Component @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
+"
+`;
 
-# Changelog
+exports[`utils > stashPullRequestChangelog > stashPullRequestChangelog2 1`] = `
+"- chore(Hook): add Hook @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
+"
+`;
 
-- feat(Button): New Component
+exports[`utils > stashPullRequestChangelog > stashPullRequestChangelog2 2`] = `
+"- other(utils): add \`isBoolean\` function @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
+"
+`;
+
+exports[`utils > stashPullRequestChangelog > stashPullRequestChangelog2 3`] = `
+"- fix(Button): fix Button @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 "
 `;
