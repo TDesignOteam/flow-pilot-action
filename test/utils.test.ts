@@ -2,8 +2,15 @@ import type { Tokens } from 'marked'
 import type { PullRequestData } from '../src/types'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { pull_request_data } from '../fixtures/pull_request_data'
-import { extractChangelog, getPackages, isExtractPRLog, parseMarkdown, stashPullRequestChangelog } from '../src/utils'
+import { pull_request_data, pull_request_files } from '../fixtures/pull_request_data'
+import {
+  extractChangelog,
+  getPackages,
+  getPullRequestReleaseDirs,
+  isExtractPRLog,
+  parseMarkdown,
+  stashPullRequestChangelog,
+} from '../src/utils'
 
 describe('utils', () => {
   it('parseMarkdown', () => {
@@ -97,5 +104,11 @@ describe('utils', () => {
       const text = readFileSync(`${pkg.dir}/.changelog/pr-${pull_request_data.number}.md`, 'utf8')
       expect(text).toMatchSnapshot()
     })
+  })
+  it('getPullRequestReleaseDirs', () => {
+    const paths = getPullRequestReleaseDirs(pull_request_files)
+    expect(paths.length).toBe(2)
+    expect(paths[0]).toBe('packages/pkg-a')
+    expect(paths[1]).toBe('packages/pkg-c')
   })
 })
