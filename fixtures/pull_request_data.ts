@@ -1,4 +1,4 @@
-import type { PullRequestData } from '../src/types'
+import type { PullRequestData, PullRequestFiles } from '../src/types'
 
 export const pull_request_data: PullRequestData = {
   url: 'https://api.github.com/repos/TDesignOteam/flow-pilot-action/pulls/6',
@@ -391,3 +391,30 @@ export const pull_request_data: PullRequestData = {
   deletions: 35,
   changed_files: 3,
 }
+
+export const pull_request_files: PullRequestFiles = [
+  {
+    sha: '850f61b832fa80a1ac70c41bb9c89b3898c46003',
+    filename: 'packages/pkg-a/package.json',
+    status: 'modified',
+    additions: 1,
+    deletions: 1,
+    changes: 2,
+    blob_url: 'https://github.com/TDesignOteam/flow-pilot-action/blob/74a237b5638f07e3aad977c7c4380ec03081ceae/fixtures%2Frepo1%2Fpackages%2Fpkg-a%2Fpackage.json',
+    raw_url: 'https://github.com/TDesignOteam/flow-pilot-action/raw/74a237b5638f07e3aad977c7c4380ec03081ceae/fixtures%2Frepo1%2Fpackages%2Fpkg-a%2Fpackage.json',
+    contents_url: 'https://api.github.com/repos/TDesignOteam/flow-pilot-action/contents/fixtures%2Frepo1%2Fpackages%2Fpkg-a%2Fpackage.json?ref=74a237b5638f07e3aad977c7c4380ec03081ceae',
+    patch: '@@ -1,6 +1,6 @@\n {\n   "name": "pkg-a",\n-  "version": "1.0.0",\n+  "version": "1.0.1",\n   "packageManager": "pnpm@10.4.1",\n   "description": "",\n   "author": "",',
+  },
+  {
+    sha: '516d99705cb93e16cd2a4f0297380e1967fc7221',
+    filename: 'packages/pkg-c/package.json',
+    status: 'modified',
+    additions: 1,
+    deletions: 1,
+    changes: 2,
+    blob_url: 'https://github.com/TDesignOteam/flow-pilot-action/blob/74a237b5638f07e3aad977c7c4380ec03081ceae/fixtures%2Frepo1%2Fpackages%2Fpkg-c%2Fpackage.json',
+    raw_url: 'https://github.com/TDesignOteam/flow-pilot-action/raw/74a237b5638f07e3aad977c7c4380ec03081ceae/fixtures%2Frepo1%2Fpackages%2Fpkg-c%2Fpackage.json',
+    contents_url: 'https://api.github.com/repos/TDesignOteam/flow-pilot-action/contents/fixtures%2Frepo1%2Fpackages%2Fpkg-c%2Fpackage.json?ref=74a237b5638f07e3aad977c7c4380ec03081ceae',
+    patch: '@@ -1,6 +1,6 @@\n {\n   "name": "pkg-c",\n-  "version": "1.0.0",\n+  "version": "1.0.1",\n   "packageManager": "pnpm@10.4.1",\n   "description": "",\n   "author": "",',
+  },
+]

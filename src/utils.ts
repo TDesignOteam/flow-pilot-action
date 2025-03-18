@@ -1,10 +1,11 @@
 import type { Package } from '@manypkg/get-packages'
 import type { Tokens, TokensList } from 'marked'
-import type { PackagesChangelog, PullRequestData } from './types'
+import type { PackagesChangelog, PullRequestData, PullRequestFiles } from './types'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
 import { getPackagesSync } from '@manypkg/get-packages'
 import { marked } from 'marked'
-import { SKIP_CHANGELOG_REG } from './consts'
+import { NEW_VERSION_REG, OLD_VERSION_REG, SKIP_CHANGELOG_REG } from './consts'
 
 export function parseMarkdown(markdown: string): TokensList {
   return marked.lexer(markdown)
@@ -89,4 +90,28 @@ export function stashPullRequestChangelog(prData: PullRequestData, packages: Pac
       writeFileSync(`${changelogPath}/pr-${prData.number}.md`, content, { flag: 'w' })
     }
   })
+}
+
+export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
+  return prFiles.filter((file) => {
+    if (file.status !== 'modified') {
+      return false
+    }
+    if (!file.filename.includes('package.json')) {
+      return false
+    }
+    if (!file.patch?.includes('version')) {
+      return false
+    }
+    const newVersion = file.patch.match(NEW_VERSION_REG)
+    const oldVersion = file.patch.match(OLD_VERSION_REG)
+    if (!newVersion || !oldVersion) {
+      return false
+    }
+    if (newVersion[1] === oldVersion[1]) {
+      return false
+    }
+
+    return true
+  }).map(file => dirname(file.filename))
 }
