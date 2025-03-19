@@ -6,7 +6,7 @@ import { dirname } from 'node:path'
 import { getPackagesSync } from '@manypkg/get-packages'
 import { globSync } from 'glob'
 import { marked } from 'marked'
-import { NEW_VERSION_REG, OLD_VERSION_REG, SKIP_CHANGELOG_REG } from './consts'
+import { CHANGELOG_REG, NEW_VERSION_REG, OLD_VERSION_REG, SKIP_CHANGELOG_REG } from './consts'
 
 export function parseMarkdown(markdown: string): TokensList {
   return marked.lexer(markdown)
@@ -129,4 +129,71 @@ export function getStashChangelog(path: string) {
     )
   })
   return changelogs
+}
+
+export function renderChangelogMarkdown(changelogs: string[]) {
+  const featList: Record<string, string[]> = {}
+  const fixList: Record<string, string[]> = {}
+  const docsList: Record<string, string[]> = {}
+  const perfList: Record<string, string[]> = {}
+  const breakingList: Record<string, string[]> = {}
+  const otherList: Record<string, string[]> = {}
+
+  changelogs.forEach((log) => {
+    const type = log.match(CHANGELOG_REG)?.[1] || ''
+    const scope = log.match(CHANGELOG_REG)?.[2] || ''
+    const message = log.match(CHANGELOG_REG)?.[3] || ''
+    switch (type) {
+      case 'feat':
+        Reflect.has(featList, scope) ? featList[scope].push(message) : featList[scope] = [message]
+        break
+      case 'fix':
+        Reflect.has(fixList, scope) ? fixList[scope].push(message) : fixList[scope] = [message]
+        break
+      case 'docs':
+      case 'doc':
+        Reflect.has(docsList, scope) ? docsList[scope].push(message) : docsList[scope] = [message]
+        break
+      case 'perf':
+        Reflect.has(perfList, scope) ? perfList[scope].push(message) : perfList[scope] = [message]
+        break
+      case 'breaking':
+      case 'break':
+        Reflect.has(breakingList, scope) ? breakingList[scope].push(message) : breakingList[scope] = [message]
+        break
+      default:
+        Reflect.has(otherList, scope) ? otherList[scope].push(message) : otherList[scope] = [message]
+    }
+  })
+
+  return [
+    renderChangelog('### 🚨 Breaking Changes', breakingList),
+    renderChangelog('### 🚀 Features', featList),
+    renderChangelog('### 🐞 Bug Fixes', fixList),
+    renderChangelog('### 📈 Performance', perfList),
+    renderChangelog('### 📝 Documentation', docsList),
+    renderChangelog('### 🚧 Others', otherList),
+  ].filter(n => n).join('\n')
+}
+function renderChangelog(heading: string, changelogs: Record<string, string[]>) {
+  let content = ''
+  const keys = Object.keys(changelogs)
+  if (!keys.length) {
+    return ''
+  }
+  content += `${heading}\n`
+  keys.forEach((key) => {
+    if (changelogs[key].length > 1) {
+      content += `- ${key}: \n`
+      changelogs[key].forEach((log) => {
+        content += `  - ${log}\n`
+      })
+    }
+    else {
+      changelogs[key].forEach((log) => {
+        content += `- ${key}: ${log}\n`
+      })
+    }
+  })
+  return content
 }
