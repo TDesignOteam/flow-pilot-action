@@ -5,6 +5,7 @@ exports[`utils > extractChangelog > repo1 pkg-b是私有包，不收集日志 1`
   "pkg-a": [
     "feat(Button): New Component",
     "feat(Hook): add renderNodeJSX",
+    "feat(Hook): add renderIcon",
   ],
   "pkg-c": [
     "feat(Button): New Component",
@@ -17,6 +18,7 @@ exports[`utils > extractChangelog > repo2 无私有包 1`] = `
   "pkg-a": [
     "feat(Button): New Component",
     "feat(Hook): add renderNodeJSX",
+    "feat(Hook): add renderIcon",
   ],
   "pkg-b": [
     "chore(utils): add \`isString\` function",
@@ -32,12 +34,26 @@ exports[`utils > getStashChangelog 1`] = `
   "- chore(Hook): add Hook @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))",
   "- feat(Button): New Component @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))",
   "- feat(Hook): add renderNodeJSX @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))",
+  "- feat(Hook): add renderIcon @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))",
 ]
+`;
+
+exports[`utils > renderChangelogMarkdown 1`] = `
+"### 🚀 Features
+- Button: New Component @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
+- Hook: 
+  - add renderNodeJSX @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
+  - add renderIcon @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
+
+### 🚧 Others
+- Hook: add Hook @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
+"
 `;
 
 exports[`utils > stashPullRequestChangelog > stashPullRequestChangelog1 1`] = `
 "- feat(Button): New Component @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 - feat(Hook): add renderNodeJSX @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
+- feat(Hook): add renderIcon @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 "
 `;
 

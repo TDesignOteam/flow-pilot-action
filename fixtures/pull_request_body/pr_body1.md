@@ -59,6 +59,7 @@ PR 在维护者审核通过后会合并，谢谢！
 - feat(Button): New Component
 
 - feat(Hook): add renderNodeJSX
+- feat(Hook): add renderIcon
 
 #### pkg-b
 

@@ -10,6 +10,7 @@ import {
   getStashChangelog,
   isExtractPRLog,
   parseMarkdown,
+  renderChangelogMarkdown,
   stashPullRequestChangelog,
 } from '../src/utils'
 
@@ -132,5 +133,11 @@ describe('utils', () => {
     const changelog = getStashChangelog('./fixtures/repo2/packages/pkg-a')
 
     expect(changelog).toMatchSnapshot()
+  })
+
+  it('renderChangelogMarkdown', () => {
+    const changelog = getStashChangelog('./fixtures/repo2/packages/pkg-a')
+    const md = renderChangelogMarkdown(changelog)
+    expect(md).toMatchSnapshot()
   })
 })
