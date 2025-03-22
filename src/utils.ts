@@ -177,13 +177,13 @@ export function renderChangelogMarkdown(changelogs: string[]) {
 }
 function renderChangelog(heading: string, changelogs: Record<string, string[]>) {
   let content = ''
-  const keys = Object.keys(changelogs)
+  const keys = Object.keys(changelogs).sort()
   if (!keys.length) {
     return ''
   }
   content += `${heading}\n`
   keys.forEach((key) => {
-    if (changelogs[key].length > 1) {
+    if (key && changelogs[key].length > 1) {
       content += `- ${key}: \n`
       changelogs[key].forEach((log) => {
         content += `  - ${log}\n`
@@ -191,7 +191,9 @@ function renderChangelog(heading: string, changelogs: Record<string, string[]>) 
     }
     else {
       changelogs[key].forEach((log) => {
-        content += `- ${key}: ${log}\n`
+        content += '-'
+        content += key ? ` ${key}:` : ''
+        content += ` ${log}\n`
       })
     }
   })

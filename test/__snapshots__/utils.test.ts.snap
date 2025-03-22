@@ -32,6 +32,9 @@ exports[`utils > extractChangelog > repo2 无私有包 1`] = `
 exports[`utils > getStashChangelog 1`] = `
 [
   "- chore(Hook): add Hook @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))",
+  "- chore: a chore log @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))",
+  "- other: a other log @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))",
+  "- fix(card): fix card bug @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))",
   "- feat(Button): New Component @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))",
   "- feat(Hook): add renderNodeJSX @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))",
   "- feat(Hook): add renderIcon @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))",
@@ -45,7 +48,12 @@ exports[`utils > renderChangelogMarkdown 1`] = `
   - add renderNodeJSX @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
   - add renderIcon @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 
+### 🐞 Bug Fixes
+- card: fix card bug @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
+
 ### 🚧 Others
+- a chore log @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
+- a other log @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 - Hook: add Hook @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 "
 `;
@@ -69,6 +77,9 @@ exports[`utils > stashPullRequestChangelog > stashPullRequestChangelog1 3`] = `
 
 exports[`utils > stashPullRequestChangelog > stashPullRequestChangelog2 1`] = `
 "- chore(Hook): add Hook @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
+- chore: a chore log @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
+- other: a other log @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
+- fix(card): fix card bug @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 "
 `;
 
