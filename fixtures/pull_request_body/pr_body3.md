@@ -57,6 +57,9 @@ PR 在维护者审核通过后会合并，谢谢！
 #### pkg-a
 
 - chore(Hook): add Hook
+- chore: a chore log
+- other: a other log
+- fix(card): fix card bug
 
 #### pkg-b
 
