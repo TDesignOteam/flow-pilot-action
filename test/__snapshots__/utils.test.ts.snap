@@ -49,7 +49,7 @@ exports[`utils > renderChangelogMarkdown 1`] = `
   - add renderIcon @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 
 ### 🐞 Bug Fixes
-- card: fix card bug @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
+- Card: fix card bug @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 
 ### 🚧 Others
 - a chore log @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
