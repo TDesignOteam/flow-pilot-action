@@ -4,9 +4,14 @@ import type { PackagesChangelog, PullRequestData, PullRequestFiles } from './typ
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { getPackagesSync } from '@manypkg/get-packages'
+import camelcase from 'camelcase'
 import { globSync } from 'glob'
 import { marked } from 'marked'
 import { CHANGELOG_REG, NEW_VERSION_REG, OLD_VERSION_REG, SKIP_CHANGELOG_REG } from './consts'
+
+export function pascalCase(str: string) {
+  return camelcase(str, { pascalCase: true })
+}
 
 export function parseMarkdown(markdown: string): TokensList {
   return marked.lexer(markdown)
@@ -184,7 +189,7 @@ function renderChangelog(heading: string, changelogs: Record<string, string[]>) 
   content += `${heading}\n`
   keys.forEach((key) => {
     if (key && changelogs[key].length > 1) {
-      content += `- ${key}: \n`
+      content += `- ${pascalCase(key)}: \n`
       changelogs[key].forEach((log) => {
         content += `  - ${log}\n`
       })
@@ -192,7 +197,7 @@ function renderChangelog(heading: string, changelogs: Record<string, string[]>) 
     else {
       changelogs[key].forEach((log) => {
         content += '-'
-        content += key ? ` ${key}:` : ''
+        content += key ? ` ${pascalCase(key)}:` : ''
         content += ` ${log}\n`
       })
     }
