@@ -45292,13 +45292,12 @@ const github_2 = __importDefault(__nccwpck_require__(238));
 const utils_1 = __nccwpck_require__(6236);
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a;
         const token = (0, core_1.getInput)('token');
         (0, core_1.startGroup)('context');
         (0, core_1.info)(`context: ${JSON.stringify(github_1.context, null, 2)}`);
         (0, core_1.endGroup)();
         (0, core_1.info)(`eventName: ${github_1.context.eventName}`);
-        const prNumber = Number((_a = github_1.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.number);
+        const prNumber = Number(github_1.context.payload.number);
         (0, core_1.info)(`pr_number: ${prNumber}`);
         const { getPullRequestData } = (0, github_2.default)(token);
         const prData = yield getPullRequestData(prNumber);

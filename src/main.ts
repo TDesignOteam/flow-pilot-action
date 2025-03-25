@@ -9,7 +9,7 @@ export async function main() {
   info(`context: ${JSON.stringify(context, null, 2)}`)
   endGroup()
   info(`eventName: ${context.eventName}`)
-  const prNumber = Number(context.payload.pull_request?.number)
+  const prNumber = Number(context.payload.number)
   info(`pr_number: ${prNumber}`)
   const { getPullRequestData } = useGithub(token)
   const prData = await getPullRequestData(prNumber)
