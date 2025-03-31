@@ -45339,7 +45339,8 @@ function main() {
                 });
             });
             if (logs) {
-                addComment(prNumber, `## 更新日志\n\n${logs}`);
+                const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的日志暂存区\n';
+                addComment(prNumber, `${logHead}## 更新日志\n\n${logs}`);
             }
         }
     });
