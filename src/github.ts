@@ -21,6 +21,22 @@ export default function useGithub(token: string) {
     })
     return data
   }
+  async function addComment(pr_number: number, body: string) {
+    await octokit.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: pr_number,
+      body,
+    })
+  }
+  async function addPullRequestLabels(pr_number: number, labels: string[]) {
+    await octokit.rest.issues.addLabels({
+      owner,
+      repo,
+      issue_number: pr_number,
+      labels,
+    })
+  }
 
-  return { getPullRequestData, getPullRequestFiles }
+  return { getPullRequestData, getPullRequestFiles, addPullRequestLabels, addComment }
 }

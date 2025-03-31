@@ -45212,8 +45212,9 @@ function wrappy (fn, cb) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.CHANGELOG_REG = exports.NEW_VERSION_REG = exports.OLD_VERSION_REG = exports.SKIP_CHANGELOG_REG = void 0;
+exports.CHANGELOG_REG = exports.NEW_VERSION_REG = exports.OLD_VERSION_REG = exports.SKIP_CHANGELOG_LABEL = exports.SKIP_CHANGELOG_REG = void 0;
 exports.SKIP_CHANGELOG_REG = /\[x\] 本条 PR 不需要纳入 Changelog/i;
+exports.SKIP_CHANGELOG_LABEL = 'skip-changelog';
 exports.OLD_VERSION_REG = /\s*-\s*"version":\s*"(.*)"/;
 exports.NEW_VERSION_REG = /\s*\+\s*"version":\s*"(.*)"/;
 exports.CHANGELOG_REG = /-\s*([A-Z]+)(?:\(([A-Z\s_-]*)\))?\s*:\s*(.+)/i;
@@ -45261,7 +45262,27 @@ function useGithub(token) {
             return data;
         });
     }
-    return { getPullRequestData, getPullRequestFiles };
+    function addComment(pr_number, body) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield octokit.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pr_number,
+                body,
+            });
+        });
+    }
+    function addPullRequestLabels(pr_number, labels) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield octokit.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: pr_number,
+                labels,
+            });
+        });
+    }
+    return { getPullRequestData, getPullRequestFiles, addPullRequestLabels, addComment };
 }
 
 
@@ -45293,19 +45314,34 @@ const utils_1 = __nccwpck_require__(6236);
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         const token = (0, core_1.getInput)('token');
+        const packages = (0, core_1.getInput)('packages') || '';
         (0, core_1.startGroup)('context');
         (0, core_1.info)(`context: ${JSON.stringify(github_1.context, null, 2)}`);
         (0, core_1.endGroup)();
         (0, core_1.info)(`eventName: ${github_1.context.eventName}`);
+        (0, core_1.info)(`action: ${github_1.context.payload.action}`);
         const prNumber = Number(github_1.context.payload.number);
         (0, core_1.info)(`pr_number: ${prNumber}`);
-        const { getPullRequestData } = (0, github_2.default)(token);
+        const { getPullRequestData, addComment } = (0, github_2.default)(token);
         const prData = yield getPullRequestData(prNumber);
+        const isRelease = prData.head.ref.startsWith('release/');
         (0, core_1.startGroup)('context');
         (0, core_1.info)(`prData: ${JSON.stringify(prData, null, 2)}`);
         (0, core_1.endGroup)();
-        const prLog = (0, utils_1.extractChangelog)(prData.body || '', ['pkg-a', 'pkg-b', 'pkg-c']);
+        const prLog = (0, utils_1.extractChangelog)(prData.body || '', packages.split(','));
         (0, core_1.info)(`prLog: ${JSON.stringify(prLog, null, 2)}`);
+        if (!isRelease) {
+            let logs = '';
+            Object.keys(prLog).forEach((pkgName) => {
+                logs += `### ${pkgName}\n`;
+                prLog[pkgName].forEach((log) => {
+                    logs += `- ${log} @${prData.user.login} ([#${prData.number}](${prData.html_url}))\n`;
+                });
+            });
+            if (logs) {
+                addComment(prNumber, `## 更新日志\n\n${logs}`);
+            }
+        }
     });
 }
 
@@ -48857,7 +48893,7 @@ exports.GlobStream = GlobStream;
 
 /***/ }),
 
-/***/ 865:
+/***/ 6586:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -49010,6 +49046,7 @@ class LRUCache {
     #max;
     #maxSize;
     #dispose;
+    #onInsert;
     #disposeAfter;
     #fetchMethod;
     #memoMethod;
@@ -49091,6 +49128,7 @@ class LRUCache {
     #hasDispose;
     #hasFetchMethod;
     #hasDisposeAfter;
+    #hasOnInsert;
     /**
      * Do not call this method unless you need to inspect the
      * inner workings of the cache.  If anything returned by this
@@ -49168,13 +49206,19 @@ class LRUCache {
         return this.#dispose;
     }
     /**
+     * {@link LRUCache.OptionsBase.onInsert} (read-only)
+     */
+    get onInsert() {
+        return this.#onInsert;
+    }
+    /**
      * {@link LRUCache.OptionsBase.disposeAfter} (read-only)
      */
     get disposeAfter() {
         return this.#disposeAfter;
     }
     constructor(options) {
-        const { max = 0, ttl, ttlResolution = 1, ttlAutopurge, updateAgeOnGet, updateAgeOnHas, allowStale, dispose, disposeAfter, noDisposeOnSet, noUpdateTTL, maxSize = 0, maxEntrySize = 0, sizeCalculation, fetchMethod, memoMethod, noDeleteOnFetchRejection, noDeleteOnStaleGet, allowStaleOnFetchRejection, allowStaleOnFetchAbort, ignoreFetchAbort, } = options;
+        const { max = 0, ttl, ttlResolution = 1, ttlAutopurge, updateAgeOnGet, updateAgeOnHas, allowStale, dispose, onInsert, disposeAfter, noDisposeOnSet, noUpdateTTL, maxSize = 0, maxEntrySize = 0, sizeCalculation, fetchMethod, memoMethod, noDeleteOnFetchRejection, noDeleteOnStaleGet, allowStaleOnFetchRejection, allowStaleOnFetchAbort, ignoreFetchAbort, } = options;
         if (max !== 0 && !isPosInt(max)) {
             throw new TypeError('max option must be a nonnegative integer');
         }
@@ -49218,6 +49262,9 @@ class LRUCache {
         if (typeof dispose === 'function') {
             this.#dispose = dispose;
         }
+        if (typeof onInsert === 'function') {
+            this.#onInsert = onInsert;
+        }
         if (typeof disposeAfter === 'function') {
             this.#disposeAfter = disposeAfter;
             this.#disposed = [];
@@ -49227,6 +49274,7 @@ class LRUCache {
             this.#disposed = undefined;
         }
         this.#hasDispose = !!this.#dispose;
+        this.#hasOnInsert = !!this.#onInsert;
         this.#hasDisposeAfter = !!this.#disposeAfter;
         this.noDisposeOnSet = !!noDisposeOnSet;
         this.noUpdateTTL = !!noUpdateTTL;
@@ -49794,6 +49842,9 @@ class LRUCache {
             if (status)
                 status.set = 'add';
             noUpdateTTL = false;
+            if (this.#hasOnInsert) {
+                this.#onInsert?.(v, k, 'add');
+            }
         }
         else {
             // update
@@ -49834,6 +49885,9 @@ class LRUCache {
             }
             else if (status) {
                 status.set = 'update';
+            }
+            if (this.#hasOnInsert) {
+                this.onInsert?.(v, k, v === oldVal ? 'update' : 'replace');
             }
         }
         if (ttl !== 0 && !this.#ttls) {
@@ -53338,7 +53392,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PathScurry = exports.Path = exports.PathScurryDarwin = exports.PathScurryPosix = exports.PathScurryWin32 = exports.PathScurryBase = exports.PathPosix = exports.PathWin32 = exports.PathBase = exports.ChildrenCache = exports.ResolveCache = void 0;
-const lru_cache_1 = __nccwpck_require__(865);
+const lru_cache_1 = __nccwpck_require__(6586);
 const node_path_1 = __nccwpck_require__(6760);
 const node_url_1 = __nccwpck_require__(3136);
 const fs_1 = __nccwpck_require__(9896);

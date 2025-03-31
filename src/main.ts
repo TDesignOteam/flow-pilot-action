@@ -1,22 +1,40 @@
 import { endGroup, getInput, info, startGroup } from '@actions/core'
 import { context } from '@actions/github'
+
 import useGithub from './github'
 import { extractChangelog } from './utils'
 
 export async function main() {
   const token = getInput('token')
+  const packages = getInput('packages') || ''
+
   startGroup('context')
   info(`context: ${JSON.stringify(context, null, 2)}`)
   endGroup()
   info(`eventName: ${context.eventName}`)
+  info(`action: ${context.payload.action}`)
   const prNumber = Number(context.payload.number)
   info(`pr_number: ${prNumber}`)
-  const { getPullRequestData } = useGithub(token)
+  const { getPullRequestData, addComment } = useGithub(token)
   const prData = await getPullRequestData(prNumber)
+  const isRelease = prData.head.ref.startsWith('release/')
   startGroup('context')
   info(`prData: ${JSON.stringify(prData, null, 2)}`)
   endGroup()
 
-  const prLog = extractChangelog(prData.body || '', ['pkg-a', 'pkg-b', 'pkg-c'])
+  const prLog = extractChangelog(prData.body || '', packages.split(','))
   info(`prLog: ${JSON.stringify(prLog, null, 2)}`)
+  if (!isRelease) {
+    let logs = ''
+    Object.keys(prLog).forEach((pkgName) => {
+      logs += `### ${pkgName}\n`
+      prLog[pkgName].forEach((log) => {
+        logs += `- ${log} @${prData.user.login} ([#${prData.number}](${prData.html_url}))\n`
+      },
+      )
+    })
+    if (logs) {
+      addComment(prNumber, `## 更新日志\n\n${logs}`)
+    }
+  }
 }
