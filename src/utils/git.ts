@@ -3,10 +3,11 @@ import { context } from '@actions/github'
 
 export default function useGit(token: string) {
   const { repo, owner } = context.repo
-  async function cloneRepo(branchName = 'develop') {
+  async function cloneRepo() {
     // const repo_url = `https://${context.token}@github.com/${owner}/${repo}.git`
     const repo_url = `https://${token}@github.com/${owner}/${repo}.git`
-    await exec('git', ['clone', '-b', branchName, repo_url, `../${repo}`])
+    // await exec('git', ['clone', '-b', branchName, repo_url, `../${repo}`])
+    await exec('git', ['clone', repo_url, `../${repo}`])
   }
   async function createBranch(branch: string) {
     await exec('git', ['checkout', '-b', branch], { cwd: `../${repo}` })

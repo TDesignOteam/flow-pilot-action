@@ -45574,10 +45574,11 @@ const github_1 = __nccwpck_require__(2819);
 function useGit(token) {
     const { repo, owner } = github_1.context.repo;
     function cloneRepo() {
-        return __awaiter(this, arguments, void 0, function* (branchName = 'develop') {
+        return __awaiter(this, void 0, void 0, function* () {
             // const repo_url = `https://${context.token}@github.com/${owner}/${repo}.git`
             const repo_url = `https://${token}@github.com/${owner}/${repo}.git`;
-            yield (0, exec_1.exec)('git', ['clone', '-b', branchName, repo_url, `../${repo}`]);
+            // await exec('git', ['clone', '-b', branchName, repo_url, `../${repo}`])
+            yield (0, exec_1.exec)('git', ['clone', repo_url, `../${repo}`]);
         });
     }
     function createBranch(branch) {
