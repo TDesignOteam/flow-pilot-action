@@ -3,6 +3,7 @@ import type { Tokens, TokensList } from 'marked'
 import type { PackagesChangelog, PullRequestData, PullRequestFiles } from '../types'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
+import { info } from '@actions/core'
 import { context } from '@actions/github/lib/utils'
 import { getPackagesSync } from '@manypkg/get-packages'
 import camelcase from 'camelcase'
@@ -94,6 +95,7 @@ export function stashPullRequestChangelog(prData: PullRequestData, packages: Pac
         return `- ${log} @${prData.user.login} ([#${prData.number}](${prData.html_url}))`
       }).join('\n')
       const content = `${logs}\n`
+      info('writeFileSync ' + `${changelogPath}/pr-${prData.number}.md`)
       writeFileSync(`${changelogPath}/pr-${prData.number}.md`, content, { flag: 'w' })
     }
   })

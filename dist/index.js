@@ -45356,6 +45356,7 @@ exports.getPullRequestNumber = getPullRequestNumber;
 exports.getPullRequestBody = getPullRequestBody;
 const node_fs_1 = __nccwpck_require__(3024);
 const node_path_1 = __nccwpck_require__(6760);
+const core_1 = __nccwpck_require__(9999);
 const utils_1 = __nccwpck_require__(4655);
 const get_packages_1 = __nccwpck_require__(713);
 const camelcase_1 = __importDefault(__nccwpck_require__(6249));
@@ -45433,6 +45434,7 @@ function stashPullRequestChangelog(prData, packages, prChangelog) {
                 return `- ${log} @${prData.user.login} ([#${prData.number}](${prData.html_url}))`;
             }).join('\n');
             const content = `${logs}\n`;
+            (0, core_1.info)('writeFileSync ' + `${changelogPath}/pr-${prData.number}.md`);
             (0, node_fs_1.writeFileSync)(`${changelogPath}/pr-${prData.number}.md`, content, { flag: 'w' });
         }
     });
