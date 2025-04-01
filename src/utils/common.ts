@@ -99,7 +99,13 @@ export function stashPullRequestChangelog(prData: PullRequestData, packages: Pac
       }
       const content = `${logs}\n`
       info('writeFileSync ' + `${changelogPath}/pr-${prData.number}.md`)
-      writeFileSync(`${changelogPath}/pr-${prData.number}.md`, content, { flag: 'w' })
+      try {
+        writeFileSync(`${changelogPath}/pr-${prData.number}.md`, content, { flag: 'w' })
+      }
+      catch (error) {
+        info(`Failed to write changelog file: ${error}`)
+      }
+      info(`Changelog written to ${changelogPath}/pr-${prData.number}.md`)
     }
   })
 }
