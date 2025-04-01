@@ -5,7 +5,7 @@ export default function useGit(token: string) {
   const { repo, owner } = context.repo
   async function cloneRepo(branchName = 'develop') {
     // const repo_url = `https://${context.token}@github.com/${owner}/${repo}.git`
-    const repo_url = `https://${token}github.com/${owner}/${repo}.git`
+    const repo_url = `https://${token}@github.com/${owner}/${repo}.git`
     await exec('git', ['clone', '-b', branchName, repo_url, `../${repo}`])
   }
   async function createBranch(branch: string) {

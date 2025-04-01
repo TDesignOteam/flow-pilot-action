@@ -45576,7 +45576,7 @@ function useGit(token) {
     function cloneRepo() {
         return __awaiter(this, arguments, void 0, function* (branchName = 'develop') {
             // const repo_url = `https://${context.token}@github.com/${owner}/${repo}.git`
-            const repo_url = `https://${token}github.com/${owner}/${repo}.git`;
+            const repo_url = `https://${token}@github.com/${owner}/${repo}.git`;
             yield (0, exec_1.exec)('git', ['clone', '-b', branchName, repo_url, `../${repo}`]);
         });
     }
