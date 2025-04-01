@@ -1,8 +1,8 @@
-import { endGroup, getInput, info, startGroup } from '@actions/core'
+import { endGroup, error, getInput, info, startGroup } from '@actions/core'
 import { context } from '@actions/github'
 
 import useGithub from './github'
-import { extractChangelog } from './utils'
+import { extractChangelog, getPullNumber } from './utils'
 
 export async function main() {
   const token = getInput('token')
@@ -13,8 +13,12 @@ export async function main() {
   endGroup()
   info(`eventName: ${context.eventName}`)
   info(`action: ${context.payload.action}`)
-  const prNumber = Number(context.payload.number)
+  const prNumber = getPullNumber()
   info(`pr_number: ${prNumber}`)
+  if (!prNumber) {
+    error('没有找到 pr_number')
+    return
+  }
   const { getPullRequestData, addComment } = useGithub(token)
   const prData = await getPullRequestData(prNumber)
   const isRelease = prData.head.ref.startsWith('release/')
@@ -40,5 +44,8 @@ export async function main() {
       const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的日志暂存区\n'
       addComment(prNumber, `${logHead}## 更新日志\n\n${logs}`)
     }
+  }
+  if (context.eventName === 'issue_comment' && context.payload.action === 'edited') {
+    info('issue_comment edited')
   }
 }

@@ -45320,8 +45320,12 @@ function main() {
         (0, core_1.endGroup)();
         (0, core_1.info)(`eventName: ${github_1.context.eventName}`);
         (0, core_1.info)(`action: ${github_1.context.payload.action}`);
-        const prNumber = Number(github_1.context.payload.number);
+        const prNumber = (0, utils_1.getPullNumber)();
         (0, core_1.info)(`pr_number: ${prNumber}`);
+        if (!prNumber) {
+            (0, core_1.error)('没有找到 pr_number');
+            return;
+        }
         const { getPullRequestData, addComment } = (0, github_2.default)(token);
         const prData = yield getPullRequestData(prNumber);
         const isRelease = prData.head.ref.startsWith('release/');
@@ -45345,6 +45349,9 @@ function main() {
                 const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的日志暂存区\n';
                 addComment(prNumber, `${logHead}## 更新日志\n\n${logs}`);
             }
+        }
+        if (github_1.context.eventName === 'issue_comment' && github_1.context.payload.action === 'edited') {
+            (0, core_1.info)('issue_comment edited');
         }
     });
 }
@@ -45371,8 +45378,10 @@ exports.stashPullRequestChangelog = stashPullRequestChangelog;
 exports.getPullRequestReleaseDirs = getPullRequestReleaseDirs;
 exports.getStashChangelog = getStashChangelog;
 exports.renderChangelogMarkdown = renderChangelogMarkdown;
+exports.getPullNumber = getPullNumber;
 const node_fs_1 = __nccwpck_require__(3024);
 const node_path_1 = __nccwpck_require__(6760);
+const utils_1 = __nccwpck_require__(4655);
 const get_packages_1 = __nccwpck_require__(713);
 const camelcase_1 = __importDefault(__nccwpck_require__(6249));
 const glob_1 = __nccwpck_require__(8172);
@@ -45554,6 +45563,16 @@ function renderChangelog(heading, changelogs) {
         }
     });
     return content;
+}
+function getPullNumber() {
+    var _a;
+    if (utils_1.context.eventName === 'pull_request') {
+        return Number(utils_1.context.payload.number);
+    }
+    if (utils_1.context.eventName === 'issue_comment' && ((_a = utils_1.context.payload.issue) === null || _a === void 0 ? void 0 : _a.pull_request)) {
+        return Number(utils_1.context.payload.issue.number);
+    }
+    return 0;
 }
 
 

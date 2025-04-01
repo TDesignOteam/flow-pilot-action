@@ -3,6 +3,7 @@ import type { Tokens, TokensList } from 'marked'
 import type { PackagesChangelog, PullRequestData, PullRequestFiles } from './types'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
+import { context } from '@actions/github/lib/utils'
 import { getPackagesSync } from '@manypkg/get-packages'
 import camelcase from 'camelcase'
 import { globSync } from 'glob'
@@ -203,4 +204,14 @@ function renderChangelog(heading: string, changelogs: Record<string, string[]>) 
     }
   })
   return content
+}
+
+export function getPullNumber() {
+  if (context.eventName === 'pull_request') {
+    return Number(context.payload.number)
+  }
+  if (context.eventName === 'issue_comment' && context.payload.issue?.pull_request) {
+    return Number(context.payload.issue.number)
+  }
+  return 0
 }
