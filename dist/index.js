@@ -45438,7 +45438,13 @@ function stashPullRequestChangelog(prData, packages, prChangelog) {
             }
             const content = `${logs}\n`;
             (0, core_1.info)('writeFileSync ' + `${changelogPath}/pr-${prData.number}.md`);
-            (0, node_fs_1.writeFileSync)(`${changelogPath}/pr-${prData.number}.md`, content, { flag: 'w' });
+            try {
+                (0, node_fs_1.writeFileSync)(`${changelogPath}/pr-${prData.number}.md`, content, { flag: 'w' });
+            }
+            catch (error) {
+                (0, core_1.info)(`Failed to write changelog file: ${error}`);
+            }
+            (0, core_1.info)(`Changelog written to ${changelogPath}/pr-${prData.number}.md`);
         }
     });
 }
