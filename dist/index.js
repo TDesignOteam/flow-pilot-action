@@ -45290,7 +45290,7 @@ function main() {
         if (github_1.context.eventName === 'issue_comment' && github_1.context.payload.action === 'edited') {
             const prLog = (0, utils_1.extractChangelog)(((_a = github_1.context.payload.comment) === null || _a === void 0 ? void 0 : _a.body) || '', packages.split(','));
             (0, core_1.info)(`confirm_pr_log: ${JSON.stringify(prLog, null, 2)}`);
-            const { cloneRepo, addRemote, checkoutPr, checkoutBranch } = (0, git_1.default)(token);
+            const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = (0, git_1.default)(token);
             yield cloneRepo();
             let isForkPr = false;
             if (prData.head.user.login !== github_1.context.repo.owner) {
@@ -45315,6 +45315,17 @@ function main() {
             yield (0, exec_1.exec)('git', [
                 'status',
             ], { cwd: `../${github_1.context.repo.repo}` });
+            if (!(yield isNeedCommit())) {
+                (0, core_1.info)('无需提交');
+                return true;
+            }
+            yield (0, exec_1.exec)('git', ['commit', '-am', 'chore: stash changelog'], { cwd: `../${github_1.context.repo.repo}` });
+            if (isForkPr) {
+                yield (0, exec_1.exec)('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`], { cwd: `../${github_1.context.repo.repo}` });
+            }
+            else {
+                yield (0, exec_1.exec)('git', ['push', 'origin', prData.head.ref], { cwd: `../${github_1.context.repo.repo}` });
+            }
         }
     });
 }

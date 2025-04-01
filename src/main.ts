@@ -51,7 +51,7 @@ export async function main() {
   if (context.eventName === 'issue_comment' && context.payload.action === 'edited') {
     const prLog = extractChangelog(context.payload.comment?.body || '', packages.split(','))
     info(`confirm_pr_log: ${JSON.stringify(prLog, null, 2)}`)
-    const { cloneRepo, addRemote, checkoutPr, checkoutBranch } = useGit(token)
+    const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = useGit(token)
     await cloneRepo()
 
     let isForkPr = false
@@ -77,5 +77,16 @@ export async function main() {
     await exec('git', [
       'status',
     ], { cwd: `../${context.repo.repo}` })
+    if (!await isNeedCommit()) {
+      info('无需提交')
+      return true
+    }
+    await exec('git', ['commit', '-am', 'chore: stash changelog'], { cwd: `../${context.repo.repo}` })
+    if (isForkPr) {
+      await exec('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`], { cwd: `../${context.repo.repo}` })
+    }
+    else {
+      await exec('git', ['push', 'origin', prData.head.ref], { cwd: `../${context.repo.repo}` })
+    }
   }
 }
