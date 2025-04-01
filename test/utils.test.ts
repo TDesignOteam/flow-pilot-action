@@ -12,7 +12,7 @@ import {
   parseMarkdown,
   renderChangelogMarkdown,
   stashPullRequestChangelog,
-} from '../src/utils'
+} from '../src/utils/common'
 
 describe('utils', () => {
   it('parseMarkdown', () => {

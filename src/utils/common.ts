@@ -1,6 +1,6 @@
 import type { Package } from '@manypkg/get-packages'
 import type { Tokens, TokensList } from 'marked'
-import type { PackagesChangelog, PullRequestData, PullRequestFiles } from './types'
+import type { PackagesChangelog, PullRequestData, PullRequestFiles } from '../types'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { context } from '@actions/github/lib/utils'
@@ -8,7 +8,7 @@ import { getPackagesSync } from '@manypkg/get-packages'
 import camelcase from 'camelcase'
 import { globSync } from 'glob'
 import { marked } from 'marked'
-import { CHANGELOG_REG, NEW_VERSION_REG, OLD_VERSION_REG, SKIP_CHANGELOG_REG } from './consts'
+import { CHANGELOG_REG, NEW_VERSION_REG, OLD_VERSION_REG, SKIP_CHANGELOG_REG } from '../consts'
 
 export function pascalCase(str: string) {
   return camelcase(str, { pascalCase: true })

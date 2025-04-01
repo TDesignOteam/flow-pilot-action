@@ -1,8 +1,11 @@
+import type { PullRequestData } from './types'
 import { endGroup, error, getInput, info, startGroup } from '@actions/core'
-import { context } from '@actions/github'
 
-import useGithub from './github'
-import { extractChangelog, getPullRequestNumber } from './utils'
+import { exec } from '@actions/exec'
+import { context } from '@actions/github'
+import { extractChangelog, getPackages, getPullRequestNumber, stashPullRequestChangelog } from './utils'
+import useGit from './utils/git'
+import useGithub from './utils/github'
 
 export async function main() {
   const token = getInput('token')
@@ -20,7 +23,7 @@ export async function main() {
     return
   }
   const { getPullRequestData, addComment } = useGithub(token)
-  const prData = await getPullRequestData(prNumber)
+  const prData = await getPullRequestData(prNumber) as PullRequestData
   const isRelease = prData.head.ref.startsWith('release/')
   startGroup('prData')
   info(`prData: ${JSON.stringify(prData, null, 2)}`)
@@ -48,5 +51,31 @@ export async function main() {
   if (context.eventName === 'issue_comment' && context.payload.action === 'edited') {
     const prLog = extractChangelog(context.payload.comment?.body || '', packages.split(','))
     info(`confirm_pr_log: ${JSON.stringify(prLog, null, 2)}`)
+    const { cloneRepo, addRemote, checkoutPr, checkoutBranch } = useGit(token)
+    await cloneRepo()
+
+    let isForkPr = false
+    if (prData.head.user.login !== context.repo.owner) {
+      isForkPr = true
+      info(`pr: ${prNumber} 是 fork pr`)
+    }
+    if (isForkPr) {
+      await addRemote(prData.head.user.login, prData.head?.repo?.clone_url || '')
+      await checkoutPr(prNumber)
+      await exec('git', [
+        'branch',
+        '--set-upstream-to',
+        `refs/remotes/${prData.head.user.login}/${prData.head.ref}`,
+        `pr-${prNumber}`,
+      ], { cwd: `../${context.repo.repo}` })
+    }
+    else {
+      await checkoutBranch(prData.head.ref)
+    }
+    const pkgs = getPackages(`../${context.repo.repo}`)
+    stashPullRequestChangelog(prData, pkgs, prLog)
+    await exec('git', [
+      'status',
+    ], { cwd: `../${context.repo.repo}` })
   }
 }

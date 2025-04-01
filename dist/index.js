@@ -45222,72 +45222,6 @@ exports.CHANGELOG_REG = /-\s*([A-Z]+)(?:\(([A-Z\s_-]*)\))?\s*:\s*(.+)/i;
 
 /***/ }),
 
-/***/ 238:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports["default"] = useGithub;
-const github_1 = __nccwpck_require__(2819);
-function useGithub(token) {
-    const octokit = (0, github_1.getOctokit)(token);
-    const { repo, owner } = github_1.context.repo;
-    function getPullRequestData(pr_number) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const { data } = yield octokit.rest.pulls.get({
-                owner,
-                repo,
-                pull_number: pr_number,
-            });
-            return data;
-        });
-    }
-    function getPullRequestFiles(pr_number) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const { data } = yield octokit.rest.pulls.listFiles({
-                owner,
-                repo,
-                pull_number: pr_number,
-            });
-            return data;
-        });
-    }
-    function addComment(pr_number, body) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield octokit.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: pr_number,
-                body,
-            });
-        });
-    }
-    function addPullRequestLabels(pr_number, labels) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield octokit.rest.issues.addLabels({
-                owner,
-                repo,
-                issue_number: pr_number,
-                labels,
-            });
-        });
-    }
-    return { getPullRequestData, getPullRequestFiles, addPullRequestLabels, addComment };
-}
-
-
-/***/ }),
-
 /***/ 3084:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -45308,12 +45242,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.main = main;
 const core_1 = __nccwpck_require__(9999);
+const exec_1 = __nccwpck_require__(8872);
 const github_1 = __nccwpck_require__(2819);
-const github_2 = __importDefault(__nccwpck_require__(238));
-const utils_1 = __nccwpck_require__(6236);
+const utils_1 = __nccwpck_require__(9499);
+const git_1 = __importDefault(__nccwpck_require__(8511));
+const github_2 = __importDefault(__nccwpck_require__(9764));
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a;
+        var _a, _b, _c;
         const token = (0, core_1.getInput)('token');
         const packages = (0, core_1.getInput)('packages') || '';
         (0, core_1.startGroup)('context');
@@ -45354,6 +45290,31 @@ function main() {
         if (github_1.context.eventName === 'issue_comment' && github_1.context.payload.action === 'edited') {
             const prLog = (0, utils_1.extractChangelog)(((_a = github_1.context.payload.comment) === null || _a === void 0 ? void 0 : _a.body) || '', packages.split(','));
             (0, core_1.info)(`confirm_pr_log: ${JSON.stringify(prLog, null, 2)}`);
+            const { cloneRepo, addRemote, checkoutPr, checkoutBranch } = (0, git_1.default)(token);
+            yield cloneRepo();
+            let isForkPr = false;
+            if (prData.head.user.login !== github_1.context.repo.owner) {
+                isForkPr = true;
+                (0, core_1.info)(`pr: ${prNumber} 是 fork pr`);
+            }
+            if (isForkPr) {
+                yield addRemote(prData.head.user.login, ((_c = (_b = prData.head) === null || _b === void 0 ? void 0 : _b.repo) === null || _c === void 0 ? void 0 : _c.clone_url) || '');
+                yield checkoutPr(prNumber);
+                yield (0, exec_1.exec)('git', [
+                    'branch',
+                    '--set-upstream-to',
+                    `refs/remotes/${prData.head.user.login}/${prData.head.ref}`,
+                    `pr-${prNumber}`,
+                ], { cwd: `../${github_1.context.repo.repo}` });
+            }
+            else {
+                yield checkoutBranch(prData.head.ref);
+            }
+            const pkgs = (0, utils_1.getPackages)(`../${github_1.context.repo.repo}`);
+            (0, utils_1.stashPullRequestChangelog)(prData, pkgs, prLog);
+            yield (0, exec_1.exec)('git', [
+                'status',
+            ], { cwd: `../${github_1.context.repo.repo}` });
         }
     });
 }
@@ -45361,7 +45322,7 @@ function main() {
 
 /***/ }),
 
-/***/ 6236:
+/***/ 3942:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -45588,6 +45549,191 @@ function getPullRequestBody() {
     }
     return body;
 }
+
+
+/***/ }),
+
+/***/ 8511:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports["default"] = useGit;
+const exec_1 = __nccwpck_require__(8872);
+const github_1 = __nccwpck_require__(2819);
+function useGit(token) {
+    const { repo, owner } = github_1.context.repo;
+    function cloneRepo() {
+        return __awaiter(this, arguments, void 0, function* (branchName = 'develop') {
+            // const repo_url = `https://${context.token}@github.com/${owner}/${repo}.git`
+            const repo_url = `https://${token}github.com/${owner}/${repo}.git`;
+            yield (0, exec_1.exec)('git', ['clone', '-b', branchName, repo_url, `../${repo}`]);
+        });
+    }
+    function createBranch(branch) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield (0, exec_1.exec)('git', ['checkout', '-b', branch], { cwd: `../${repo}` });
+        });
+    }
+    function checkoutBranch(branch) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield (0, exec_1.exec)('git', ['checkout', branch], { cwd: `../${repo}` });
+        });
+    }
+    function checkoutPr(pr_number) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield (0, exec_1.exec)('git', ['fetch', 'origin', `pull/${pr_number}/head:pr-${pr_number}`], { cwd: `../${repo}` });
+            yield (0, exec_1.exec)('git', ['checkout', `pr-${pr_number}`], { cwd: `../${repo}` });
+        });
+    }
+    function gitCommit(message) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield (0, exec_1.exec)(`git commit -am "${message}" --no-verify`, [], { cwd: `../${repo}` });
+        });
+    }
+    function gitPush(branch) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield (0, exec_1.exec)(`git push origin ${branch}`, [], { cwd: `../${repo}` });
+        });
+    }
+    function initSubmodule() {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield (0, exec_1.exec)('git', ['submodule', 'update', '--init', '--recursive'], { cwd: `../${repo}` });
+        });
+    }
+    function updateSubmodule() {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield (0, exec_1.exec)('git', ['submodule', 'update', '--remote'], { cwd: `../${repo}` });
+        });
+    }
+    function isNeedCommit() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { stdout } = yield (0, exec_1.getExecOutput)('git', ['status'], { cwd: `../${repo}` });
+            return !stdout.includes('nothing to commit, working tree clean');
+        });
+    }
+    function addRemote(origin, gitUrl) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield (0, exec_1.exec)('git', ['remote', 'add', origin, gitUrl], { cwd: `../${repo}` });
+            yield (0, exec_1.exec)('git', ['fetch', origin], { cwd: `../${repo}` });
+        });
+    }
+    return {
+        checkoutPr,
+        cloneRepo,
+        createBranch,
+        gitCommit,
+        gitPush,
+        initSubmodule,
+        updateSubmodule,
+        isNeedCommit,
+        checkoutBranch,
+        addRemote,
+    };
+}
+
+
+/***/ }),
+
+/***/ 9764:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports["default"] = useGithub;
+const github_1 = __nccwpck_require__(2819);
+function useGithub(token) {
+    const octokit = (0, github_1.getOctokit)(token);
+    const { repo, owner } = github_1.context.repo;
+    function getPullRequestData(pr_number) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { data } = yield octokit.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: pr_number,
+            });
+            return data;
+        });
+    }
+    function getPullRequestFiles(pr_number) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { data } = yield octokit.rest.pulls.listFiles({
+                owner,
+                repo,
+                pull_number: pr_number,
+            });
+            return data;
+        });
+    }
+    function addComment(pr_number, body) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield octokit.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pr_number,
+                body,
+            });
+        });
+    }
+    function addPullRequestLabels(pr_number, labels) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield octokit.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: pr_number,
+                labels,
+            });
+        });
+    }
+    return { getPullRequestData, getPullRequestFiles, addPullRequestLabels, addComment };
+}
+
+
+/***/ }),
+
+/***/ 9499:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(3942), exports);
+__exportStar(__nccwpck_require__(8511), exports);
+__exportStar(__nccwpck_require__(9764), exports);
 
 
 /***/ }),
