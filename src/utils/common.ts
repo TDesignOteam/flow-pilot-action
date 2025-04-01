@@ -93,7 +93,10 @@ export function stashPullRequestChangelog(prData: PullRequestData, packages: Pac
       }
       const logs = prChangelog[pkg.packageJson.name].map((log) => {
         return `- ${log} @${prData.user.login} ([#${prData.number}](${prData.html_url}))`
-      }).join('\n')
+      }).filter(n => n).join('\n')
+      if (!logs) {
+        return
+      }
       const content = `${logs}\n`
       info('writeFileSync ' + `${changelogPath}/pr-${prData.number}.md`)
       writeFileSync(`${changelogPath}/pr-${prData.number}.md`, content, { flag: 'w' })

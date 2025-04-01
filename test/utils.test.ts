@@ -1,6 +1,6 @@
 import type { Tokens } from 'marked'
 import type { PullRequestData } from '../src/types'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { pull_request_data, pull_request_files } from '../fixtures/pull_request_data'
 import {
@@ -116,6 +116,10 @@ describe('utils', () => {
       stashPullRequestChangelog(pull_request_data, packages, log)
 
       packages.forEach((pkg) => {
+        if (!existsSync(`${pkg.dir}/.changelog/pr-${pull_request_data.number}.md`)) {
+          return
+        }
+
         const text = readFileSync(`${pkg.dir}/.changelog/pr-${pull_request_data.number}.md`, 'utf8')
         expect(text).toMatchSnapshot()
       })

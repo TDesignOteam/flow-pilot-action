@@ -85,10 +85,6 @@ exports[`utils > stashPullRequestChangelog > stashPullRequestChangelog2 1`] = `
 
 exports[`utils > stashPullRequestChangelog > stashPullRequestChangelog2 2`] = `
 "- other(utils): add \`isBoolean\` function @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
-"
-`;
-
-exports[`utils > stashPullRequestChangelog > stashPullRequestChangelog2 3`] = `
-"- fix(Button): fix Button @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
+- fix(Button): fix Button @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 "
 `;

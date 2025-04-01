@@ -45432,7 +45432,10 @@ function stashPullRequestChangelog(prData, packages, prChangelog) {
             }
             const logs = prChangelog[pkg.packageJson.name].map((log) => {
                 return `- ${log} @${prData.user.login} ([#${prData.number}](${prData.html_url}))`;
-            }).join('\n');
+            }).filter(n => n).join('\n');
+            if (!logs) {
+                return;
+            }
             const content = `${logs}\n`;
             (0, core_1.info)('writeFileSync ' + `${changelogPath}/pr-${prData.number}.md`);
             (0, node_fs_1.writeFileSync)(`${changelogPath}/pr-${prData.number}.md`, content, { flag: 'w' });

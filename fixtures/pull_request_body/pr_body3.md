@@ -64,10 +64,9 @@ PR 在维护者审核通过后会合并，谢谢！
 #### pkg-b
 
 - other(utils): add `isBoolean` function
+- fix(Button): fix Button
 
 #### pkg-c
-
-- fix(Button): fix Button
 
 ### ☑️ 请求合并前的自查清单
 
