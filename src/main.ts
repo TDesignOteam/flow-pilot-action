@@ -24,7 +24,7 @@ export async function main() {
 
   const prLog = extractChangelog(prData.body || '', packages.split(','))
   info(`prLog: ${JSON.stringify(prLog, null, 2)}`)
-  if (!isRelease) {
+  if (!isRelease && context.eventName === 'pull_request') {
     let logs = ''
     Object.keys(prLog).forEach((pkgName) => {
       logs += `### ${pkgName}\n`

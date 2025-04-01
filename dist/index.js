@@ -45330,7 +45330,7 @@ function main() {
         (0, core_1.endGroup)();
         const prLog = (0, utils_1.extractChangelog)(prData.body || '', packages.split(','));
         (0, core_1.info)(`prLog: ${JSON.stringify(prLog, null, 2)}`);
-        if (!isRelease) {
+        if (!isRelease && github_1.context.eventName === 'pull_request') {
             let logs = '';
             Object.keys(prLog).forEach((pkgName) => {
                 logs += `### ${pkgName}\n`;
