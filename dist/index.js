@@ -45333,9 +45333,12 @@ function main() {
         if (!isRelease && github_1.context.eventName === 'pull_request') {
             let logs = '';
             Object.keys(prLog).forEach((pkgName) => {
+                if (!prLog[pkgName].length) {
+                    return;
+                }
                 logs += `### ${pkgName}\n`;
                 prLog[pkgName].forEach((log) => {
-                    logs += `- ${log} @${prData.user.login} ([#${prData.number}](${prData.html_url}))\n`;
+                    logs += `- ${log}\n`;
                 });
             });
             if (logs) {
