@@ -45313,6 +45313,7 @@ const github_2 = __importDefault(__nccwpck_require__(238));
 const utils_1 = __nccwpck_require__(6236);
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a;
         const token = (0, core_1.getInput)('token');
         const packages = (0, core_1.getInput)('packages') || '';
         (0, core_1.startGroup)('context');
@@ -45320,7 +45321,7 @@ function main() {
         (0, core_1.endGroup)();
         (0, core_1.info)(`eventName: ${github_1.context.eventName}`);
         (0, core_1.info)(`action: ${github_1.context.payload.action}`);
-        const prNumber = (0, utils_1.getPullNumber)();
+        const prNumber = (0, utils_1.getPullRequestNumber)();
         (0, core_1.info)(`pr_number: ${prNumber}`);
         if (!prNumber) {
             (0, core_1.error)('没有找到 pr_number');
@@ -45329,13 +45330,13 @@ function main() {
         const { getPullRequestData, addComment } = (0, github_2.default)(token);
         const prData = yield getPullRequestData(prNumber);
         const isRelease = prData.head.ref.startsWith('release/');
-        (0, core_1.startGroup)('context');
+        (0, core_1.startGroup)('prData');
         (0, core_1.info)(`prData: ${JSON.stringify(prData, null, 2)}`);
         (0, core_1.endGroup)();
-        const prLog = (0, utils_1.extractChangelog)(prData.body || '', packages.split(','));
-        (0, core_1.info)(`prLog: ${JSON.stringify(prLog, null, 2)}`);
         if (!isRelease && github_1.context.eventName === 'pull_request') {
             let logs = '';
+            const prLog = (0, utils_1.extractChangelog)(prData.body || '', packages.split(','));
+            (0, core_1.info)(`pr_log: ${JSON.stringify(prLog, null, 2)}`);
             Object.keys(prLog).forEach((pkgName) => {
                 if (!prLog[pkgName].length) {
                     return;
@@ -45347,11 +45348,12 @@ function main() {
             });
             if (logs) {
                 const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的日志暂存区\n';
-                addComment(prNumber, `${logHead}## 更新日志\n\n${logs}`);
+                addComment(prNumber, `${logHead}### 📝 更新日志\n\n${logs}`);
             }
         }
         if (github_1.context.eventName === 'issue_comment' && github_1.context.payload.action === 'edited') {
-            (0, core_1.info)('issue_comment edited');
+            const prLog = (0, utils_1.extractChangelog)(((_a = github_1.context.payload.comment) === null || _a === void 0 ? void 0 : _a.body) || '', packages.split(','));
+            (0, core_1.info)(`confirm_pr_log: ${JSON.stringify(prLog, null, 2)}`);
         }
     });
 }
@@ -45378,7 +45380,8 @@ exports.stashPullRequestChangelog = stashPullRequestChangelog;
 exports.getPullRequestReleaseDirs = getPullRequestReleaseDirs;
 exports.getStashChangelog = getStashChangelog;
 exports.renderChangelogMarkdown = renderChangelogMarkdown;
-exports.getPullNumber = getPullNumber;
+exports.getPullRequestNumber = getPullRequestNumber;
+exports.getPullRequestBody = getPullRequestBody;
 const node_fs_1 = __nccwpck_require__(3024);
 const node_path_1 = __nccwpck_require__(6760);
 const utils_1 = __nccwpck_require__(4655);
@@ -45564,7 +45567,7 @@ function renderChangelog(heading, changelogs) {
     });
     return content;
 }
-function getPullNumber() {
+function getPullRequestNumber() {
     var _a;
     if (utils_1.context.eventName === 'pull_request') {
         return Number(utils_1.context.payload.number);
@@ -45573,6 +45576,17 @@ function getPullNumber() {
         return Number(utils_1.context.payload.issue.number);
     }
     return 0;
+}
+function getPullRequestBody() {
+    var _a, _b, _c;
+    let body = '';
+    if (utils_1.context.eventName === 'pull_request') {
+        body = ((_a = utils_1.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.body) || '';
+    }
+    if (utils_1.context.eventName === 'issue_comment' && ((_b = utils_1.context.payload.issue) === null || _b === void 0 ? void 0 : _b.pull_request)) {
+        body = ((_c = utils_1.context.payload.comment) === null || _c === void 0 ? void 0 : _c.body) || '';
+    }
+    return body;
 }
 
 

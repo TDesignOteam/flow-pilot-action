@@ -206,7 +206,7 @@ function renderChangelog(heading: string, changelogs: Record<string, string[]>) 
   return content
 }
 
-export function getPullNumber() {
+export function getPullRequestNumber() {
   if (context.eventName === 'pull_request') {
     return Number(context.payload.number)
   }
@@ -214,4 +214,15 @@ export function getPullNumber() {
     return Number(context.payload.issue.number)
   }
   return 0
+}
+
+export function getPullRequestBody() {
+  let body = ''
+  if (context.eventName === 'pull_request') {
+    body = context.payload.pull_request?.body || ''
+  }
+  if (context.eventName === 'issue_comment' && context.payload.issue?.pull_request) {
+    body = context.payload.comment?.body || ''
+  }
+  return body
 }
