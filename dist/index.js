@@ -45449,7 +45449,8 @@ function stashPullRequestChangelog(prData, packages, prChangelog) {
             .join('\n');
         if (!logs)
             return;
-        const logContent = `${logs}\n`;
+        const logHead = `---\npr_number:${prData.number}\ncontributor:${prData.user.login}\n---\n\n`;
+        const logContent = `${logHead}${logs}\n`;
         const logFilePath = `${changelogDir}/pr-${prData.number}.md`;
         (0, core_1.info)(`Attempting to write to ${logFilePath}`);
         try {

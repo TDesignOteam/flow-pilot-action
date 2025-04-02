@@ -102,8 +102,8 @@ export function stashPullRequestChangelog(prData: PullRequestData, packages: Pac
 
     if (!logs)
       return
-
-    const logContent = `${logs}\n`
+    const logHead = `---\npr_number:${prData.number}\ncontributor:${prData.user.login}\n---\n\n`
+    const logContent = `${logHead}${logs}\n`
     const logFilePath = `${changelogDir}/pr-${prData.number}.md`
 
     info(`Attempting to write to ${logFilePath}`)
