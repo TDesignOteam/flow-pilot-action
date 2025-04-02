@@ -45322,6 +45322,7 @@ function main() {
             yield (0, exec_1.exec)('ls', ['-la'], { cwd: workPath });
             const pkgs = (0, utils_1.getPackages)(repoPath);
             (0, utils_1.stashPullRequestChangelog)(prData, pkgs, prLog);
+            yield (0, exec_1.exec)('git', ['add', '**/*.md']);
             yield (0, exec_1.exec)('git', [
                 'status',
             ]);
@@ -45329,7 +45330,7 @@ function main() {
                 (0, core_1.info)('无需提交');
                 return true;
             }
-            yield (0, exec_1.exec)('git', ['commit', '-am', 'chore: stash changelog']);
+            yield (0, exec_1.exec)('git', ['commit', '-m', 'chore: stash changelog']);
             if (isForkPr) {
                 yield (0, exec_1.exec)('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`]);
             }

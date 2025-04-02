@@ -86,6 +86,7 @@ export async function main() {
 
     const pkgs = getPackages(repoPath)
     stashPullRequestChangelog(prData, pkgs, prLog)
+    await exec('git', ['add', '**/*.md'])
     await exec('git', [
       'status',
     ])
@@ -93,7 +94,7 @@ export async function main() {
       info('无需提交')
       return true
     }
-    await exec('git', ['commit', '-am', 'chore: stash changelog'])
+    await exec('git', ['commit', '-m', 'chore: stash changelog'])
     if (isForkPr) {
       await exec('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`])
     }
