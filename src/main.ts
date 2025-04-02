@@ -59,6 +59,7 @@ export async function main() {
     await exec('ls', ['-la'])
     await exec('ls', ['-la'], { cwd: workPath })
     await cloneRepo()
+    await exec('ls', ['-la'])
     await exec('ls', ['-la'], { cwd: workPath })
     let isForkPr = false
     if (prData.head.user.login !== context.repo.owner) {
@@ -75,7 +76,7 @@ export async function main() {
         '--set-upstream-to',
         `refs/remotes/${prData.head.user.login}/${prData.head.ref}`,
         `pr-${prNumber}`,
-      ], { cwd: repoPath })
+      ])
     }
     else {
       await checkoutBranch(prData.head.ref)
@@ -87,17 +88,17 @@ export async function main() {
     stashPullRequestChangelog(prData, pkgs, prLog)
     await exec('git', [
       'status',
-    ], { cwd: workPath })
+    ])
     if (!await isNeedCommit()) {
       info('无需提交')
       return true
     }
-    await exec('git', ['commit', '-am', 'chore: stash changelog'], { cwd: workPath })
+    await exec('git', ['commit', '-am', 'chore: stash changelog'])
     if (isForkPr) {
-      await exec('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`], { cwd: repoPath })
+      await exec('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`])
     }
     else {
-      await exec('git', ['push', 'origin', prData.head.ref], { cwd: workPath })
+      await exec('git', ['push', 'origin', prData.head.ref])
     }
   }
 }
