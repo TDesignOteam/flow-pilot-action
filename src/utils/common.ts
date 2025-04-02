@@ -4,6 +4,7 @@ import type { PackagesChangelog, PullRequestData, PullRequestFiles } from '../ty
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { info } from '@actions/core'
+import { exec } from '@actions/exec'
 import { context } from '@actions/github/lib/utils'
 import { getPackagesSync } from '@manypkg/get-packages'
 import camelcase from 'camelcase'
@@ -85,7 +86,7 @@ export function getPackages(path: string) {
 }
 
 export function stashPullRequestChangelog(prData: PullRequestData, packages: Package[], prChangelog: PackagesChangelog) {
-  packages.forEach((pkg) => {
+  packages.forEach(async (pkg) => {
     if (prChangelog[pkg.packageJson.name]) {
       const changelogPath = `${pkg.dir}/.changelog`
       if (!existsSync(changelogPath)) {
@@ -98,10 +99,13 @@ export function stashPullRequestChangelog(prData: PullRequestData, packages: Pac
         return
       }
       const content = `${logs}\n`
+      await exec('ls', ['-la'], { cwd: changelogPath })
       info('writeFileSync ' + `${changelogPath}/pr-${prData.number}.md`)
       try {
         writeFileSync(`${changelogPath}/pr-${prData.number}.md`, content, 'utf8')
+        await exec('ls', ['-la'], { cwd: changelogPath })
       }
+
       catch (error) {
         info(`Failed to write changelog file: ${error}`)
       }

@@ -45241,6 +45241,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.main = main;
+const node_path_1 = __nccwpck_require__(6760);
+const node_process_1 = __importDefault(__nccwpck_require__(1708));
 const core_1 = __nccwpck_require__(9999);
 const exec_1 = __nccwpck_require__(8872);
 const github_1 = __nccwpck_require__(2819);
@@ -45252,6 +45254,7 @@ function main() {
         var _a, _b, _c;
         const token = (0, core_1.getInput)('token');
         const packages = (0, core_1.getInput)('packages') || '';
+        const workPath = node_process_1.default.env.GITHUB_WORKSPACE || node_process_1.default.cwd();
         (0, core_1.startGroup)('context');
         (0, core_1.info)(`context: ${JSON.stringify(github_1.context, null, 2)}`);
         (0, core_1.endGroup)();
@@ -45297,6 +45300,7 @@ function main() {
                 isForkPr = true;
                 (0, core_1.info)(`pr: ${prNumber} 是 fork pr`);
             }
+            const repoPath = (0, node_path_1.join)(workPath, github_1.context.repo.repo);
             if (isForkPr) {
                 yield addRemote(prData.head.user.login, ((_c = (_b = prData.head) === null || _b === void 0 ? void 0 : _b.repo) === null || _c === void 0 ? void 0 : _c.clone_url) || '');
                 yield checkoutPr(prNumber);
@@ -45305,26 +45309,27 @@ function main() {
                     '--set-upstream-to',
                     `refs/remotes/${prData.head.user.login}/${prData.head.ref}`,
                     `pr-${prNumber}`,
-                ], { cwd: `../${github_1.context.repo.repo}` });
+                ], { cwd: repoPath });
             }
             else {
                 yield checkoutBranch(prData.head.ref);
             }
-            const pkgs = (0, utils_1.getPackages)(`../${github_1.context.repo.repo}`);
+            yield (0, exec_1.exec)('ls', ['-la'], { cwd: repoPath });
+            const pkgs = (0, utils_1.getPackages)(repoPath);
             (0, utils_1.stashPullRequestChangelog)(prData, pkgs, prLog);
             yield (0, exec_1.exec)('git', [
                 'status',
-            ], { cwd: `../${github_1.context.repo.repo}` });
+            ], { cwd: repoPath });
             if (!(yield isNeedCommit())) {
                 (0, core_1.info)('无需提交');
                 return true;
             }
-            yield (0, exec_1.exec)('git', ['commit', '-am', 'chore: stash changelog'], { cwd: `../${github_1.context.repo.repo}` });
+            yield (0, exec_1.exec)('git', ['commit', '-am', 'chore: stash changelog'], { cwd: repoPath });
             if (isForkPr) {
-                yield (0, exec_1.exec)('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`], { cwd: `../${github_1.context.repo.repo}` });
+                yield (0, exec_1.exec)('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`], { cwd: repoPath });
             }
             else {
-                yield (0, exec_1.exec)('git', ['push', 'origin', prData.head.ref], { cwd: `../${github_1.context.repo.repo}` });
+                yield (0, exec_1.exec)('git', ['push', 'origin', prData.head.ref], { cwd: repoPath });
             }
         }
     });
@@ -45338,6 +45343,15 @@ function main() {
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -45357,6 +45371,7 @@ exports.getPullRequestBody = getPullRequestBody;
 const node_fs_1 = __nccwpck_require__(3024);
 const node_path_1 = __nccwpck_require__(6760);
 const core_1 = __nccwpck_require__(9999);
+const exec_1 = __nccwpck_require__(8872);
 const utils_1 = __nccwpck_require__(4655);
 const get_packages_1 = __nccwpck_require__(713);
 const camelcase_1 = __importDefault(__nccwpck_require__(6249));
@@ -45424,7 +45439,7 @@ function getPackages(path) {
     return packages.filter(pkg => { var _a; return ((_a = pkg.packageJson) === null || _a === void 0 ? void 0 : _a.private) !== true; });
 }
 function stashPullRequestChangelog(prData, packages, prChangelog) {
-    packages.forEach((pkg) => {
+    packages.forEach((pkg) => __awaiter(this, void 0, void 0, function* () {
         if (prChangelog[pkg.packageJson.name]) {
             const changelogPath = `${pkg.dir}/.changelog`;
             if (!(0, node_fs_1.existsSync)(changelogPath)) {
@@ -45437,16 +45452,18 @@ function stashPullRequestChangelog(prData, packages, prChangelog) {
                 return;
             }
             const content = `${logs}\n`;
+            yield (0, exec_1.exec)('ls', ['-la'], { cwd: changelogPath });
             (0, core_1.info)('writeFileSync ' + `${changelogPath}/pr-${prData.number}.md`);
             try {
                 (0, node_fs_1.writeFileSync)(`${changelogPath}/pr-${prData.number}.md`, content, 'utf8');
+                yield (0, exec_1.exec)('ls', ['-la'], { cwd: changelogPath });
             }
             catch (error) {
                 (0, core_1.info)(`Failed to write changelog file: ${error}`);
             }
             (0, core_1.info)(`Changelog written to ${changelogPath}/pr-${prData.number}.md`);
         }
-    });
+    }));
 }
 function getPullRequestReleaseDirs(prFiles) {
     return prFiles.filter((file) => {
@@ -45912,6 +45929,14 @@ module.exports = require("node:fs/promises");
 
 "use strict";
 module.exports = require("node:path");
+
+/***/ }),
+
+/***/ 1708:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:process");
 
 /***/ }),
 

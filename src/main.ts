@@ -1,6 +1,8 @@
 import type { PullRequestData } from './types'
-import { endGroup, error, getInput, info, startGroup } from '@actions/core'
+import { join } from 'node:path'
+import process from 'node:process'
 
+import { endGroup, error, getInput, info, startGroup } from '@actions/core'
 import { exec } from '@actions/exec'
 import { context } from '@actions/github'
 import { extractChangelog, getPackages, getPullRequestNumber, stashPullRequestChangelog } from './utils'
@@ -10,6 +12,7 @@ import useGithub from './utils/github'
 export async function main() {
   const token = getInput('token')
   const packages = getInput('packages') || ''
+  const workPath = process.env.GITHUB_WORKSPACE || process.cwd()
 
   startGroup('context')
   info(`context: ${JSON.stringify(context, null, 2)}`)
@@ -59,6 +62,7 @@ export async function main() {
       isForkPr = true
       info(`pr: ${prNumber} 是 fork pr`)
     }
+    const repoPath = join(workPath, context.repo.repo)
     if (isForkPr) {
       await addRemote(prData.head.user.login, prData.head?.repo?.clone_url || '')
       await checkoutPr(prNumber)
@@ -67,26 +71,29 @@ export async function main() {
         '--set-upstream-to',
         `refs/remotes/${prData.head.user.login}/${prData.head.ref}`,
         `pr-${prNumber}`,
-      ], { cwd: `../${context.repo.repo}` })
+      ], { cwd: repoPath })
     }
     else {
       await checkoutBranch(prData.head.ref)
     }
-    const pkgs = getPackages(`../${context.repo.repo}`)
+
+    await exec('ls', ['-la'], { cwd: repoPath })
+
+    const pkgs = getPackages(repoPath)
     stashPullRequestChangelog(prData, pkgs, prLog)
     await exec('git', [
       'status',
-    ], { cwd: `../${context.repo.repo}` })
+    ], { cwd: repoPath })
     if (!await isNeedCommit()) {
       info('无需提交')
       return true
     }
-    await exec('git', ['commit', '-am', 'chore: stash changelog'], { cwd: `../${context.repo.repo}` })
+    await exec('git', ['commit', '-am', 'chore: stash changelog'], { cwd: repoPath })
     if (isForkPr) {
-      await exec('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`], { cwd: `../${context.repo.repo}` })
+      await exec('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`], { cwd: repoPath })
     }
     else {
-      await exec('git', ['push', 'origin', prData.head.ref], { cwd: `../${context.repo.repo}` })
+      await exec('git', ['push', 'origin', prData.head.ref], { cwd: repoPath })
     }
   }
 }
