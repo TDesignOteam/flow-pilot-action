@@ -45349,15 +45349,6 @@ function main() {
 
 "use strict";
 
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -45377,7 +45368,6 @@ exports.getPullRequestBody = getPullRequestBody;
 const node_fs_1 = __nccwpck_require__(3024);
 const node_path_1 = __nccwpck_require__(6760);
 const core_1 = __nccwpck_require__(9999);
-const exec_1 = __nccwpck_require__(8872);
 const utils_1 = __nccwpck_require__(4655);
 const get_packages_1 = __nccwpck_require__(713);
 const camelcase_1 = __importDefault(__nccwpck_require__(6249));
@@ -45445,31 +45435,31 @@ function getPackages(path) {
     return packages.filter(pkg => { var _a; return ((_a = pkg.packageJson) === null || _a === void 0 ? void 0 : _a.private) !== true; });
 }
 function stashPullRequestChangelog(prData, packages, prChangelog) {
-    packages.forEach((pkg) => __awaiter(this, void 0, void 0, function* () {
-        if (prChangelog[pkg.packageJson.name]) {
-            const changelogPath = `${pkg.dir}/.changelog`;
-            if (!(0, node_fs_1.existsSync)(changelogPath)) {
-                (0, node_fs_1.mkdirSync)(changelogPath, { recursive: true });
-            }
-            const logs = prChangelog[pkg.packageJson.name].map((log) => {
-                return `- ${log} @${prData.user.login} ([#${prData.number}](${prData.html_url}))`;
-            }).filter(n => n).join('\n');
-            if (!logs) {
-                return;
-            }
-            const content = `${logs}\n`;
-            yield (0, exec_1.exec)('ls', ['-la'], { cwd: changelogPath });
-            (0, core_1.info)('writeFileSync ' + `${changelogPath}/pr-${prData.number}.md`);
-            try {
-                (0, node_fs_1.writeFileSync)(`${changelogPath}/pr-${prData.number}.md`, content, 'utf8');
-                yield (0, exec_1.exec)('ls', ['-la'], { cwd: changelogPath });
-            }
-            catch (error) {
-                (0, core_1.info)(`Failed to write changelog file: ${error}`);
-            }
-            (0, core_1.info)(`Changelog written to ${changelogPath}/pr-${prData.number}.md`);
+    packages.forEach((pkg) => {
+        const changelogData = prChangelog[pkg.packageJson.name];
+        if (!changelogData)
+            return;
+        const changelogDir = `${pkg.dir}/.changelog`;
+        if (!(0, node_fs_1.existsSync)(changelogDir)) {
+            (0, node_fs_1.mkdirSync)(changelogDir, { recursive: true });
         }
-    }));
+        const logs = changelogData
+            .map(log => `- ${log} @${prData.user.login} ([#${prData.number}](${prData.html_url}))`)
+            .filter(Boolean)
+            .join('\n');
+        if (!logs)
+            return;
+        const logContent = `${logs}\n`;
+        const logFilePath = `${changelogDir}/pr-${prData.number}.md`;
+        (0, core_1.info)(`Attempting to write to ${logFilePath}`);
+        try {
+            (0, node_fs_1.writeFileSync)(logFilePath, logContent, 'utf8');
+            (0, core_1.info)(`Successfully wrote changelog to ${logFilePath}`);
+        }
+        catch (error) {
+            (0, core_1.info)(`Failed to write changelog to ${logFilePath}: ${error.message}`);
+        }
+    });
 }
 function getPullRequestReleaseDirs(prFiles) {
     return prFiles.filter((file) => {

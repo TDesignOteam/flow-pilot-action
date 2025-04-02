@@ -4,7 +4,6 @@ import type { PackagesChangelog, PullRequestData, PullRequestFiles } from '../ty
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { info } from '@actions/core'
-import { exec } from '@actions/exec'
 import { context } from '@actions/github/lib/utils'
 import { getPackagesSync } from '@manypkg/get-packages'
 import camelcase from 'camelcase'
@@ -86,30 +85,34 @@ export function getPackages(path: string) {
 }
 
 export function stashPullRequestChangelog(prData: PullRequestData, packages: Package[], prChangelog: PackagesChangelog) {
-  packages.forEach(async (pkg) => {
-    if (prChangelog[pkg.packageJson.name]) {
-      const changelogPath = `${pkg.dir}/.changelog`
-      if (!existsSync(changelogPath)) {
-        mkdirSync(changelogPath, { recursive: true })
-      }
-      const logs = prChangelog[pkg.packageJson.name].map((log) => {
-        return `- ${log} @${prData.user.login} ([#${prData.number}](${prData.html_url}))`
-      }).filter(n => n).join('\n')
-      if (!logs) {
-        return
-      }
-      const content = `${logs}\n`
-      await exec('ls', ['-la'], { cwd: changelogPath })
-      info('writeFileSync ' + `${changelogPath}/pr-${prData.number}.md`)
-      try {
-        writeFileSync(`${changelogPath}/pr-${prData.number}.md`, content, 'utf8')
-        await exec('ls', ['-la'], { cwd: changelogPath })
-      }
+  packages.forEach((pkg) => {
+    const changelogData = prChangelog[pkg.packageJson.name]
+    if (!changelogData)
+      return
 
-      catch (error) {
-        info(`Failed to write changelog file: ${error}`)
-      }
-      info(`Changelog written to ${changelogPath}/pr-${prData.number}.md`)
+    const changelogDir = `${pkg.dir}/.changelog`
+    if (!existsSync(changelogDir)) {
+      mkdirSync(changelogDir, { recursive: true })
+    }
+
+    const logs = changelogData
+      .map(log => `- ${log} @${prData.user.login} ([#${prData.number}](${prData.html_url}))`)
+      .filter(Boolean)
+      .join('\n')
+
+    if (!logs)
+      return
+
+    const logContent = `${logs}\n`
+    const logFilePath = `${changelogDir}/pr-${prData.number}.md`
+
+    info(`Attempting to write to ${logFilePath}`)
+    try {
+      writeFileSync(logFilePath, logContent, 'utf8')
+      info(`Successfully wrote changelog to ${logFilePath}`)
+    }
+    catch (error) {
+      info(`Failed to write changelog to ${logFilePath}: ${error.message}`)
     }
   })
 }
