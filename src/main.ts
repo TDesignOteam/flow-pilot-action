@@ -55,6 +55,7 @@ export async function main() {
     const prLog = extractChangelog(context.payload.comment?.body || '', packages.split(','))
     info(`confirm_pr_log: ${JSON.stringify(prLog, null, 2)}`)
     const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = useGit(token)
+    await exec('ls', ['-la'], { cwd: workPath })
     await cloneRepo()
     await exec('ls', ['-la'], { cwd: workPath })
     let isForkPr = false
