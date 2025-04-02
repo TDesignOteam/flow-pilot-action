@@ -45295,6 +45295,7 @@ function main() {
             (0, core_1.info)(`confirm_pr_log: ${JSON.stringify(prLog, null, 2)}`);
             const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = (0, git_1.default)(token);
             yield cloneRepo();
+            yield (0, exec_1.exec)('ls', ['-la'], { cwd: workPath });
             let isForkPr = false;
             if (prData.head.user.login !== github_1.context.repo.owner) {
                 isForkPr = true;
@@ -45309,27 +45310,27 @@ function main() {
                     '--set-upstream-to',
                     `refs/remotes/${prData.head.user.login}/${prData.head.ref}`,
                     `pr-${prNumber}`,
-                ], { cwd: repoPath });
+                ], { cwd: workPath });
             }
             else {
                 yield checkoutBranch(prData.head.ref);
             }
-            yield (0, exec_1.exec)('ls', ['-la'], { cwd: repoPath });
+            yield (0, exec_1.exec)('ls', ['-la'], { cwd: workPath });
             const pkgs = (0, utils_1.getPackages)(repoPath);
             (0, utils_1.stashPullRequestChangelog)(prData, pkgs, prLog);
             yield (0, exec_1.exec)('git', [
                 'status',
-            ], { cwd: repoPath });
+            ], { cwd: workPath });
             if (!(yield isNeedCommit())) {
                 (0, core_1.info)('无需提交');
                 return true;
             }
-            yield (0, exec_1.exec)('git', ['commit', '-am', 'chore: stash changelog'], { cwd: repoPath });
+            yield (0, exec_1.exec)('git', ['commit', '-am', 'chore: stash changelog'], { cwd: workPath });
             if (isForkPr) {
                 yield (0, exec_1.exec)('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`], { cwd: repoPath });
             }
             else {
-                yield (0, exec_1.exec)('git', ['push', 'origin', prData.head.ref], { cwd: repoPath });
+                yield (0, exec_1.exec)('git', ['push', 'origin', prData.head.ref], { cwd: workPath });
             }
         }
     });

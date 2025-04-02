@@ -56,13 +56,14 @@ export async function main() {
     info(`confirm_pr_log: ${JSON.stringify(prLog, null, 2)}`)
     const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = useGit(token)
     await cloneRepo()
-
+    await exec('ls', ['-la'], { cwd: workPath })
     let isForkPr = false
     if (prData.head.user.login !== context.repo.owner) {
       isForkPr = true
       info(`pr: ${prNumber} 是 fork pr`)
     }
     const repoPath = join(workPath, context.repo.repo)
+
     if (isForkPr) {
       await addRemote(prData.head.user.login, prData.head?.repo?.clone_url || '')
       await checkoutPr(prNumber)
@@ -71,29 +72,29 @@ export async function main() {
         '--set-upstream-to',
         `refs/remotes/${prData.head.user.login}/${prData.head.ref}`,
         `pr-${prNumber}`,
-      ], { cwd: repoPath })
+      ], { cwd: workPath })
     }
     else {
       await checkoutBranch(prData.head.ref)
     }
 
-    await exec('ls', ['-la'], { cwd: repoPath })
+    await exec('ls', ['-la'], { cwd: workPath })
 
     const pkgs = getPackages(repoPath)
     stashPullRequestChangelog(prData, pkgs, prLog)
     await exec('git', [
       'status',
-    ], { cwd: repoPath })
+    ], { cwd: workPath })
     if (!await isNeedCommit()) {
       info('无需提交')
       return true
     }
-    await exec('git', ['commit', '-am', 'chore: stash changelog'], { cwd: repoPath })
+    await exec('git', ['commit', '-am', 'chore: stash changelog'], { cwd: workPath })
     if (isForkPr) {
       await exec('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`], { cwd: repoPath })
     }
     else {
-      await exec('git', ['push', 'origin', prData.head.ref], { cwd: repoPath })
+      await exec('git', ['push', 'origin', prData.head.ref], { cwd: workPath })
     }
   }
 }
