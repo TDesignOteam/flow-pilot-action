@@ -45622,7 +45622,7 @@ function useGit(token) {
             // const repo_url = `https://${context.token}@github.com/${owner}/${repo}.git`
             const repo_url = `https://${token}@github.com/${owner}/${repo}.git`;
             // await exec('git', ['clone', '-b', branchName, repo_url, `../${repo}`])
-            yield (0, exec_1.exec)('git', ['clone', repo_url]);
+            yield (0, exec_1.exec)('git', ['clone', repo_url, '.']);
             yield (0, exec_1.exec)(`git config --global user.email "tdesign@tencent.com"`);
             yield (0, exec_1.exec)(`git config --global user.name "tdesign-bot"`);
         });
