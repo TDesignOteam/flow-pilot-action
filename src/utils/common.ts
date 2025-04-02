@@ -1,7 +1,7 @@
 import type { Package } from '@manypkg/get-packages'
 import type { Tokens, TokensList } from 'marked'
 import type { PackagesChangelog, PullRequestData, PullRequestFiles } from '../types'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { info } from '@actions/core'
 import { context } from '@actions/github/lib/utils'
@@ -100,11 +100,15 @@ export function stashPullRequestChangelog(prData: PullRequestData, packages: Pac
       .filter(Boolean)
       .join('\n')
 
-    if (!logs)
+    const logFilePath = `${changelogDir}/pr-${prData.number}.md`
+    if (!logs) {
+      if (existsSync(logFilePath)) {
+        unlinkSync(logFilePath)
+      }
       return
+    }
     const logHead = `---\npr_number:${prData.number}\ncontributor:${prData.user.login}\n---\n\n`
     const logContent = `${logHead}${logs}\n`
-    const logFilePath = `${changelogDir}/pr-${prData.number}.md`
 
     info(`Attempting to write to ${logFilePath}`)
     try {

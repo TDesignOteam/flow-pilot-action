@@ -45447,11 +45447,15 @@ function stashPullRequestChangelog(prData, packages, prChangelog) {
             .map(log => `- ${log} @${prData.user.login} ([#${prData.number}](${prData.html_url}))`)
             .filter(Boolean)
             .join('\n');
-        if (!logs)
+        const logFilePath = `${changelogDir}/pr-${prData.number}.md`;
+        if (!logs) {
+            if ((0, node_fs_1.existsSync)(logFilePath)) {
+                (0, node_fs_1.unlinkSync)(logFilePath);
+            }
             return;
+        }
         const logHead = `---\npr_number:${prData.number}\ncontributor:${prData.user.login}\n---\n\n`;
         const logContent = `${logHead}${logs}\n`;
-        const logFilePath = `${changelogDir}/pr-${prData.number}.md`;
         (0, core_1.info)(`Attempting to write to ${logFilePath}`);
         try {
             (0, node_fs_1.writeFileSync)(logFilePath, logContent, 'utf8');
