@@ -45294,6 +45294,8 @@ function main() {
             const prLog = (0, utils_1.extractChangelog)(((_a = github_1.context.payload.comment) === null || _a === void 0 ? void 0 : _a.body) || '', packages.split(','));
             (0, core_1.info)(`confirm_pr_log: ${JSON.stringify(prLog, null, 2)}`);
             const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = (0, git_1.default)(token);
+            yield (0, exec_1.exec)('pwd');
+            yield (0, exec_1.exec)('ls', ['-la']);
             yield (0, exec_1.exec)('ls', ['-la'], { cwd: workPath });
             yield cloneRepo();
             yield (0, exec_1.exec)('ls', ['-la'], { cwd: workPath });
@@ -45311,7 +45313,7 @@ function main() {
                     '--set-upstream-to',
                     `refs/remotes/${prData.head.user.login}/${prData.head.ref}`,
                     `pr-${prNumber}`,
-                ], { cwd: workPath });
+                ], { cwd: repoPath });
             }
             else {
                 yield checkoutBranch(prData.head.ref);
@@ -45619,7 +45621,7 @@ function useGit(token) {
             // const repo_url = `https://${context.token}@github.com/${owner}/${repo}.git`
             const repo_url = `https://${token}@github.com/${owner}/${repo}.git`;
             // await exec('git', ['clone', '-b', branchName, repo_url, `../${repo}`])
-            yield (0, exec_1.exec)('git', ['clone', repo_url, `../${repo}`]);
+            yield (0, exec_1.exec)('git', ['clone', repo_url, `./${repo}`]);
             yield (0, exec_1.exec)(`git config --global user.email "tdesign@tencent.com"`);
             yield (0, exec_1.exec)(`git config --global user.name "tdesign-bot"`);
         });

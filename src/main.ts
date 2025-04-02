@@ -55,6 +55,8 @@ export async function main() {
     const prLog = extractChangelog(context.payload.comment?.body || '', packages.split(','))
     info(`confirm_pr_log: ${JSON.stringify(prLog, null, 2)}`)
     const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = useGit(token)
+    await exec('pwd')
+    await exec('ls', ['-la'])
     await exec('ls', ['-la'], { cwd: workPath })
     await cloneRepo()
     await exec('ls', ['-la'], { cwd: workPath })
@@ -73,7 +75,7 @@ export async function main() {
         '--set-upstream-to',
         `refs/remotes/${prData.head.user.login}/${prData.head.ref}`,
         `pr-${prNumber}`,
-      ], { cwd: workPath })
+      ], { cwd: repoPath })
     }
     else {
       await checkoutBranch(prData.head.ref)

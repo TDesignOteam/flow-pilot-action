@@ -7,7 +7,7 @@ export default function useGit(token: string) {
     // const repo_url = `https://${context.token}@github.com/${owner}/${repo}.git`
     const repo_url = `https://${token}@github.com/${owner}/${repo}.git`
     // await exec('git', ['clone', '-b', branchName, repo_url, `../${repo}`])
-    await exec('git', ['clone', repo_url, `../${repo}`])
+    await exec('git', ['clone', repo_url, `./${repo}`])
     await exec(`git config --global user.email "tdesign@tencent.com"`)
     await exec(`git config --global user.name "tdesign-bot"`)
   }
