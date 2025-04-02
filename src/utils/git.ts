@@ -4,12 +4,14 @@ import { context } from '@actions/github'
 export default function useGit(token: string) {
   const { repo, owner } = context.repo
   async function cloneRepo() {
-    // const repo_url = `https://${context.token}@github.com/${owner}/${repo}.git`
-    const repo_url = `https://${token}@github.com/${owner}/${repo}.git`
-    // await exec('git', ['clone', '-b', branchName, repo_url, `../${repo}`])
-    await exec('git', ['clone', repo_url, '.'])
     await exec(`git config --global user.email "tdesign@tencent.com"`)
     await exec(`git config --global user.name "tdesign-bot"`)
+    await exec('git', ['config', '--global', `url.https://${token}@github.com/.insteadOf`, 'https://github.com/'])
+
+    // const repo_url = `https://${context.token}@github.com/${owner}/${repo}.git`
+    const repo_url = `https://github.com/${owner}/${repo}.git`
+    // await exec('git', ['clone', '-b', branchName, repo_url, `../${repo}`])
+    await exec('git', ['clone', repo_url, '.'])
   }
   async function createBranch(branch: string) {
     await exec('git', ['checkout', '-b', branch])
