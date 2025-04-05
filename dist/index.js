@@ -45360,8 +45360,8 @@ function pull_request(token) {
         releaseDirs.forEach((dir) => {
             const changelogs = (0, utils_1.getStashChangelog)(dir.pkg);
             (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
-            const md = (0, utils_1.renderChangelogMarkdown)(changelogs);
-            addComment(prNumber, `#${dir.pkg}\n#4${dir.version}\n${md}`);
+            const md = (0, utils_1.renderChangelogMarkdown)(changelogs.changelogs);
+            addComment(prNumber, `#${changelogs.pkg}\n#${changelogs.version}\n${md}`);
         });
     });
 }
@@ -45551,8 +45551,6 @@ function getStashChangelog(path) {
     const packageJson = (0, node_fs_1.readFileSync)(`${path}/package.json`, 'utf8');
     const pkg = JSON.parse(packageJson);
     const changelogs = [];
-    changelogs.push(`# ${pkg.name}`);
-    changelogs.push(`## 🌈 ${pkg.version}`);
     files.forEach((file) => {
         (0, node_fs_1.readFileSync)(file, 'utf8').split('\n').forEach((line) => {
             if (line && line.startsWith('- ')) {
@@ -45560,7 +45558,7 @@ function getStashChangelog(path) {
             }
         });
     });
-    return changelogs;
+    return { pkg: pkg.name, version: pkg.version, changelogs };
 }
 function renderChangelogMarkdown(changelogs) {
     const featList = {};

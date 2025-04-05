@@ -161,8 +161,6 @@ export function getStashChangelog(path: string) {
   const packageJson = readFileSync(`${path}/package.json`, 'utf8')
   const pkg = JSON.parse(packageJson)
   const changelogs: string[] = []
-  changelogs.push(`# ${pkg.name}`)
-  changelogs.push(`## 🌈 ${pkg.version}`)
   files.forEach((file) => {
     readFileSync(file, 'utf8').split('\n').forEach((line) => {
       if (line && line.startsWith('- ')) {
@@ -171,7 +169,7 @@ export function getStashChangelog(path: string) {
     },
     )
   })
-  return changelogs
+  return { pkg: pkg.name, version: pkg.version, changelogs }
 }
 
 export function renderChangelogMarkdown(changelogs: string[]) {

@@ -143,7 +143,7 @@ describe('utils', () => {
 
   it('renderChangelogMarkdown', () => {
     const changelog = getStashChangelog('./fixtures/repo2/packages/pkg-a')
-    const md = renderChangelogMarkdown(changelog)
+    const md = renderChangelogMarkdown(changelog.changelogs)
     expect(md).toMatchSnapshot()
   })
 })

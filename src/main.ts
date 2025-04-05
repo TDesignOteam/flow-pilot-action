@@ -125,9 +125,9 @@ async function pull_request(token: string) {
   releaseDirs.forEach((dir) => {
     const changelogs = getStashChangelog(dir.pkg)
     info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
-    const md = renderChangelogMarkdown(changelogs)
+    const md = renderChangelogMarkdown(changelogs.changelogs)
 
-    addComment(prNumber, `#${dir.pkg}\n#4${dir.version}\n${md}`)
+    addComment(prNumber, `#${changelogs.pkg}\n#${changelogs.version}\n${md}`)
   })
 }
 
