@@ -156,7 +156,7 @@ export function getStashChangelog(path: string) {
   const changelogs: string[] = []
   files.forEach((file) => {
     readFileSync(file, 'utf8').split('\n').forEach((line) => {
-      if (line) {
+      if (line && line.startsWith('- ')) {
         changelogs.push(line)
       }
     },

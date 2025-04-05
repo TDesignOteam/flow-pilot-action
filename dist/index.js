@@ -45539,7 +45539,7 @@ function getStashChangelog(path) {
     const changelogs = [];
     files.forEach((file) => {
         (0, node_fs_1.readFileSync)(file, 'utf8').split('\n').forEach((line) => {
-            if (line) {
+            if (line && line.startsWith('- ')) {
                 changelogs.push(line);
             }
         });
