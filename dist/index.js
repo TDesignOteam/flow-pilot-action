@@ -45323,7 +45323,8 @@ function pull_request(token) {
             return false;
         }
         const prNumber = (0, utils_1.getPullRequestNumber)();
-        const { getPullRequestData, addComment } = (0, github_2.default)(token);
+        const { getPullRequestData, addComment, getPullRequestFiles } = (0, github_2.default)(token);
+        const { cloneRepo, checkoutBranch } = (0, git_1.default)(token);
         const prData = yield getPullRequestData(prNumber);
         const isRelease = checkReleaseBranch(prData);
         if (!isRelease) {
@@ -45344,6 +45345,14 @@ function pull_request(token) {
                 addComment(prNumber, `${logHead}### 📝 更新日志\n\n${logs}`);
             }
         }
+        else {
+            yield cloneRepo();
+            checkoutBranch(prData.head.ref);
+        }
+        const changeFiles = yield getPullRequestFiles(prNumber);
+        (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
+        const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
+        (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
     });
 }
 function checkReleaseBranch(prData) {

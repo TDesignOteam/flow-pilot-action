@@ -4,7 +4,7 @@ import process from 'node:process'
 import { endGroup, getInput, info, startGroup } from '@actions/core'
 import { exec } from '@actions/exec'
 import { context } from '@actions/github'
-import { extractChangelog, getPackages, getPullRequestNumber, stashPackageChangelog } from './utils'
+import { extractChangelog, getPackages, getPullRequestNumber, getPullRequestReleaseDirs, stashPackageChangelog } from './utils'
 import useGit from './utils/git'
 import useGithub from './utils/github'
 
@@ -86,7 +86,8 @@ async function pull_request(token: string) {
     return false
   }
   const prNumber = getPullRequestNumber()
-  const { getPullRequestData, addComment } = useGithub(token)
+  const { getPullRequestData, addComment, getPullRequestFiles } = useGithub(token)
+  const { cloneRepo, checkoutBranch } = useGit(token)
 
   const prData = await getPullRequestData(prNumber) as PullRequestData
   const isRelease = checkReleaseBranch(prData)
@@ -109,6 +110,14 @@ async function pull_request(token: string) {
       addComment(prNumber, `${logHead}### 📝 更新日志\n\n${logs}`)
     }
   }
+  else {
+    await cloneRepo()
+    checkoutBranch(prData.head.ref)
+  }
+  const changeFiles = await getPullRequestFiles(prNumber)
+  info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
+  const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
+  info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
 }
 
 function checkReleaseBranch(prData: PullRequestData) {
