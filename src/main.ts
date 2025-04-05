@@ -119,6 +119,7 @@ async function pull_request(token: string) {
   const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
   info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
   const changelogs = getStashChangelog(releaseDirs[0])
+  info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
   const md = renderChangelogMarkdown(changelogs)
   addComment(prNumber, md)
 }

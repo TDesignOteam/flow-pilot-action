@@ -45335,7 +45335,7 @@ function pull_request(token) {
                 if (!prLog[pkgName].length) {
                     return;
                 }
-                logs += `### ${pkgName}\n`;
+                logs += `#### ${pkgName}\n`;
                 prLog[pkgName].forEach((log) => {
                     logs += `- ${log}\n`;
                 });
@@ -45354,6 +45354,7 @@ function pull_request(token) {
         const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
         (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
         const changelogs = (0, utils_1.getStashChangelog)(releaseDirs[0]);
+        (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
         const md = (0, utils_1.renderChangelogMarkdown)(changelogs);
         addComment(prNumber, md);
     });
