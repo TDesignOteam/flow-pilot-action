@@ -45262,29 +45262,32 @@ function run() {
 }
 function issue_comment(token) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c, _d, _e, _f, _g;
         if (github_1.context.eventName !== 'issue_comment' || github_1.context.payload.action !== 'edited') {
             return false;
         }
         if (((_a = github_1.context.payload.changes) === null || _a === void 0 ? void 0 : _a.body) === ((_b = github_1.context.payload.comment) === null || _b === void 0 ? void 0 : _b.body)) {
             return false;
         }
+        if (!((_c = github_1.context.payload.comment) === null || _c === void 0 ? void 0 : _c.body.startsWith('### 📝 更新日志'))) {
+            return false;
+        }
         const whitelist = yield getPrCommentWhitelist();
         if (!whitelist.includes(github_1.context.actor)) {
             return false;
         }
-        const changelog = (0, utils_1.extractChangelog)(((_c = github_1.context.payload.comment) === null || _c === void 0 ? void 0 : _c.body) || '', getInputPkgs());
+        const changelog = (0, utils_1.extractChangelog)(((_d = github_1.context.payload.comment) === null || _d === void 0 ? void 0 : _d.body) || '', getInputPkgs());
         (0, core_1.info)(`stash_changelog: ${JSON.stringify(changelog, null, 2)}`);
         const prNumber = (0, utils_1.getPullRequestNumber)();
         const { getPullRequestData } = (0, github_2.default)(token);
         const prData = yield getPullRequestData(prNumber);
-        const prLog = (0, utils_1.extractChangelog)(((_d = github_1.context.payload.comment) === null || _d === void 0 ? void 0 : _d.body) || '', getInputPkgs());
+        const prLog = (0, utils_1.extractChangelog)(((_e = github_1.context.payload.comment) === null || _e === void 0 ? void 0 : _e.body) || '', getInputPkgs());
         (0, core_1.info)(`pr_log: ${JSON.stringify(prLog, null, 2)}`);
         const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = (0, git_1.default)(token);
         yield cloneRepo();
         const isForkPr = checkIsForkPr(prData);
         if (isForkPr) {
-            yield addRemote(prData.head.user.login, ((_f = (_e = prData.head) === null || _e === void 0 ? void 0 : _e.repo) === null || _f === void 0 ? void 0 : _f.clone_url) || '');
+            yield addRemote(prData.head.user.login, ((_g = (_f = prData.head) === null || _f === void 0 ? void 0 : _f.repo) === null || _g === void 0 ? void 0 : _g.clone_url) || '');
             yield checkoutPr(prNumber);
             yield (0, exec_1.exec)('git', [
                 'branch',

@@ -30,6 +30,10 @@ async function issue_comment(token: string) {
   if (context.payload.changes?.body === context.payload.comment?.body) {
     return false
   }
+
+  if (!context.payload.comment?.body.startsWith('### 📝 更新日志')) {
+    return false
+  }
   const whitelist = await getPrCommentWhitelist()
   if (!whitelist.includes(context.actor)) {
     return false
