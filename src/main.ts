@@ -4,7 +4,7 @@ import process from 'node:process'
 import { endGroup, getInput, info, startGroup } from '@actions/core'
 import { exec } from '@actions/exec'
 import { context } from '@actions/github'
-import { extractChangelog, getPackages, getPullRequestNumber, getPullRequestReleaseDirs, stashPackageChangelog } from './utils'
+import { extractChangelog, getPackages, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, renderChangelogMarkdown, stashPackageChangelog } from './utils'
 import useGit from './utils/git'
 import useGithub from './utils/github'
 
@@ -118,6 +118,9 @@ async function pull_request(token: string) {
   info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
   const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
   info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
+  const changelogs = getStashChangelog(releaseDirs[0])
+  const md = renderChangelogMarkdown(changelogs)
+  addComment(prNumber, md)
 }
 
 function checkReleaseBranch(prData: PullRequestData) {
