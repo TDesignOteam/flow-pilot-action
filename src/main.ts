@@ -1,6 +1,7 @@
 import type { PullRequestData } from './types'
-import process from 'node:process'
+import { dirname } from 'node:path'
 
+import process from 'node:process'
 import { endGroup, getInput, info, startGroup } from '@actions/core'
 import { exec } from '@actions/exec'
 import { context } from '@actions/github'
@@ -127,7 +128,7 @@ async function pull_request(token: string) {
     info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
     const md = renderChangelogMarkdown(changelogs)
 
-    addComment(prNumber, `## 🌈${dir.version}\n${md}`)
+    addComment(prNumber, `## 🌈 ${dirname(dir.pkg)} \`${dir.version}\` \n${md}`)
   })
 }
 
