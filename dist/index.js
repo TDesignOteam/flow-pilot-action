@@ -45361,7 +45361,7 @@ function pull_request(token) {
             const changelogs = (0, utils_1.getStashChangelog)(dir.pkg);
             (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
             const md = (0, utils_1.renderChangelogMarkdown)(changelogs.changelogs);
-            addComment(prNumber, `#${changelogs.pkg}\n#${changelogs.version}\n${md}`);
+            addComment(prNumber, `# ${changelogs.pkg}\n## 🌈 ${changelogs.version}\n${md}`);
         });
     });
 }
