@@ -126,8 +126,12 @@ async function pull_request(token: string) {
     const changelogs = getStashChangelog(dir.pkg)
     info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
     const md = renderChangelogMarkdown(changelogs.changelogs)
-
-    addComment(prNumber, `# ${changelogs.pkg}\n## 🌈 ${changelogs.version}\n${md}`)
+    const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n'
+    const currentDate = new Date()
+    const year = currentDate.getFullYear()
+    const month = currentDate.getMonth() + 1
+    const day = currentDate.getDate()
+    addComment(prNumber, `${logHead}# ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day} \` \n${md}`)
   })
 }
 
