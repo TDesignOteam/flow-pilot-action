@@ -99,7 +99,7 @@ async function pull_request(token: string) {
       if (!prLog[pkgName].length) {
         return
       }
-      logs += `### ${pkgName}\n`
+      logs += `#### ${pkgName}\n`
       prLog[pkgName].forEach((log) => {
         logs += `- ${log}\n`
       },
