@@ -45241,7 +45241,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = run;
-const node_path_1 = __nccwpck_require__(6760);
 const node_process_1 = __importDefault(__nccwpck_require__(1708));
 const core_1 = __nccwpck_require__(9999);
 const exec_1 = __nccwpck_require__(8872);
@@ -45362,7 +45361,7 @@ function pull_request(token) {
             const changelogs = (0, utils_1.getStashChangelog)(dir.pkg);
             (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
             const md = (0, utils_1.renderChangelogMarkdown)(changelogs);
-            addComment(prNumber, `## 🌈 ${(0, node_path_1.dirname)(dir.pkg)} \`${dir.version}\` \n${md}`);
+            addComment(prNumber, `#${dir.pkg}\n#4${dir.version}\n${md}`);
         });
     });
 }
