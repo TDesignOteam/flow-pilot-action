@@ -118,10 +118,17 @@ async function pull_request(token: string) {
   info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
   const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
   info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
-  const changelogs = getStashChangelog(releaseDirs[0])
-  info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
-  const md = renderChangelogMarkdown(changelogs)
-  addComment(prNumber, md)
+  if (!releaseDirs.length) {
+    info('没有更新发布版本')
+    return
+  }
+  releaseDirs.forEach((dir) => {
+    const changelogs = getStashChangelog(dir.pkg)
+    info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
+    const md = renderChangelogMarkdown(changelogs)
+
+    addComment(prNumber, `## 🌈${dir.version}\n${md}`)
+  })
 }
 
 function checkReleaseBranch(prData: PullRequestData) {

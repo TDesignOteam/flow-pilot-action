@@ -148,7 +148,12 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
     }
 
     return true
-  }).map(file => dirname(file.filename))
+  }).map((file) => {
+    return {
+      pkg: dirname(file.filename),
+      version: file.patch?.match(NEW_VERSION_REG)?.[1],
+    }
+  })
 }
 
 export function getStashChangelog(path: string) {

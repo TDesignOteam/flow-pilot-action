@@ -45353,10 +45353,16 @@ function pull_request(token) {
         (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
         const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
         (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
-        const changelogs = (0, utils_1.getStashChangelog)(releaseDirs[0]);
-        (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
-        const md = (0, utils_1.renderChangelogMarkdown)(changelogs);
-        addComment(prNumber, md);
+        if (!releaseDirs.length) {
+            (0, core_1.info)('没有更新发布版本');
+            return;
+        }
+        releaseDirs.forEach((dir) => {
+            const changelogs = (0, utils_1.getStashChangelog)(dir.pkg);
+            (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
+            const md = (0, utils_1.renderChangelogMarkdown)(changelogs);
+            addComment(prNumber, `## 🌈${dir.version}\n${md}`);
+        });
     });
 }
 function checkReleaseBranch(prData) {
@@ -45532,7 +45538,13 @@ function getPullRequestReleaseDirs(prFiles) {
             return false;
         }
         return true;
-    }).map(file => (0, node_path_1.dirname)(file.filename));
+    }).map((file) => {
+        var _a, _b;
+        return {
+            pkg: (0, node_path_1.dirname)(file.filename),
+            version: (_b = (_a = file.patch) === null || _a === void 0 ? void 0 : _a.match(consts_1.NEW_VERSION_REG)) === null || _b === void 0 ? void 0 : _b[1],
+        };
+    });
 }
 function getStashChangelog(path) {
     const files = (0, glob_1.globSync)(`${path}/.changelog/*.md`);

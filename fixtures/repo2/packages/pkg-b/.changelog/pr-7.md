@@ -1,2 +1,7 @@
+---
+pr_number: 7
+contributor: liweijie0812
+---
+
 - other(utils): add `isBoolean` function @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 - fix(Button): fix Button @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))

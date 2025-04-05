@@ -129,8 +129,10 @@ describe('utils', () => {
   it('getPullRequestReleaseDirs', () => {
     const paths = getPullRequestReleaseDirs(pull_request_files)
     expect(paths.length).toBe(2)
-    expect(paths[0]).toBe('packages/pkg-a')
-    expect(paths[1]).toBe('packages/pkg-c')
+    expect(paths[0].pkg).toBe('packages/pkg-a')
+    expect(paths[0].version).toBe('1.0.1')
+    expect(paths[1].pkg).toBe('packages/pkg-c')
+    expect(paths[1].version).toBe('1.0.1')
   })
 
   it('getStashChangelog', () => {
