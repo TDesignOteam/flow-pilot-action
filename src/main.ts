@@ -1,40 +1,94 @@
 import type { PullRequestData } from './types'
-import { join } from 'node:path'
 import process from 'node:process'
 
-import { endGroup, error, getInput, info, startGroup } from '@actions/core'
+import { endGroup, getInput, info, startGroup } from '@actions/core'
 import { exec } from '@actions/exec'
 import { context } from '@actions/github'
-import { extractChangelog, getPackages, getPullRequestNumber, stashPullRequestChangelog } from './utils'
+import { extractChangelog, getPackages, getPullRequestNumber, stashPackageChangelog } from './utils'
 import useGit from './utils/git'
 import useGithub from './utils/github'
 
-export async function main() {
-  const token = getInput('token')
-  const packages = getInput('packages') || ''
-  const workPath = process.env.GITHUB_WORKSPACE || process.cwd()
+export async function run() {
+  const token = getInput('token', { required: true })
 
   startGroup('context')
   info(`context: ${JSON.stringify(context, null, 2)}`)
   endGroup()
   info(`eventName: ${context.eventName}`)
   info(`action: ${context.payload.action}`)
-  const prNumber = getPullRequestNumber()
-  info(`pr_number: ${prNumber}`)
-  if (!prNumber) {
-    error('没有找到 pr_number')
-    return
-  }
-  const { getPullRequestData, addComment } = useGithub(token)
-  const prData = await getPullRequestData(prNumber) as PullRequestData
-  const isRelease = prData.head.ref.startsWith('release/')
-  startGroup('prData')
-  info(`prData: ${JSON.stringify(prData, null, 2)}`)
-  endGroup()
 
-  if (!isRelease && context.eventName === 'pull_request') {
+  issue_comment(token)
+
+  pull_request(token)
+}
+
+async function issue_comment(token: string) {
+  if (context.eventName !== 'issue_comment' || context.payload.action !== 'edited') {
+    return false
+  }
+
+  if (context.payload.changes?.body === context.payload.comment?.body) {
+    return false
+  }
+  const whitelist = await getPrCommentWhitelist()
+  if (!whitelist.includes(context.actor)) {
+    return false
+  }
+  const changelog = extractChangelog(context.payload.comment?.body || '', getInputPkgs())
+
+  info(`stash_changelog: ${JSON.stringify(changelog, null, 2)}`)
+
+  const prNumber = getPullRequestNumber()
+
+  const { getPullRequestData } = useGithub(token)
+  const prData = await getPullRequestData(prNumber) as PullRequestData
+  const prLog = extractChangelog(context.payload.comment?.body || '', getInputPkgs())
+  info(`pr_log: ${JSON.stringify(prLog, null, 2)}`)
+  const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = useGit(token)
+  await cloneRepo()
+  const isForkPr = checkIsForkPr(prData)
+  if (isForkPr) {
+    await addRemote(prData.head.user.login, prData.head?.repo?.clone_url || '')
+    await checkoutPr(prNumber)
+    await exec('git', [
+      'branch',
+      '--set-upstream-to',
+      `refs/remotes/${prData.head.user.login}/${prData.head.ref}`,
+      `pr-${prNumber}`,
+    ])
+  }
+  else {
+    await checkoutBranch(prData.head.ref)
+  }
+  const pkgs = getPackages(process.cwd())
+  info(`pkgs: ${JSON.stringify(pkgs, null, 2)}`)
+  stashPackageChangelog(prData, pkgs, prLog)
+  await exec('git', ['add', '**/pr-*.md'])
+  await exec('git', ['status'])
+  if (!await isNeedCommit()) {
+    info('无需提交')
+    return true
+  }
+  await exec('git', ['commit', '-m', 'chore: stash changelog'])
+  if (isForkPr) {
+    await exec('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`])
+  }
+  else {
+    await exec('git', ['push', 'origin', prData.head.ref])
+  }
+}
+async function pull_request(token: string) {
+  if (context.eventName !== 'pull_request') {
+    return false
+  }
+  const prNumber = getPullRequestNumber()
+  const { getPullRequestData, addComment } = useGithub(token)
+
+  const prData = await getPullRequestData(prNumber) as PullRequestData
+  const isRelease = checkReleaseBranch(prData)
+  if (!isRelease) {
     let logs = ''
-    const prLog = extractChangelog(prData.body || '', packages.split(','))
+    const prLog = extractChangelog(prData.body || '', getInputPkgs())
     info(`pr_log: ${JSON.stringify(prLog, null, 2)}`)
     Object.keys(prLog).forEach((pkgName) => {
       if (!prLog[pkgName].length) {
@@ -51,55 +105,25 @@ export async function main() {
       addComment(prNumber, `${logHead}### 📝 更新日志\n\n${logs}`)
     }
   }
-  if (context.eventName === 'issue_comment' && context.payload.action === 'edited') {
-    const prLog = extractChangelog(context.payload.comment?.body || '', packages.split(','))
-    info(`confirm_pr_log: ${JSON.stringify(prLog, null, 2)}`)
-    const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = useGit(token)
-    await exec('pwd')
-    await exec('ls', ['-la'])
-    await exec('ls', ['-la'], { cwd: workPath })
-    await cloneRepo()
-    await exec('ls', ['-la'])
-    await exec('ls', ['-la'], { cwd: workPath })
-    let isForkPr = false
-    if (prData.head.user.login !== context.repo.owner) {
-      isForkPr = true
-      info(`pr: ${prNumber} 是 fork pr`)
-    }
-    const repoPath = join(workPath, context.repo.repo)
+}
 
-    if (isForkPr) {
-      await addRemote(prData.head.user.login, prData.head?.repo?.clone_url || '')
-      await checkoutPr(prNumber)
-      await exec('git', [
-        'branch',
-        '--set-upstream-to',
-        `refs/remotes/${prData.head.user.login}/${prData.head.ref}`,
-        `pr-${prNumber}`,
-      ])
-    }
-    else {
-      await checkoutBranch(prData.head.ref)
-    }
+function checkReleaseBranch(prData: PullRequestData) {
+  return prData.head.ref.startsWith('release/')
+}
+function checkIsForkPr(prData: PullRequestData) {
+  return prData.head.user.login !== context.repo.owner
+}
 
-    await exec('ls', ['-la'], { cwd: workPath })
-
-    const pkgs = getPackages(repoPath)
-    stashPullRequestChangelog(prData, pkgs, prLog)
-    await exec('git', ['add', '**/*.md'])
-    await exec('git', [
-      'status',
-    ])
-    if (!await isNeedCommit()) {
-      info('无需提交')
-      return true
-    }
-    await exec('git', ['commit', '-m', 'chore: stash changelog'])
-    if (isForkPr) {
-      await exec('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`])
-    }
-    else {
-      await exec('git', ['push', 'origin', prData.head.ref])
-    }
+function getInputPkgs() {
+  const pkgs = getInput('packages', { trimWhitespace: true }) || ''
+  if (!pkgs) {
+    return []
   }
+  return pkgs.split(',').map(pkg => pkg.trim())
+}
+
+async function getPrCommentWhitelist() {
+  const response = await fetch('https://raw.githubusercontent.com/Tencent/tdesign/refs/heads/main/.github/.pr-comment-ci-whitelist')
+  const whitelist = await response.text()
+  return whitelist.split('\n')
 }

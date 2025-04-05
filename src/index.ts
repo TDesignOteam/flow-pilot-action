@@ -1,3 +1,3 @@
-import { main } from './main'
+import { run } from './main'
 
-main()
+run()

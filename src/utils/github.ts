@@ -37,6 +37,14 @@ export default function useGithub(token: string) {
       labels,
     })
   }
+  async function getRequestedReviewers(pr_number: number) {
+    const { data } = await octokit.rest.pulls.listRequestedReviewers({
+      owner,
+      repo,
+      pull_number: pr_number,
+    })
+    return data.users.map(item => item.login)
+  }
 
-  return { getPullRequestData, getPullRequestFiles, addPullRequestLabels, addComment }
+  return { getPullRequestData, getPullRequestFiles, addPullRequestLabels, addComment, getRequestedReviewers }
 }

@@ -84,7 +84,7 @@ export function getPackages(path: string) {
   return packages.filter(pkg => pkg.packageJson?.private !== true)
 }
 
-export function stashPullRequestChangelog(prData: PullRequestData, packages: Package[], prChangelog: PackagesChangelog) {
+export function stashPackageChangelog(prData: PullRequestData, packages: Package[], prChangelog: PackagesChangelog) {
   packages.forEach((pkg) => {
     const changelogData = prChangelog[pkg.packageJson.name]
     if (!changelogData)
@@ -107,7 +107,13 @@ export function stashPullRequestChangelog(prData: PullRequestData, packages: Pac
       }
       return
     }
-    const logHead = `---\npr_number:${prData.number}\ncontributor:${prData.user.login}\n---\n\n`
+    const logHead = [
+      '---',
+      `pr_number: ${prData.number}`,
+      `contributor: ${prData.user.login}`,
+      '---',
+      '\n',
+    ].join('\n')
     const logContent = `${logHead}${logs}\n`
 
     info(`Attempting to write to ${logFilePath}`)

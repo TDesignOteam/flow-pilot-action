@@ -20,6 +20,7 @@ export default function useGit(token: string) {
   async function checkoutBranch(branch: string) {
     await exec('git', ['checkout', branch])
   }
+
   async function checkoutPr(pr_number: number) {
     await exec('git', ['fetch', 'origin', `pull/${pr_number}/head:pr-${pr_number}`])
     await exec('git', ['checkout', `pr-${pr_number}`])
