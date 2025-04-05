@@ -158,7 +158,11 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
 
 export function getStashChangelog(path: string) {
   const files = globSync(`${path}/.changelog/*.md`)
+  const packageJson = readFileSync(`${path}/package.json`, 'utf8')
+  const pkg = JSON.parse(packageJson)
   const changelogs: string[] = []
+  changelogs.push(`# ${pkg.name}`)
+  changelogs.push(`## 🌈 ${pkg.version}`)
   files.forEach((file) => {
     readFileSync(file, 'utf8').split('\n').forEach((line) => {
       if (line && line.startsWith('- ')) {
