@@ -45348,26 +45348,26 @@ function pull_request(token) {
         else {
             yield cloneRepo();
             checkoutBranch(prData.head.ref);
+            const changeFiles = yield getPullRequestFiles(prNumber);
+            (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
+            const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
+            (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
+            if (!releaseDirs.length) {
+                (0, core_1.info)('没有更新发布版本');
+                return;
+            }
+            releaseDirs.forEach((dir) => {
+                const changelogs = (0, utils_1.getStashChangelog)(dir.pkg);
+                (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
+                const md = (0, utils_1.renderChangelogMarkdown)(changelogs.changelogs);
+                const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n';
+                const currentDate = new Date();
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth() + 1;
+                const day = currentDate.getDate();
+                addComment(prNumber, `${logHead}#🎉 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n${md}`);
+            });
         }
-        const changeFiles = yield getPullRequestFiles(prNumber);
-        (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
-        const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
-        (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
-        if (!releaseDirs.length) {
-            (0, core_1.info)('没有更新发布版本');
-            return;
-        }
-        releaseDirs.forEach((dir) => {
-            const changelogs = (0, utils_1.getStashChangelog)(dir.pkg);
-            (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
-            const md = (0, utils_1.renderChangelogMarkdown)(changelogs.changelogs);
-            const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n';
-            const currentDate = new Date();
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth() + 1;
-            const day = currentDate.getDate();
-            addComment(prNumber, `${logHead}# ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day} \` \n${md}`);
-        });
     });
 }
 function checkReleaseBranch(prData) {

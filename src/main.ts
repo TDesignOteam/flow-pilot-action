@@ -113,26 +113,26 @@ async function pull_request(token: string) {
   else {
     await cloneRepo()
     checkoutBranch(prData.head.ref)
+    const changeFiles = await getPullRequestFiles(prNumber)
+    info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
+    const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
+    info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
+    if (!releaseDirs.length) {
+      info('没有更新发布版本')
+      return
+    }
+    releaseDirs.forEach((dir) => {
+      const changelogs = getStashChangelog(dir.pkg)
+      info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
+      const md = renderChangelogMarkdown(changelogs.changelogs)
+      const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n'
+      const currentDate = new Date()
+      const year = currentDate.getFullYear()
+      const month = currentDate.getMonth() + 1
+      const day = currentDate.getDate()
+      addComment(prNumber, `${logHead}#🎉 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n${md}`)
+    })
   }
-  const changeFiles = await getPullRequestFiles(prNumber)
-  info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
-  const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
-  info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
-  if (!releaseDirs.length) {
-    info('没有更新发布版本')
-    return
-  }
-  releaseDirs.forEach((dir) => {
-    const changelogs = getStashChangelog(dir.pkg)
-    info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
-    const md = renderChangelogMarkdown(changelogs.changelogs)
-    const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n'
-    const currentDate = new Date()
-    const year = currentDate.getFullYear()
-    const month = currentDate.getMonth() + 1
-    const day = currentDate.getDate()
-    addComment(prNumber, `${logHead}# ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day} \` \n${md}`)
-  })
 }
 
 function checkReleaseBranch(prData: PullRequestData) {
