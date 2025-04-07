@@ -45365,7 +45365,7 @@ function pull_request(token) {
                 const year = currentDate.getFullYear();
                 const month = currentDate.getMonth() + 1;
                 const day = currentDate.getDate();
-                addComment(prNumber, `${logHead}#🎉 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n${md}`);
+                addComment(prNumber, `${logHead}# 🎉 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n${md}`);
             });
         }
     });
