@@ -1,7 +1,7 @@
 {
   "name": "flow-pilot-action",
   "private": true,
-  "packageManager": "pnpm@9.12.1",
+  "packageManager": "pnpm@10.6.5",
   "description": "",
   "author": "tdesign",
   "license": "MIT",
