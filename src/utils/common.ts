@@ -78,6 +78,25 @@ export function extractChangelog(markdown: string, pkgNames: string[]) {
   })
   return pkgLogs
 }
+export function extractReleaseLog(markdown: string, pkgName: string) {
+  const md = parseMarkdown(markdown)
+  let collectLogs = false
+  const changelog: string[] = []
+  md.forEach((token) => {
+    if (token.type === 'heading' && token.depth === 1 && token.text.startsWith('🎉 Release') && token.text.includes(pkgName)) {
+      collectLogs = true
+    }
+    if (collectLogs) {
+      if (token.type === 'heading' && token.depth > 1) {
+        changelog.push(token.raw)
+      }
+      if (token.type === 'list') {
+        changelog.push(`${token.raw}\n\n`)
+      }
+    }
+  })
+  return changelog.join('')
+}
 
 export function getPackages(path: string) {
   const { packages } = getPackagesSync(path)
@@ -216,6 +235,7 @@ export function renderChangelogMarkdown(changelogs: string[]) {
     renderChangelog('### 🚧 Others', otherList),
   ].filter(n => n).join('\n')
 }
+
 function renderChangelog(heading: string, changelogs: Record<string, string[]>) {
   let content = ''
   const keys = Object.keys(changelogs).sort()
