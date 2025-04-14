@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { pull_request_data, pull_request_files } from '../fixtures/pull_request_data'
 import {
   extractChangelog,
+  extractReleaseLog,
   getPackages,
   getPullRequestReleaseDirs,
   getStashChangelog,
@@ -145,5 +146,11 @@ describe('utils', () => {
     const changelog = getStashChangelog('./fixtures/repo2/packages/pkg-a')
     const md = renderChangelogMarkdown(changelog.changelogs)
     expect(md).toMatchSnapshot()
+  })
+
+  it('extractReleaseLog', () => {
+    const body = readFileSync('fixtures/release_comment/confirm.md', 'utf8').replaceAll('\n', '\r\n')
+    const releaseLog = extractReleaseLog(body, 'pkg-a')
+    expect(releaseLog).toMatchSnapshot()
   })
 })
