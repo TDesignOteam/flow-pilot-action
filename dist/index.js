@@ -45871,6 +45871,7 @@ const github_1 = __nccwpck_require__(2819);
 const common_1 = __nccwpck_require__(3942);
 const git_1 = __importDefault(__nccwpck_require__(8511));
 const github_2 = __importDefault(__nccwpck_require__(9764));
+const glob_1 = __nccwpck_require__(8172);
 function issue_comment(token) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, _b, _c;
@@ -45960,7 +45961,7 @@ function confirmReleaseLog(log, token) {
             if (pkg.name !== pkgName) {
                 return;
             }
-            const files = (0, node_fs_1.globSync)(`${dir.pkg}/.changelog/*.md`);
+            const files = (0, glob_1.globSync)(`${dir.pkg}/.changelog/*.md`);
             files.forEach((file) => {
                 (0, node_fs_1.unlinkSync)(file);
                 (0, core_1.info)(`delete file: ${file}`);
