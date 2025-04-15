@@ -150,7 +150,7 @@ describe('utils', () => {
 
   it('extractReleaseLog', () => {
     const body = readFileSync('fixtures/release_comment/confirm.md', 'utf8').replaceAll('\n', '\r\n')
-    const releaseLog = extractReleaseLog(body, 'pkg-a')
+    const releaseLog = extractReleaseLog(body)
     expect(releaseLog).toMatchSnapshot()
   })
 })

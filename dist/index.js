@@ -45241,9 +45241,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = run;
-const node_process_1 = __importDefault(__nccwpck_require__(1708));
 const core_1 = __nccwpck_require__(9999);
-const exec_1 = __nccwpck_require__(8872);
 const github_1 = __nccwpck_require__(2819);
 const utils_1 = __nccwpck_require__(9499);
 const git_1 = __importDefault(__nccwpck_require__(8511));
@@ -45256,65 +45254,8 @@ function run() {
         (0, core_1.endGroup)();
         (0, core_1.info)(`eventName: ${github_1.context.eventName}`);
         (0, core_1.info)(`action: ${github_1.context.payload.action}`);
-        issue_comment(token);
+        (0, utils_1.issue_comment)(token);
         pull_request(token);
-    });
-}
-function issue_comment(token) {
-    return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c, _d, _e, _f, _g;
-        if (github_1.context.eventName !== 'issue_comment' || github_1.context.payload.action !== 'edited') {
-            return false;
-        }
-        if (((_a = github_1.context.payload.changes) === null || _a === void 0 ? void 0 : _a.body) === ((_b = github_1.context.payload.comment) === null || _b === void 0 ? void 0 : _b.body)) {
-            return false;
-        }
-        if (!((_c = github_1.context.payload.comment) === null || _c === void 0 ? void 0 : _c.body.startsWith('### 📝 更新日志'))) {
-            return false;
-        }
-        const whitelist = yield getPrCommentWhitelist();
-        if (!whitelist.includes(github_1.context.actor)) {
-            return false;
-        }
-        const changelog = (0, utils_1.extractChangelog)(((_d = github_1.context.payload.comment) === null || _d === void 0 ? void 0 : _d.body) || '', getInputPkgs());
-        (0, core_1.info)(`stash_changelog: ${JSON.stringify(changelog, null, 2)}`);
-        const prNumber = (0, utils_1.getPullRequestNumber)();
-        const { getPullRequestData } = (0, github_2.default)(token);
-        const prData = yield getPullRequestData(prNumber);
-        const prLog = (0, utils_1.extractChangelog)(((_e = github_1.context.payload.comment) === null || _e === void 0 ? void 0 : _e.body) || '', getInputPkgs());
-        (0, core_1.info)(`pr_log: ${JSON.stringify(prLog, null, 2)}`);
-        const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = (0, git_1.default)(token);
-        yield cloneRepo();
-        const isForkPr = checkIsForkPr(prData);
-        if (isForkPr) {
-            yield addRemote(prData.head.user.login, ((_g = (_f = prData.head) === null || _f === void 0 ? void 0 : _f.repo) === null || _g === void 0 ? void 0 : _g.clone_url) || '');
-            yield checkoutPr(prNumber);
-            yield (0, exec_1.exec)('git', [
-                'branch',
-                '--set-upstream-to',
-                `refs/remotes/${prData.head.user.login}/${prData.head.ref}`,
-                `pr-${prNumber}`,
-            ]);
-        }
-        else {
-            yield checkoutBranch(prData.head.ref);
-        }
-        const pkgs = (0, utils_1.getPackages)(node_process_1.default.cwd());
-        (0, core_1.info)(`pkgs: ${JSON.stringify(pkgs, null, 2)}`);
-        (0, utils_1.stashPackageChangelog)(prData, pkgs, prLog);
-        yield (0, exec_1.exec)('git', ['add', '**/pr-*.md']);
-        yield (0, exec_1.exec)('git', ['status']);
-        if (!(yield isNeedCommit())) {
-            (0, core_1.info)('无需提交');
-            return true;
-        }
-        yield (0, exec_1.exec)('git', ['commit', '-m', 'chore: stash changelog']);
-        if (isForkPr) {
-            yield (0, exec_1.exec)('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`]);
-        }
-        else {
-            yield (0, exec_1.exec)('git', ['push', 'origin', prData.head.ref]);
-        }
     });
 }
 function pull_request(token) {
@@ -45326,10 +45267,10 @@ function pull_request(token) {
         const { getPullRequestData, addComment, getPullRequestFiles } = (0, github_2.default)(token);
         const { cloneRepo, checkoutBranch } = (0, git_1.default)(token);
         const prData = yield getPullRequestData(prNumber);
-        const isRelease = checkReleaseBranch(prData);
+        const isRelease = (0, utils_1.checkReleaseBranch)(prData);
         if (!isRelease) {
             let logs = '';
-            const prLog = (0, utils_1.extractChangelog)(prData.body || '', getInputPkgs());
+            const prLog = (0, utils_1.extractChangelog)(prData.body || '', (0, utils_1.getInputPkgs)());
             (0, core_1.info)(`pr_log: ${JSON.stringify(prLog, null, 2)}`);
             Object.keys(prLog).forEach((pkgName) => {
                 if (!prLog[pkgName].length) {
@@ -45365,29 +45306,9 @@ function pull_request(token) {
                 const year = currentDate.getFullYear();
                 const month = currentDate.getMonth() + 1;
                 const day = currentDate.getDate();
-                addComment(prNumber, `${logHead}# 🎉 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n${md}`);
+                addComment(prNumber, `${logHead}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n${md}`);
             });
         }
-    });
-}
-function checkReleaseBranch(prData) {
-    return prData.head.ref.startsWith('release/');
-}
-function checkIsForkPr(prData) {
-    return prData.head.user.login !== github_1.context.repo.owner;
-}
-function getInputPkgs() {
-    const pkgs = (0, core_1.getInput)('packages', { trimWhitespace: true }) || '';
-    if (!pkgs) {
-        return [];
-    }
-    return pkgs.split(',').map(pkg => pkg.trim());
-}
-function getPrCommentWhitelist() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const response = yield fetch('https://raw.githubusercontent.com/Tencent/tdesign/refs/heads/main/.github/.pr-comment-ci-whitelist');
-        const whitelist = yield response.text();
-        return whitelist.split('\n');
     });
 }
 
@@ -45399,6 +45320,15 @@ function getPrCommentWhitelist() {
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -45408,6 +45338,7 @@ exports.parseMarkdown = parseMarkdown;
 exports.isExtractPRLog = isExtractPRLog;
 exports.isReleasePR = isReleasePR;
 exports.extractChangelog = extractChangelog;
+exports.extractReleaseLog = extractReleaseLog;
 exports.getPackages = getPackages;
 exports.stashPackageChangelog = stashPackageChangelog;
 exports.getPullRequestReleaseDirs = getPullRequestReleaseDirs;
@@ -45415,6 +45346,11 @@ exports.getStashChangelog = getStashChangelog;
 exports.renderChangelogMarkdown = renderChangelogMarkdown;
 exports.getPullRequestNumber = getPullRequestNumber;
 exports.getPullRequestBody = getPullRequestBody;
+exports.saveReleaseLog = saveReleaseLog;
+exports.getPrCommentWhitelist = getPrCommentWhitelist;
+exports.getInputPkgs = getInputPkgs;
+exports.checkReleaseBranch = checkReleaseBranch;
+exports.checkIsForkPr = checkIsForkPr;
 const node_fs_1 = __nccwpck_require__(3024);
 const node_path_1 = __nccwpck_require__(6760);
 const core_1 = __nccwpck_require__(9999);
@@ -45422,7 +45358,7 @@ const utils_1 = __nccwpck_require__(4655);
 const get_packages_1 = __nccwpck_require__(713);
 const camelcase_1 = __importDefault(__nccwpck_require__(6249));
 const glob_1 = __nccwpck_require__(8172);
-const marked_1 = __nccwpck_require__(1700);
+const marked_1 = __nccwpck_require__(6045);
 const consts_1 = __nccwpck_require__(566);
 function pascalCase(str) {
     return (0, camelcase_1.default)(str, { pascalCase: true });
@@ -45479,6 +45415,32 @@ function extractChangelog(markdown, pkgNames) {
         }
     });
     return pkgLogs;
+}
+function extractReleaseLog(markdown) {
+    const md = parseMarkdown(markdown);
+    let collectLogs = false;
+    let pkgName = '';
+    const changelog = [];
+    md.forEach((token) => {
+        if (token.type === 'heading' && token.depth === 1) {
+            if (token.text.startsWith('🎉 Release')) {
+                pkgName = token.text.replace('🎉 Release', '').trim();
+                collectLogs = true;
+            }
+            else {
+                collectLogs = false;
+            }
+        }
+        if (collectLogs) {
+            if (token.type === 'heading' && token.depth > 1) {
+                changelog.push(token.raw);
+            }
+            if (token.type === 'list') {
+                changelog.push(`${token.raw}\n\n`);
+            }
+        }
+    });
+    return { pkgName, changelog: changelog.join('') };
 }
 function getPackages(path) {
     const { packages } = (0, get_packages_1.getPackagesSync)(path);
@@ -45652,6 +45614,31 @@ function getPullRequestBody() {
         body = ((_c = utils_1.context.payload.comment) === null || _c === void 0 ? void 0 : _c.body) || '';
     }
     return body;
+}
+function saveReleaseLog(path, log) {
+    if (!(0, node_fs_1.existsSync)(path)) {
+        (0, node_fs_1.writeFileSync)(path, log, 'utf8');
+    }
+}
+function getPrCommentWhitelist() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const response = yield fetch('https://raw.githubusercontent.com/Tencent/tdesign/refs/heads/main/.github/.pr-comment-ci-whitelist');
+        const whitelist = yield response.text();
+        return whitelist.split('\n');
+    });
+}
+function getInputPkgs() {
+    const pkgs = (0, core_1.getInput)('packages', { trimWhitespace: true }) || '';
+    if (!pkgs) {
+        return [];
+    }
+    return pkgs.split(',').map(pkg => pkg.trim());
+}
+function checkReleaseBranch(prData) {
+    return prData.head.ref.startsWith('release/');
+}
+function checkIsForkPr(prData) {
+    return prData.head.user.login !== utils_1.context.repo.owner;
 }
 
 
@@ -45852,6 +45839,156 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 __exportStar(__nccwpck_require__(3942), exports);
 __exportStar(__nccwpck_require__(8511), exports);
 __exportStar(__nccwpck_require__(9764), exports);
+__exportStar(__nccwpck_require__(1418), exports);
+
+
+/***/ }),
+
+/***/ 1418:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.issue_comment = issue_comment;
+const node_fs_1 = __nccwpck_require__(3024);
+const node_process_1 = __nccwpck_require__(1708);
+const core_1 = __nccwpck_require__(9999);
+const exec_1 = __nccwpck_require__(8872);
+const github_1 = __nccwpck_require__(2819);
+const common_1 = __nccwpck_require__(3942);
+const git_1 = __importDefault(__nccwpck_require__(8511));
+const github_2 = __importDefault(__nccwpck_require__(9764));
+function issue_comment(token) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b, _c;
+        if (github_1.context.eventName !== 'issue_comment' || github_1.context.payload.action !== 'edited') {
+            return false;
+        }
+        if (((_a = github_1.context.payload.changes) === null || _a === void 0 ? void 0 : _a.body) === ((_b = github_1.context.payload.comment) === null || _b === void 0 ? void 0 : _b.body)) {
+            return false;
+        }
+        const whitelist = yield (0, common_1.getPrCommentWhitelist)();
+        if (!whitelist.includes(github_1.context.actor)) {
+            return false;
+        }
+        const confirmLog = ((_c = github_1.context.payload.comment) === null || _c === void 0 ? void 0 : _c.body) || '';
+        confirmChangelog(confirmLog, token);
+        confirmReleaseLog(confirmLog, token);
+    });
+}
+function confirmChangelog(log, token) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b, _c, _d;
+        if (!log.startsWith('### 📝 更新日志')) {
+            return false;
+        }
+        const changelog = (0, common_1.extractChangelog)(((_a = github_1.context.payload.comment) === null || _a === void 0 ? void 0 : _a.body) || '', (0, common_1.getInputPkgs)());
+        (0, core_1.info)(`stash_changelog: ${JSON.stringify(changelog, null, 2)}`);
+        const prNumber = (0, common_1.getPullRequestNumber)();
+        const { getPullRequestData } = (0, github_2.default)(token);
+        const prData = yield getPullRequestData(prNumber);
+        const prLog = (0, common_1.extractChangelog)(((_b = github_1.context.payload.comment) === null || _b === void 0 ? void 0 : _b.body) || '', (0, common_1.getInputPkgs)());
+        (0, core_1.info)(`pr_log: ${JSON.stringify(prLog, null, 2)}`);
+        const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = (0, git_1.default)(token);
+        yield cloneRepo();
+        const isForkPr = (0, common_1.checkIsForkPr)(prData);
+        if (isForkPr) {
+            yield addRemote(prData.head.user.login, ((_d = (_c = prData.head) === null || _c === void 0 ? void 0 : _c.repo) === null || _d === void 0 ? void 0 : _d.clone_url) || '');
+            yield checkoutPr(prNumber);
+            yield (0, exec_1.exec)('git', [
+                'branch',
+                '--set-upstream-to',
+                `refs/remotes/${prData.head.user.login}/${prData.head.ref}`,
+                `pr-${prNumber}`,
+            ]);
+        }
+        else {
+            yield checkoutBranch(prData.head.ref);
+        }
+        const pkgs = (0, common_1.getPackages)((0, node_process_1.cwd)());
+        (0, core_1.info)(`pkgs: ${JSON.stringify(pkgs, null, 2)}`);
+        (0, common_1.stashPackageChangelog)(prData, pkgs, prLog);
+        yield (0, exec_1.exec)('git', ['add', '**/pr-*.md']);
+        yield (0, exec_1.exec)('git', ['status']);
+        if (!(yield isNeedCommit())) {
+            (0, core_1.info)('无需提交');
+            return true;
+        }
+        yield (0, exec_1.exec)('git', ['commit', '-m', 'chore: stash changelog']);
+        if (isForkPr) {
+            yield (0, exec_1.exec)('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`]);
+        }
+        else {
+            yield (0, exec_1.exec)('git', ['push', 'origin', prData.head.ref]);
+        }
+    });
+}
+function confirmReleaseLog(log, token) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!log.startsWith('# 🎉 Release')) {
+            return false;
+        }
+        const { pkgName, changelog } = (0, common_1.extractReleaseLog)(log);
+        (0, core_1.info)(`pkgName: ${pkgName}`);
+        (0, core_1.info)(`changelog: ${changelog}`);
+        const prNumber = (0, common_1.getPullRequestNumber)();
+        const { getPullRequestData, getPullRequestFiles } = (0, github_2.default)(token);
+        const prData = yield getPullRequestData(prNumber);
+        const { cloneRepo, checkoutBranch, isNeedCommit } = (0, git_1.default)(token);
+        yield cloneRepo();
+        checkoutBranch(prData.head.ref);
+        const changeFiles = yield getPullRequestFiles(prNumber);
+        (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
+        const releaseDirs = yield (0, common_1.getPullRequestReleaseDirs)(changeFiles);
+        (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
+        releaseDirs.forEach((dir) => {
+            const packageJson = (0, node_fs_1.readFileSync)(`${dir.pkg}/package.json`, 'utf8');
+            const pkg = JSON.parse(packageJson);
+            if (pkg.name !== pkgName) {
+                return;
+            }
+            const files = (0, node_fs_1.globSync)(`${dir.pkg}/.changelog/*.md`);
+            files.forEach((file) => {
+                (0, node_fs_1.unlinkSync)(file);
+                (0, core_1.info)(`delete file: ${file}`);
+            });
+            if (!(0, node_fs_1.existsSync)(`${dir.pkg}/CHANGELOG.md`)) {
+                (0, node_fs_1.writeFileSync)(`${dir.pkg}/CHANGELOG.md`, '', 'utf8');
+            }
+            const pkgChangelog = (0, node_fs_1.readFileSync)(`${dir.pkg}/CHANGELOG.md`, 'utf8');
+            const index = pkgChangelog.indexOf('## 🌈');
+            let newData = '';
+            if (index === -1) {
+                newData = pkgChangelog + changelog;
+            }
+            else {
+                newData = pkgChangelog.slice(0, index) + changelog + pkgChangelog.slice(index);
+            }
+            (0, node_fs_1.writeFileSync)(`${dir.pkg}/CHANGELOG.md`, newData, 'utf8');
+        });
+        yield (0, exec_1.exec)('git', ['add', '**/*.md']);
+        yield (0, exec_1.exec)('git', ['status']);
+        if (!(yield isNeedCommit())) {
+            (0, core_1.info)('无需提交');
+            return true;
+        }
+        yield (0, exec_1.exec)('git', ['commit', '-m', 'chore: changelog']);
+        yield (0, exec_1.exec)('git', ['push', 'origin', prData.head.ref]);
+    });
+}
 
 
 /***/ }),
@@ -55694,12 +55831,12 @@ exports.PathScurry = process.platform === 'win32' ? PathScurryWin32
 
 /***/ }),
 
-/***/ 1700:
+/***/ 6045:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 /**
- * marked v15.0.7 - a markdown parser
+ * marked v15.0.8 - a markdown parser
  * Copyright (c) 2011-2025, Christopher Jeffrey. (MIT Licensed)
  * https://github.com/markedjs/marked
  */
@@ -57315,13 +57452,13 @@ class _Lexer {
                 }
             }
         }
-        // Mask out other blocks
-        while ((match = this.tokenizer.rules.inline.blockSkip.exec(maskedSrc)) != null) {
-            maskedSrc = maskedSrc.slice(0, match.index) + '[' + 'a'.repeat(match[0].length - 2) + ']' + maskedSrc.slice(this.tokenizer.rules.inline.blockSkip.lastIndex);
-        }
         // Mask out escaped characters
         while ((match = this.tokenizer.rules.inline.anyPunctuation.exec(maskedSrc)) != null) {
             maskedSrc = maskedSrc.slice(0, match.index) + '++' + maskedSrc.slice(this.tokenizer.rules.inline.anyPunctuation.lastIndex);
+        }
+        // Mask out other blocks
+        while ((match = this.tokenizer.rules.inline.blockSkip.exec(maskedSrc)) != null) {
+            maskedSrc = maskedSrc.slice(0, match.index) + '[' + 'a'.repeat(match[0].length - 2) + ']' + maskedSrc.slice(this.tokenizer.rules.inline.blockSkip.lastIndex);
         }
         let keepPrevChar = false;
         let prevChar = '';
