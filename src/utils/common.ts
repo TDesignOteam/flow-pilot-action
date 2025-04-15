@@ -3,7 +3,7 @@ import type { Tokens, TokensList } from 'marked'
 import type { PackagesChangelog, PullRequestData, PullRequestFiles } from '../types'
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
-import { info } from '@actions/core'
+import { getInput, info } from '@actions/core'
 import { context } from '@actions/github/lib/utils'
 import { getPackagesSync } from '@manypkg/get-packages'
 import camelcase from 'camelcase'
@@ -78,13 +78,20 @@ export function extractChangelog(markdown: string, pkgNames: string[]) {
   })
   return pkgLogs
 }
-export function extractReleaseLog(markdown: string, pkgName: string) {
+export function extractReleaseLog(markdown: string) {
   const md = parseMarkdown(markdown)
   let collectLogs = false
+  let pkgName = ''
   const changelog: string[] = []
   md.forEach((token) => {
-    if (token.type === 'heading' && token.depth === 1 && token.text.startsWith('🎉 Release') && token.text.includes(pkgName)) {
-      collectLogs = true
+    if (token.type === 'heading' && token.depth === 1) {
+      if (token.text.startsWith('🎉 Release')) {
+        pkgName = token.text.replace('🎉 Release', '').trim()
+        collectLogs = true
+      }
+      else {
+        collectLogs = false
+      }
     }
     if (collectLogs) {
       if (token.type === 'heading' && token.depth > 1) {
@@ -95,7 +102,7 @@ export function extractReleaseLog(markdown: string, pkgName: string) {
       }
     }
   })
-  return changelog.join('')
+  return { pkgName, changelog: changelog.join('') }
 }
 
 export function getPackages(path: string) {
@@ -280,4 +287,31 @@ export function getPullRequestBody() {
     body = context.payload.comment?.body || ''
   }
   return body
+}
+
+export function saveReleaseLog(path: string, log: string) {
+  if (!existsSync(path)) {
+    writeFileSync(path, log, 'utf8')
+  }
+}
+
+export async function getPrCommentWhitelist() {
+  const response = await fetch('https://raw.githubusercontent.com/Tencent/tdesign/refs/heads/main/.github/.pr-comment-ci-whitelist')
+  const whitelist = await response.text()
+  return whitelist.split('\n')
+}
+
+export function getInputPkgs() {
+  const pkgs = getInput('packages', { trimWhitespace: true }) || ''
+  if (!pkgs) {
+    return []
+  }
+  return pkgs.split(',').map(pkg => pkg.trim())
+}
+
+export function checkReleaseBranch(prData: PullRequestData) {
+  return prData.head.ref.startsWith('release/')
+}
+export function checkIsForkPr(prData: PullRequestData) {
+  return prData.head.user.login !== context.repo.owner
 }
