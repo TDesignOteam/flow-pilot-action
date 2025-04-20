@@ -95,22 +95,20 @@ async function confirmReleaseLog(log: string, token: string) {
   info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
   const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
   info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
-  releaseDirs.forEach((dir) => {
-    const packageJson = readFileSync(`${dir.pkg}/package.json`, 'utf8')
-    const pkg = JSON.parse(packageJson)
+  releaseDirs.forEach((pkg) => {
     if (pkg.name !== pkgName) {
       return
     }
-    const files = globSync(`${dir.pkg}/.changelog/*.md`)
+    const files = globSync(`${pkg.dir}/.changelog/*.md`)
     files.forEach((file) => {
       unlinkSync(file)
       info(`delete file: ${file}`)
     })
-    if (!existsSync(`${dir.pkg}/CHANGELOG.md`)) {
-      writeFileSync(`${dir.pkg}/CHANGELOG.md`, '', 'utf8')
+    if (!existsSync(`${pkg.dir}/CHANGELOG.md`)) {
+      writeFileSync(`${pkg.dir}/CHANGELOG.md`, '', 'utf8')
     }
 
-    const pkgChangelog = readFileSync(`${dir.pkg}/CHANGELOG.md`, 'utf8')
+    const pkgChangelog = readFileSync(`${pkg.dir}/CHANGELOG.md`, 'utf8')
     const index = pkgChangelog.indexOf('## 🌈')
     let newData = ''
     if (index === -1) {
@@ -119,7 +117,7 @@ async function confirmReleaseLog(log: string, token: string) {
     else {
       newData = pkgChangelog.slice(0, index) + changelog + pkgChangelog.slice(index)
     }
-    writeFileSync(`${dir.pkg}/CHANGELOG.md`, newData, 'utf8')
+    writeFileSync(`${pkg.dir}/CHANGELOG.md`, newData, 'utf8')
   })
 
   await exec('git', ['add', '**/*.md'])
