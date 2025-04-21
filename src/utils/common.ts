@@ -175,8 +175,12 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
 
     return true
   }).map((file) => {
+    const packageJson = readFileSync(file.filename, 'utf8')
+    const packageData = JSON.parse(packageJson)
+
     return {
-      pkg: dirname(file.filename),
+      dir: dirname(file.filename),
+      name: packageData.name,
       version: file.patch?.match(NEW_VERSION_REG)?.[1],
     }
   })

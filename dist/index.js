@@ -45297,8 +45297,8 @@ function pull_request(token) {
                 (0, core_1.info)('没有更新发布版本');
                 return;
             }
-            releaseDirs.forEach((dir) => {
-                const changelogs = (0, utils_1.getStashChangelog)(dir.pkg);
+            releaseDirs.forEach((pkg) => {
+                const changelogs = (0, utils_1.getStashChangelog)(pkg.dir);
                 (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
                 const md = (0, utils_1.renderChangelogMarkdown)(changelogs.changelogs);
                 const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n';
@@ -45507,8 +45507,11 @@ function getPullRequestReleaseDirs(prFiles) {
         return true;
     }).map((file) => {
         var _a, _b;
+        const packageJson = (0, node_fs_1.readFileSync)(file.filename, 'utf8');
+        const packageData = JSON.parse(packageJson);
         return {
-            pkg: (0, node_path_1.dirname)(file.filename),
+            dir: (0, node_path_1.dirname)(file.filename),
+            name: packageData.name,
             version: (_b = (_a = file.patch) === null || _a === void 0 ? void 0 : _a.match(consts_1.NEW_VERSION_REG)) === null || _b === void 0 ? void 0 : _b[1],
         };
     });
@@ -45868,10 +45871,10 @@ const node_process_1 = __nccwpck_require__(1708);
 const core_1 = __nccwpck_require__(9999);
 const exec_1 = __nccwpck_require__(8872);
 const github_1 = __nccwpck_require__(2819);
+const glob_1 = __nccwpck_require__(8172);
 const common_1 = __nccwpck_require__(3942);
 const git_1 = __importDefault(__nccwpck_require__(8511));
 const github_2 = __importDefault(__nccwpck_require__(9764));
-const glob_1 = __nccwpck_require__(8172);
 function issue_comment(token) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, _b, _c;
@@ -45955,21 +45958,19 @@ function confirmReleaseLog(log, token) {
         (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
         const releaseDirs = yield (0, common_1.getPullRequestReleaseDirs)(changeFiles);
         (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
-        releaseDirs.forEach((dir) => {
-            const packageJson = (0, node_fs_1.readFileSync)(`${dir.pkg}/package.json`, 'utf8');
-            const pkg = JSON.parse(packageJson);
+        releaseDirs.forEach((pkg) => {
             if (pkg.name !== pkgName) {
                 return;
             }
-            const files = (0, glob_1.globSync)(`${dir.pkg}/.changelog/*.md`);
+            const files = (0, glob_1.globSync)(`${pkg.dir}/.changelog/*.md`);
             files.forEach((file) => {
                 (0, node_fs_1.unlinkSync)(file);
                 (0, core_1.info)(`delete file: ${file}`);
             });
-            if (!(0, node_fs_1.existsSync)(`${dir.pkg}/CHANGELOG.md`)) {
-                (0, node_fs_1.writeFileSync)(`${dir.pkg}/CHANGELOG.md`, '', 'utf8');
+            if (!(0, node_fs_1.existsSync)(`${pkg.dir}/CHANGELOG.md`)) {
+                (0, node_fs_1.writeFileSync)(`${pkg.dir}/CHANGELOG.md`, '', 'utf8');
             }
-            const pkgChangelog = (0, node_fs_1.readFileSync)(`${dir.pkg}/CHANGELOG.md`, 'utf8');
+            const pkgChangelog = (0, node_fs_1.readFileSync)(`${pkg.dir}/CHANGELOG.md`, 'utf8');
             const index = pkgChangelog.indexOf('## 🌈');
             let newData = '';
             if (index === -1) {
@@ -45978,7 +45979,7 @@ function confirmReleaseLog(log, token) {
             else {
                 newData = pkgChangelog.slice(0, index) + changelog + pkgChangelog.slice(index);
             }
-            (0, node_fs_1.writeFileSync)(`${dir.pkg}/CHANGELOG.md`, newData, 'utf8');
+            (0, node_fs_1.writeFileSync)(`${pkg.dir}/CHANGELOG.md`, newData, 'utf8');
         });
         yield (0, exec_1.exec)('git', ['add', '**/*.md']);
         yield (0, exec_1.exec)('git', ['status']);

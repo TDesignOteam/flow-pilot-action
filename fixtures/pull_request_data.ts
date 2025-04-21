@@ -395,7 +395,7 @@ export const pull_request_data: PullRequestData = {
 export const pull_request_files: PullRequestFiles = [
   {
     sha: '850f61b832fa80a1ac70c41bb9c89b3898c46003',
-    filename: 'packages/pkg-a/package.json',
+    filename: 'fixtures/repo1/packages/pkg-a/package.json',
     status: 'modified',
     additions: 1,
     deletions: 1,
@@ -407,7 +407,7 @@ export const pull_request_files: PullRequestFiles = [
   },
   {
     sha: '516d99705cb93e16cd2a4f0297380e1967fc7221',
-    filename: 'packages/pkg-c/package.json',
+    filename: 'fixtures/repo1/packages/pkg-c/package.json',
     status: 'modified',
     additions: 1,
     deletions: 1,
