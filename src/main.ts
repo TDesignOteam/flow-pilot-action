@@ -62,15 +62,17 @@ async function pull_request(token: string) {
         return
       }
       releaseDirs.forEach((release) => {
-        const changelogs = getStashChangelog(release.dir)
-        info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
-        const md = renderChangelogMarkdown(changelogs.changelogs)
-        const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n'
-        const currentDate = new Date()
-        const year = currentDate.getFullYear()
-        const month = currentDate.getMonth() + 1
-        const day = currentDate.getDate()
-        addComment(prNumber, `${logHead}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n${md}`)
+        if (release.tag === 'latest') {
+          const changelogs = getStashChangelog(release.dir)
+          info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
+          const md = renderChangelogMarkdown(changelogs.changelogs)
+          const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n'
+          const currentDate = new Date()
+          const year = currentDate.getFullYear()
+          const month = currentDate.getMonth() + 1
+          const day = currentDate.getDate()
+          addComment(prNumber, `${logHead}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n${md}`)
+        }
       })
     }
     if (context.payload.action === 'closed' && context.payload.pull_request?.merged) {

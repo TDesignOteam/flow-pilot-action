@@ -45300,15 +45300,17 @@ function pull_request(token) {
                     return;
                 }
                 releaseDirs.forEach((release) => {
-                    const changelogs = (0, utils_1.getStashChangelog)(release.dir);
-                    (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
-                    const md = (0, utils_1.renderChangelogMarkdown)(changelogs.changelogs);
-                    const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n';
-                    const currentDate = new Date();
-                    const year = currentDate.getFullYear();
-                    const month = currentDate.getMonth() + 1;
-                    const day = currentDate.getDate();
-                    addComment(prNumber, `${logHead}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n${md}`);
+                    if (release.tag === 'latest') {
+                        const changelogs = (0, utils_1.getStashChangelog)(release.dir);
+                        (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
+                        const md = (0, utils_1.renderChangelogMarkdown)(changelogs.changelogs);
+                        const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n';
+                        const currentDate = new Date();
+                        const year = currentDate.getFullYear();
+                        const month = currentDate.getMonth() + 1;
+                        const day = currentDate.getDate();
+                        addComment(prNumber, `${logHead}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n${md}`);
+                    }
                 });
             }
             if (github_1.context.payload.action === 'closed' && ((_a = github_1.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.merged)) {
