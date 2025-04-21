@@ -182,10 +182,10 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
     const packageJson = readFileSync(file.filename, 'utf8')
     const packageData = JSON.parse(packageJson)
     let tag = 'latest'
-    if (packageData.name.includes('beta')) {
+    if (packageData.version.includes('beta')) {
       tag = 'beta'
     }
-    if (packageData.name.includes('alpha')) {
+    if (packageData.version.includes('alpha')) {
       tag = 'alpha'
     }
     return {
