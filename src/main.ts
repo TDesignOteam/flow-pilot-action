@@ -74,6 +74,8 @@ async function pull_request(token: string) {
       })
     }
     if (context.payload.action === 'closed' && context.payload.pull_request?.merged) {
+      await cloneRepo()
+      checkoutBranch(prData.head.ref)
       const changeFiles = await getPullRequestFiles(prNumber)
       info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
       const releaseDirs = await getPullRequestReleaseDirs(changeFiles)

@@ -45312,6 +45312,8 @@ function pull_request(token) {
                 });
             }
             if (github_1.context.payload.action === 'closed' && ((_a = github_1.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.merged)) {
+                yield cloneRepo();
+                checkoutBranch(prData.head.ref);
                 const changeFiles = yield getPullRequestFiles(prNumber);
                 (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
                 const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
