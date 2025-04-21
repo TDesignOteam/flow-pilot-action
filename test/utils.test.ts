@@ -133,9 +133,11 @@ describe('utils', () => {
     expect(paths[0].dir).toBe('fixtures/repo1/packages/pkg-a')
     expect(paths[0].name).toBe('pkg-a')
     expect(paths[0].version).toBe('1.0.1')
+    expect(paths[0].tag).toBe('latest')
     expect(paths[1].dir).toBe('fixtures/repo1/packages/pkg-c')
     expect(paths[1].version).toBe('1.0.1')
     expect(paths[1].name).toBe('pkg-c')
+    expect(paths[1].tag).toBe('latest')
   })
 
   it('getStashChangelog', () => {

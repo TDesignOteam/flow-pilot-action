@@ -45297,8 +45297,8 @@ function pull_request(token) {
                 (0, core_1.info)('没有更新发布版本');
                 return;
             }
-            releaseDirs.forEach((pkg) => {
-                const changelogs = (0, utils_1.getStashChangelog)(pkg.dir);
+            releaseDirs.forEach((release) => {
+                const changelogs = (0, utils_1.getStashChangelog)(release.dir);
                 (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
                 const md = (0, utils_1.renderChangelogMarkdown)(changelogs.changelogs);
                 const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n';
@@ -45509,10 +45509,18 @@ function getPullRequestReleaseDirs(prFiles) {
         var _a, _b;
         const packageJson = (0, node_fs_1.readFileSync)(file.filename, 'utf8');
         const packageData = JSON.parse(packageJson);
+        let tag = 'latest';
+        if (packageData.name.includes('beta')) {
+            tag = 'beta';
+        }
+        if (packageData.name.includes('alpha')) {
+            tag = 'alpha';
+        }
         return {
             dir: (0, node_path_1.dirname)(file.filename),
             name: packageData.name,
             version: (_b = (_a = file.patch) === null || _a === void 0 ? void 0 : _a.match(consts_1.NEW_VERSION_REG)) === null || _b === void 0 ? void 0 : _b[1],
+            tag,
         };
     });
 }
@@ -45958,19 +45966,19 @@ function confirmReleaseLog(log, token) {
         (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
         const releaseDirs = yield (0, common_1.getPullRequestReleaseDirs)(changeFiles);
         (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
-        releaseDirs.forEach((pkg) => {
-            if (pkg.name !== pkgName) {
+        releaseDirs.forEach((release) => {
+            if (release.name !== pkgName) {
                 return;
             }
-            const files = (0, glob_1.globSync)(`${pkg.dir}/.changelog/*.md`);
+            const files = (0, glob_1.globSync)(`${release.dir}/.changelog/*.md`);
             files.forEach((file) => {
                 (0, node_fs_1.unlinkSync)(file);
                 (0, core_1.info)(`delete file: ${file}`);
             });
-            if (!(0, node_fs_1.existsSync)(`${pkg.dir}/CHANGELOG.md`)) {
-                (0, node_fs_1.writeFileSync)(`${pkg.dir}/CHANGELOG.md`, '', 'utf8');
+            if (!(0, node_fs_1.existsSync)(`${release.dir}/CHANGELOG.md`)) {
+                (0, node_fs_1.writeFileSync)(`${release.dir}/CHANGELOG.md`, '', 'utf8');
             }
-            const pkgChangelog = (0, node_fs_1.readFileSync)(`${pkg.dir}/CHANGELOG.md`, 'utf8');
+            const pkgChangelog = (0, node_fs_1.readFileSync)(`${release.dir}/CHANGELOG.md`, 'utf8');
             const index = pkgChangelog.indexOf('## 🌈');
             let newData = '';
             if (index === -1) {
@@ -45979,7 +45987,7 @@ function confirmReleaseLog(log, token) {
             else {
                 newData = pkgChangelog.slice(0, index) + changelog + pkgChangelog.slice(index);
             }
-            (0, node_fs_1.writeFileSync)(`${pkg.dir}/CHANGELOG.md`, newData, 'utf8');
+            (0, node_fs_1.writeFileSync)(`${release.dir}/CHANGELOG.md`, newData, 'utf8');
         });
         yield (0, exec_1.exec)('git', ['add', '**/*.md']);
         yield (0, exec_1.exec)('git', ['status']);

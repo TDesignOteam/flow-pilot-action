@@ -177,11 +177,18 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
   }).map((file) => {
     const packageJson = readFileSync(file.filename, 'utf8')
     const packageData = JSON.parse(packageJson)
-
+    let tag = 'latest'
+    if (packageData.name.includes('beta')) {
+      tag = 'beta'
+    }
+    if (packageData.name.includes('alpha')) {
+      tag = 'alpha'
+    }
     return {
       dir: dirname(file.filename),
       name: packageData.name,
       version: file.patch?.match(NEW_VERSION_REG)?.[1],
+      tag,
     }
   })
 }
