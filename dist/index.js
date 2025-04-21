@@ -45510,7 +45510,7 @@ function getPullRequestReleaseDirs(prFiles) {
     return prFiles.filter((file) => {
         var _a, _b;
         if (file.filename.includes('CHANGELOG.md')) {
-            changelogs[(0, node_path_1.dirname)(file.filename)] = (_a = file.patch) === null || _a === void 0 ? void 0 : _a.split('\n').filter(line => line.startsWith('+')).map(line => line.replace(/^\+/, '').trim()).join('\n');
+            changelogs[(0, node_path_1.dirname)(file.filename)] = (_a = file.patch) === null || _a === void 0 ? void 0 : _a.split('\n').filter(line => line.startsWith('+')).map(line => line.slice(1)).join('\n');
         }
         if (file.status !== 'modified') {
             return false;

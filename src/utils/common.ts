@@ -157,7 +157,7 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
   const changelogs = {}
   return prFiles.filter((file) => {
     if (file.filename.includes('CHANGELOG.md')) {
-      changelogs[dirname(file.filename)] = file.patch?.split('\n').filter(line => line.startsWith('+')).map(line => line.replace(/^\+/, '').trim()).join('\n')
+      changelogs[dirname(file.filename)] = file.patch?.split('\n').filter(line => line.startsWith('+')).map(line => line.slice(1)).join('\n')
     }
     if (file.status !== 'modified') {
       return false
