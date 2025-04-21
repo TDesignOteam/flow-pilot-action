@@ -154,7 +154,11 @@ export function stashPackageChangelog(prData: PullRequestData, packages: Package
 }
 
 export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
+  const changelogs = {}
   return prFiles.filter((file) => {
+    if (file.filename.includes('CHANGELOG.md')) {
+      changelogs[dirname(file.filename)] = file.patch?.split('\n').filter(line => line.startsWith('+')).map(line => line.replace(/^\+/, '').trim()).join('\n')
+    }
     if (file.status !== 'modified') {
       return false
     }
@@ -189,6 +193,7 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
       name: packageData.name,
       version: file.patch?.match(NEW_VERSION_REG)?.[1],
       tag,
+      changelog: changelogs[dirname(file.filename)] || '',
     }
   })
 }

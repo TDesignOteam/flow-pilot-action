@@ -45,6 +45,15 @@ export default function useGithub(token: string) {
     })
     return data.users.map(item => item.login)
   }
+  async function createRelease(tag_name: string, name: string, body: string) {
+    await octokit.rest.repos.createRelease({
+      owner,
+      repo,
+      tag_name,
+      name,
+      body,
+    })
+  }
 
-  return { getPullRequestData, getPullRequestFiles, addPullRequestLabels, addComment, getRequestedReviewers }
+  return { getPullRequestData, getPullRequestFiles, addPullRequestLabels, addComment, getRequestedReviewers, createRelease }
 }

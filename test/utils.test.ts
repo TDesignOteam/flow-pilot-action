@@ -2,7 +2,7 @@ import type { Tokens } from 'marked'
 import type { PullRequestData } from '../src/types'
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { pull_request_data, pull_request_files } from '../fixtures/pull_request_data'
+import { merged_pull_request_files, pull_request_data, pull_request_files } from '../fixtures/pull_request_data'
 import {
   extractChangelog,
   extractReleaseLog,
@@ -138,6 +138,11 @@ describe('utils', () => {
     expect(paths[1].version).toBe('1.0.1')
     expect(paths[1].name).toBe('pkg-c')
     expect(paths[1].tag).toBe('latest')
+  })
+
+  it('getMergedPullRequestReleaseDirs', () => {
+    const paths = getPullRequestReleaseDirs(merged_pull_request_files)
+    expect(paths).toMatchSnapshot()
   })
 
   it('getStashChangelog', () => {

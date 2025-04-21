@@ -25,7 +25,7 @@ async function pull_request(token: string) {
     return false
   }
   const prNumber = getPullRequestNumber()
-  const { getPullRequestData, addComment, getPullRequestFiles } = useGithub(token)
+  const { getPullRequestData, addComment, getPullRequestFiles, createRelease } = useGithub(token)
   const { cloneRepo, checkoutBranch } = useGit(token)
 
   const prData = await getPullRequestData(prNumber) as PullRequestData
@@ -50,26 +50,44 @@ async function pull_request(token: string) {
     }
   }
   else {
-    await cloneRepo()
-    checkoutBranch(prData.head.ref)
-    const changeFiles = await getPullRequestFiles(prNumber)
-    info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
-    const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
-    info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
-    if (!releaseDirs.length) {
-      info('没有更新发布版本')
-      return
+    if (context.payload.action === 'opened') {
+      await cloneRepo()
+      checkoutBranch(prData.head.ref)
+      const changeFiles = await getPullRequestFiles(prNumber)
+      info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
+      const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
+      info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
+      if (!releaseDirs.length) {
+        info('没有更新发布版本')
+        return
+      }
+      releaseDirs.forEach((release) => {
+        const changelogs = getStashChangelog(release.dir)
+        info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
+        const md = renderChangelogMarkdown(changelogs.changelogs)
+        const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n'
+        const currentDate = new Date()
+        const year = currentDate.getFullYear()
+        const month = currentDate.getMonth() + 1
+        const day = currentDate.getDate()
+        addComment(prNumber, `${logHead}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n${md}`)
+      })
     }
-    releaseDirs.forEach((release) => {
-      const changelogs = getStashChangelog(release.dir)
-      info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
-      const md = renderChangelogMarkdown(changelogs.changelogs)
-      const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n'
-      const currentDate = new Date()
-      const year = currentDate.getFullYear()
-      const month = currentDate.getMonth() + 1
-      const day = currentDate.getDate()
-      addComment(prNumber, `${logHead}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n${md}`)
-    })
+    if (context.payload.action === 'closed' && context.payload.pull_request?.merged) {
+      const changeFiles = await getPullRequestFiles(prNumber)
+      info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
+      const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
+      info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
+      if (!releaseDirs.length) {
+        info('没有更新发布版本')
+        return
+      }
+      releaseDirs.forEach(async (release) => {
+        if (release.changelog) {
+          const title = `${release.name}@${release.version}`
+          await createRelease(title, title, release.changelog)
+        }
+      })
+    }
   }
 }

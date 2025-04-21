@@ -45260,11 +45260,12 @@ function run() {
 }
 function pull_request(token) {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a;
         if (github_1.context.eventName !== 'pull_request') {
             return false;
         }
         const prNumber = (0, utils_1.getPullRequestNumber)();
-        const { getPullRequestData, addComment, getPullRequestFiles } = (0, github_2.default)(token);
+        const { getPullRequestData, addComment, getPullRequestFiles, createRelease } = (0, github_2.default)(token);
         const { cloneRepo, checkoutBranch } = (0, git_1.default)(token);
         const prData = yield getPullRequestData(prNumber);
         const isRelease = (0, utils_1.checkReleaseBranch)(prData);
@@ -45287,27 +45288,45 @@ function pull_request(token) {
             }
         }
         else {
-            yield cloneRepo();
-            checkoutBranch(prData.head.ref);
-            const changeFiles = yield getPullRequestFiles(prNumber);
-            (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
-            const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
-            (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
-            if (!releaseDirs.length) {
-                (0, core_1.info)('没有更新发布版本');
-                return;
+            if (github_1.context.payload.action === 'opened') {
+                yield cloneRepo();
+                checkoutBranch(prData.head.ref);
+                const changeFiles = yield getPullRequestFiles(prNumber);
+                (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
+                const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
+                (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
+                if (!releaseDirs.length) {
+                    (0, core_1.info)('没有更新发布版本');
+                    return;
+                }
+                releaseDirs.forEach((release) => {
+                    const changelogs = (0, utils_1.getStashChangelog)(release.dir);
+                    (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
+                    const md = (0, utils_1.renderChangelogMarkdown)(changelogs.changelogs);
+                    const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n';
+                    const currentDate = new Date();
+                    const year = currentDate.getFullYear();
+                    const month = currentDate.getMonth() + 1;
+                    const day = currentDate.getDate();
+                    addComment(prNumber, `${logHead}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n${md}`);
+                });
             }
-            releaseDirs.forEach((release) => {
-                const changelogs = (0, utils_1.getStashChangelog)(release.dir);
-                (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
-                const md = (0, utils_1.renderChangelogMarkdown)(changelogs.changelogs);
-                const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n';
-                const currentDate = new Date();
-                const year = currentDate.getFullYear();
-                const month = currentDate.getMonth() + 1;
-                const day = currentDate.getDate();
-                addComment(prNumber, `${logHead}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n${md}`);
-            });
+            if (github_1.context.payload.action === 'closed' && ((_a = github_1.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.merged)) {
+                const changeFiles = yield getPullRequestFiles(prNumber);
+                (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
+                const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
+                (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
+                if (!releaseDirs.length) {
+                    (0, core_1.info)('没有更新发布版本');
+                    return;
+                }
+                releaseDirs.forEach((release) => __awaiter(this, void 0, void 0, function* () {
+                    if (release.changelog) {
+                        const title = `${release.name}@${release.version}`;
+                        yield createRelease(title, title, release.changelog);
+                    }
+                }));
+            }
         }
     });
 }
@@ -45485,15 +45504,19 @@ function stashPackageChangelog(prData, packages, prChangelog) {
     });
 }
 function getPullRequestReleaseDirs(prFiles) {
+    const changelogs = {};
     return prFiles.filter((file) => {
-        var _a;
+        var _a, _b;
+        if (file.filename.includes('CHANGELOG.md')) {
+            changelogs[(0, node_path_1.dirname)(file.filename)] = (_a = file.patch) === null || _a === void 0 ? void 0 : _a.split('\n').filter(line => line.startsWith('+')).map(line => line.replace(/^\+/, '').trim()).join('\n');
+        }
         if (file.status !== 'modified') {
             return false;
         }
         if (!file.filename.includes('package.json')) {
             return false;
         }
-        if (!((_a = file.patch) === null || _a === void 0 ? void 0 : _a.includes('version'))) {
+        if (!((_b = file.patch) === null || _b === void 0 ? void 0 : _b.includes('version'))) {
             return false;
         }
         const newVersion = file.patch.match(consts_1.NEW_VERSION_REG);
@@ -45521,6 +45544,7 @@ function getPullRequestReleaseDirs(prFiles) {
             name: packageData.name,
             version: (_b = (_a = file.patch) === null || _a === void 0 ? void 0 : _a.match(consts_1.NEW_VERSION_REG)) === null || _b === void 0 ? void 0 : _b[1],
             tag,
+            changelog: changelogs[(0, node_path_1.dirname)(file.filename)] || '',
         };
     });
 }
@@ -45821,7 +45845,18 @@ function useGithub(token) {
             return data.users.map(item => item.login);
         });
     }
-    return { getPullRequestData, getPullRequestFiles, addPullRequestLabels, addComment, getRequestedReviewers };
+    function createRelease(tag_name, name, body) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield octokit.rest.repos.createRelease({
+                owner,
+                repo,
+                tag_name,
+                name,
+                body,
+            });
+        });
+    }
+    return { getPullRequestData, getPullRequestFiles, addPullRequestLabels, addComment, getRequestedReviewers, createRelease };
 }
 
 
