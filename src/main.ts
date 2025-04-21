@@ -50,6 +50,7 @@ async function pull_request(token: string) {
       for (let i = commentList.length; i--;) {
         if (commentList[i].body?.includes('<!-- FLOW-PR-CHANGELOG -->')) {
           commentId = commentList[i].id
+          break
         }
       }
       const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的日志暂存区\n'
