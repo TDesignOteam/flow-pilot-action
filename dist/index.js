@@ -45286,7 +45286,7 @@ function pull_request(token) {
                 let commentId;
                 const commentList = yield getCommentList(prNumber);
                 for (let i = commentList.length; i--;) {
-                    if ((_a = commentList[i].body) === null || _a === void 0 ? void 0 : _a.includes('<!-- PR-CHANGELOG -->')) {
+                    if ((_a = commentList[i].body) === null || _a === void 0 ? void 0 : _a.includes('<!-- FLOW-PR-CHANGELOG -->')) {
                         commentId = commentList[i].id;
                     }
                 }
