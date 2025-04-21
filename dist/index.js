@@ -45260,12 +45260,12 @@ function run() {
 }
 function pull_request(token) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a;
+        var _a, _b;
         if (github_1.context.eventName !== 'pull_request') {
             return false;
         }
         const prNumber = (0, utils_1.getPullRequestNumber)();
-        const { getPullRequestData, addComment, getPullRequestFiles, createRelease } = (0, github_2.default)(token);
+        const { getPullRequestData, addComment, getPullRequestFiles, createRelease, getCommentList, updateComment } = (0, github_2.default)(token);
         const { cloneRepo, checkoutBranch } = (0, git_1.default)(token);
         const prData = yield getPullRequestData(prNumber);
         const isRelease = (0, utils_1.checkReleaseBranch)(prData);
@@ -45283,8 +45283,19 @@ function pull_request(token) {
                 });
             });
             if (logs) {
+                let commentId;
+                const commentList = yield getCommentList(prNumber);
+                for (let i = commentList.length; i--;) {
+                    if ((_a = commentList[i].body) === null || _a === void 0 ? void 0 : _a.includes('<!-- PR-CHANGELOG -->')) {
+                        commentId = commentList[i].id;
+                    }
+                }
                 const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的日志暂存区\n';
-                addComment(prNumber, `${logHead}### 📝 更新日志\n\n${logs}`);
+                const body = `${logHead}### 📝 更新日志\n\n${logs}`;
+                if (commentId) {
+                    updateComment(commentId, body);
+                }
+                addComment(prNumber, `${body}\n\n <!-- FLOW-PR-CHANGELOG -->`);
             }
         }
         else {
@@ -45313,7 +45324,7 @@ function pull_request(token) {
                     }
                 });
             }
-            if (github_1.context.payload.action === 'closed' && ((_a = github_1.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.merged)) {
+            if (github_1.context.payload.action === 'closed' && ((_b = github_1.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.merged)) {
                 yield cloneRepo();
                 checkoutBranch(prData.head.ref);
                 const changeFiles = yield getPullRequestFiles(prNumber);
@@ -45324,12 +45335,12 @@ function pull_request(token) {
                     (0, core_1.info)('没有更新发布版本');
                     return;
                 }
-                releaseDirs.forEach((release) => __awaiter(this, void 0, void 0, function* () {
+                releaseDirs.forEach((release) => {
                     if (release.changelog) {
                         const title = `${release.name}@${release.version}`;
-                        yield createRelease(title, title, release.changelog);
+                        createRelease(title, title, release.changelog);
                     }
-                }));
+                });
             }
         }
     });
@@ -45819,12 +45830,32 @@ function useGithub(token) {
             return data;
         });
     }
+    function getCommentList(pr_number) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { data } = yield octokit.rest.issues.listComments({
+                owner,
+                repo,
+                issue_number: pr_number,
+            });
+            return data;
+        });
+    }
     function addComment(pr_number, body) {
         return __awaiter(this, void 0, void 0, function* () {
             yield octokit.rest.issues.createComment({
                 owner,
                 repo,
                 issue_number: pr_number,
+                body,
+            });
+        });
+    }
+    function updateComment(comment_id, body) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield octokit.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id,
                 body,
             });
         });
@@ -45860,7 +45891,7 @@ function useGithub(token) {
             });
         });
     }
-    return { getPullRequestData, getPullRequestFiles, addPullRequestLabels, addComment, getRequestedReviewers, createRelease };
+    return { getPullRequestData, getPullRequestFiles, addPullRequestLabels, addComment, updateComment, getCommentList, getRequestedReviewers, createRelease };
 }
 
 

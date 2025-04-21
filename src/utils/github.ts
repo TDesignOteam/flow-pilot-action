@@ -21,6 +21,14 @@ export default function useGithub(token: string) {
     })
     return data
   }
+  async function getCommentList(pr_number: number) {
+    const { data } = await octokit.rest.issues.listComments({
+      owner,
+      repo,
+      issue_number: pr_number,
+    })
+    return data
+  }
   async function addComment(pr_number: number, body: string) {
     await octokit.rest.issues.createComment({
       owner,
@@ -29,6 +37,15 @@ export default function useGithub(token: string) {
       body,
     })
   }
+  async function updateComment(comment_id: number, body: string) {
+    await octokit.rest.issues.updateComment({
+      owner,
+      repo,
+      comment_id,
+      body,
+    })
+  }
+
   async function addPullRequestLabels(pr_number: number, labels: string[]) {
     await octokit.rest.issues.addLabels({
       owner,
@@ -55,5 +72,5 @@ export default function useGithub(token: string) {
     })
   }
 
-  return { getPullRequestData, getPullRequestFiles, addPullRequestLabels, addComment, getRequestedReviewers, createRelease }
+  return { getPullRequestData, getPullRequestFiles, addPullRequestLabels, addComment, updateComment, getCommentList, getRequestedReviewers, createRelease }
 }

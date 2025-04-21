@@ -25,7 +25,7 @@ async function pull_request(token: string) {
     return false
   }
   const prNumber = getPullRequestNumber()
-  const { getPullRequestData, addComment, getPullRequestFiles, createRelease } = useGithub(token)
+  const { getPullRequestData, addComment, getPullRequestFiles, createRelease, getCommentList, updateComment } = useGithub(token)
   const { cloneRepo, checkoutBranch } = useGit(token)
 
   const prData = await getPullRequestData(prNumber) as PullRequestData
@@ -45,8 +45,19 @@ async function pull_request(token: string) {
       )
     })
     if (logs) {
+      let commentId
+      const commentList = await getCommentList(prNumber)
+      for (let i = commentList.length; i--;) {
+        if (commentList[i].body?.includes('<!-- PR-CHANGELOG -->')) {
+          commentId = commentList[i].id
+        }
+      }
       const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的日志暂存区\n'
-      addComment(prNumber, `${logHead}### 📝 更新日志\n\n${logs}`)
+      const body = `${logHead}### 📝 更新日志\n\n${logs}`
+      if (commentId) {
+        updateComment(commentId, body)
+      }
+      addComment(prNumber, `${body}\n\n <!-- FLOW-PR-CHANGELOG -->`)
     }
   }
   else {
@@ -86,10 +97,10 @@ async function pull_request(token: string) {
         info('没有更新发布版本')
         return
       }
-      releaseDirs.forEach(async (release) => {
+      releaseDirs.forEach((release) => {
         if (release.changelog) {
           const title = `${release.name}@${release.version}`
-          await createRelease(title, title, release.changelog)
+          createRelease(title, title, release.changelog)
         }
       })
     }
