@@ -45285,7 +45285,7 @@ function pull_request(token) {
             if (logs) {
                 let commentId;
                 const commentList = yield getCommentList(prNumber);
-                (0, core_1.info)(`commentList: ${JSON.stringify(commentList, null, 2)}`);
+                (0, core_1.debug)(`commentList: ${JSON.stringify(commentList, null, 2)}`);
                 for (let i = commentList.length; i--;) {
                     if ((_a = commentList[i].body) === null || _a === void 0 ? void 0 : _a.includes('<!-- FLOW-PR-CHANGELOG -->')) {
                         commentId = commentList[i].id;
@@ -45297,7 +45297,9 @@ function pull_request(token) {
                 if (commentId) {
                     updateComment(commentId, body);
                 }
-                addComment(prNumber, body);
+                else {
+                    addComment(prNumber, body);
+                }
             }
         }
         else {

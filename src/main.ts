@@ -1,6 +1,6 @@
 import type { PullRequestData } from './types'
 
-import { endGroup, getInput, info, startGroup } from '@actions/core'
+import { debug, endGroup, getInput, info, startGroup } from '@actions/core'
 import { context } from '@actions/github'
 import { checkReleaseBranch, extractChangelog, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, issue_comment, renderChangelogMarkdown } from './utils'
 import useGit from './utils/git'
@@ -47,7 +47,7 @@ async function pull_request(token: string) {
     if (logs) {
       let commentId
       const commentList = await getCommentList(prNumber)
-      info(`commentList: ${JSON.stringify(commentList, null, 2)}`)
+      debug(`commentList: ${JSON.stringify(commentList, null, 2)}`)
       for (let i = commentList.length; i--;) {
         if (commentList[i].body?.includes('<!-- FLOW-PR-CHANGELOG -->')) {
           commentId = commentList[i].id
@@ -59,7 +59,9 @@ async function pull_request(token: string) {
       if (commentId) {
         updateComment(commentId, body)
       }
-      addComment(prNumber, body)
+      else {
+        addComment(prNumber, body)
+      }
     }
   }
   else {
