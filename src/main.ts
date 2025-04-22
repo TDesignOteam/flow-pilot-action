@@ -47,6 +47,7 @@ async function pull_request(token: string) {
     if (logs) {
       let commentId
       const commentList = await getCommentList(prNumber)
+      info(`commentList: ${JSON.stringify(commentList, null, 2)}`)
       for (let i = commentList.length; i--;) {
         if (commentList[i].body?.includes('<!-- FLOW-PR-CHANGELOG -->')) {
           commentId = commentList[i].id
