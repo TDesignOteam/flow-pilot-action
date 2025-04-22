@@ -67,7 +67,7 @@ async function confirmChangelog(log: string, token: string) {
     info('无需提交')
     return true
   }
-  await exec('git', ['commit', '-m', 'chore: stash changelog'])
+  await exec('git', ['commit', '-m', 'chore: stash changelog [ci skip]'])
   if (isForkPr) {
     await exec('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`])
   }

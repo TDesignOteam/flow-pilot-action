@@ -46013,7 +46013,7 @@ function confirmChangelog(log, token) {
             (0, core_1.info)('无需提交');
             return true;
         }
-        yield (0, exec_1.exec)('git', ['commit', '-m', 'chore: stash changelog']);
+        yield (0, exec_1.exec)('git', ['commit', '-m', 'chore: stash changelog [ci skip]']);
         if (isForkPr) {
             yield (0, exec_1.exec)('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`]);
         }
