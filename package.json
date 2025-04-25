@@ -33,7 +33,7 @@
     "@actions/github": "^6.0.0",
     "@manypkg/get-packages": "^2.2.2",
     "camelcase": "^8.0.0",
-    "glob": "^11.0.1",
+    "glob": "^11.0.2",
     "marked": "^15.0.11"
   },
   "devDependencies": {
