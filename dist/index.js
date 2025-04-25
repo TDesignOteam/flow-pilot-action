@@ -45242,6 +45242,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = run;
 const core_1 = __nccwpck_require__(9999);
+const exec_1 = __nccwpck_require__(8872);
 const github_1 = __nccwpck_require__(2819);
 const utils_1 = __nccwpck_require__(9499);
 const git_1 = __importDefault(__nccwpck_require__(8511));
@@ -45256,16 +45257,17 @@ function run() {
         (0, core_1.info)(`action: ${github_1.context.payload.action}`);
         (0, utils_1.issue_comment)(token);
         pull_request(token);
+        pull_request_target(token);
     });
 }
 function pull_request(token) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b;
+        var _a;
         if (github_1.context.eventName !== 'pull_request') {
             return false;
         }
         const prNumber = (0, utils_1.getPullRequestNumber)();
-        const { getPullRequestData, addComment, getPullRequestFiles, createRelease, getCommentList, updateComment } = (0, github_2.default)(token);
+        const { getPullRequestData, addComment, getPullRequestFiles, getCommentList, updateComment } = (0, github_2.default)(token);
         const { cloneRepo, checkoutBranch } = (0, git_1.default)(token);
         const prData = yield getPullRequestData(prNumber);
         const isRelease = (0, utils_1.checkReleaseBranch)(prData);
@@ -45328,24 +45330,39 @@ function pull_request(token) {
                     }
                 });
             }
-            if (github_1.context.payload.action === 'closed' && ((_b = github_1.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.merged)) {
-                yield cloneRepo();
-                checkoutBranch(prData.head.ref);
-                const changeFiles = yield getPullRequestFiles(prNumber);
-                (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
-                const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
-                (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
-                if (!releaseDirs.length) {
-                    (0, core_1.info)('没有更新发布版本');
-                    return;
-                }
-                releaseDirs.forEach((release) => {
-                    if (release.changelog) {
-                        const title = `${release.name}@${release.version}`;
-                        createRelease(title, title, release.changelog);
-                    }
-                });
+        }
+    });
+}
+function pull_request_target(token) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        if (github_1.context.eventName !== 'pull_request_target') {
+            return false;
+        }
+        const prNumber = (0, utils_1.getPullRequestNumber)();
+        const { getPullRequestData, getPullRequestFiles, createRelease } = (0, github_2.default)(token);
+        const prData = yield getPullRequestData(prNumber);
+        const isRelease = (0, utils_1.checkReleaseBranch)(prData);
+        if (!isRelease) {
+            return false;
+        }
+        if (github_1.context.payload.action === 'closed' && ((_a = github_1.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.merged)) {
+            const changeFiles = yield getPullRequestFiles(prNumber);
+            (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
+            const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
+            (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
+            if (!releaseDirs.length) {
+                (0, core_1.info)('没有更新发布版本');
+                return;
             }
+            releaseDirs.forEach((release) => __awaiter(this, void 0, void 0, function* () {
+                if (release.changelog && release.tag === 'latest') {
+                    const title = `${release.name}@${release.version}`;
+                    yield createRelease(title, title, release.changelog);
+                }
+                const { stdout } = yield (0, exec_1.getExecOutput)('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', '--dry-run', release.tag]);
+                (0, core_1.info)(stdout);
+            }));
         }
     });
 }
@@ -45395,8 +45412,8 @@ const core_1 = __nccwpck_require__(9999);
 const utils_1 = __nccwpck_require__(4655);
 const get_packages_1 = __nccwpck_require__(713);
 const camelcase_1 = __importDefault(__nccwpck_require__(6249));
-const glob_1 = __nccwpck_require__(8172);
-const marked_1 = __nccwpck_require__(6045);
+const glob_1 = __nccwpck_require__(5945);
+const marked_1 = __nccwpck_require__(2695);
 const consts_1 = __nccwpck_require__(566);
 function pascalCase(str) {
     return (0, camelcase_1.default)(str, { pascalCase: true });
@@ -45953,7 +45970,7 @@ const node_process_1 = __nccwpck_require__(1708);
 const core_1 = __nccwpck_require__(9999);
 const exec_1 = __nccwpck_require__(8872);
 const github_1 = __nccwpck_require__(2819);
-const glob_1 = __nccwpck_require__(8172);
+const glob_1 = __nccwpck_require__(5945);
 const common_1 = __nccwpck_require__(3942);
 const git_1 = __importDefault(__nccwpck_require__(8511));
 const github_2 = __importDefault(__nccwpck_require__(9764));
@@ -48006,7 +48023,7 @@ module.exports = parseParams
 
 /***/ }),
 
-/***/ 7700:
+/***/ 2831:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -48016,8 +48033,8 @@ exports.Glob = void 0;
 const minimatch_1 = __nccwpck_require__(2119);
 const node_url_1 = __nccwpck_require__(3136);
 const path_scurry_1 = __nccwpck_require__(7069);
-const pattern_js_1 = __nccwpck_require__(5470);
-const walker_js_1 = __nccwpck_require__(3792);
+const pattern_js_1 = __nccwpck_require__(2311);
+const walker_js_1 = __nccwpck_require__(2804);
 // if no process global, just call it linux.
 // so we default to case-sensitive, / separators
 const defaultPlatform = (typeof process === 'object' &&
@@ -48260,7 +48277,7 @@ exports.Glob = Glob;
 
 /***/ }),
 
-/***/ 1462:
+/***/ 4683:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -48294,7 +48311,7 @@ exports.hasMagic = hasMagic;
 
 /***/ }),
 
-/***/ 2068:
+/***/ 9011:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -48306,7 +48323,7 @@ exports.hasMagic = hasMagic;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Ignore = void 0;
 const minimatch_1 = __nccwpck_require__(2119);
-const pattern_js_1 = __nccwpck_require__(5470);
+const pattern_js_1 = __nccwpck_require__(2311);
 const defaultPlatform = (typeof process === 'object' &&
     process &&
     typeof process.platform === 'string') ?
@@ -48420,7 +48437,7 @@ exports.Ignore = Ignore;
 
 /***/ }),
 
-/***/ 8172:
+/***/ 5945:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -48433,16 +48450,16 @@ exports.globSync = globSync;
 exports.globIterateSync = globIterateSync;
 exports.globIterate = globIterate;
 const minimatch_1 = __nccwpck_require__(2119);
-const glob_js_1 = __nccwpck_require__(7700);
-const has_magic_js_1 = __nccwpck_require__(1462);
+const glob_js_1 = __nccwpck_require__(2831);
+const has_magic_js_1 = __nccwpck_require__(4683);
 var minimatch_2 = __nccwpck_require__(2119);
 Object.defineProperty(exports, "escape", ({ enumerable: true, get: function () { return minimatch_2.escape; } }));
 Object.defineProperty(exports, "unescape", ({ enumerable: true, get: function () { return minimatch_2.unescape; } }));
-var glob_js_2 = __nccwpck_require__(7700);
+var glob_js_2 = __nccwpck_require__(2831);
 Object.defineProperty(exports, "Glob", ({ enumerable: true, get: function () { return glob_js_2.Glob; } }));
-var has_magic_js_2 = __nccwpck_require__(1462);
+var has_magic_js_2 = __nccwpck_require__(4683);
 Object.defineProperty(exports, "hasMagic", ({ enumerable: true, get: function () { return has_magic_js_2.hasMagic; } }));
-var ignore_js_1 = __nccwpck_require__(2068);
+var ignore_js_1 = __nccwpck_require__(9011);
 Object.defineProperty(exports, "Ignore", ({ enumerable: true, get: function () { return ignore_js_1.Ignore; } }));
 function globStreamSync(pattern, options = {}) {
     return new glob_js_1.Glob(pattern, options).streamSync();
@@ -48495,7 +48512,7 @@ exports.glob.glob = exports.glob;
 
 /***/ }),
 
-/***/ 5470:
+/***/ 2311:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -48721,7 +48738,7 @@ exports.Pattern = Pattern;
 
 /***/ }),
 
-/***/ 9072:
+/***/ 1097:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -49029,7 +49046,7 @@ exports.Processor = Processor;
 
 /***/ }),
 
-/***/ 3792:
+/***/ 2804:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -49043,8 +49060,8 @@ exports.GlobStream = exports.GlobWalker = exports.GlobUtil = void 0;
  * @module
  */
 const minipass_1 = __nccwpck_require__(9243);
-const ignore_js_1 = __nccwpck_require__(2068);
-const processor_js_1 = __nccwpck_require__(9072);
+const ignore_js_1 = __nccwpck_require__(9011);
+const processor_js_1 = __nccwpck_require__(1097);
 const makeIgnore = (ignore, opts) => typeof ignore === 'string' ? new ignore_js_1.Ignore([ignore], opts)
     : Array.isArray(ignore) ? new ignore_js_1.Ignore(ignore, opts)
         : ignore;
@@ -55915,12 +55932,12 @@ exports.PathScurry = process.platform === 'win32' ? PathScurryWin32
 
 /***/ }),
 
-/***/ 6045:
+/***/ 2695:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 /**
- * marked v15.0.8 - a markdown parser
+ * marked v15.0.11 - a markdown parser
  * Copyright (c) 2011-2025, Christopher Jeffrey. (MIT Licensed)
  * https://github.com/markedjs/marked
  */
@@ -56254,9 +56271,9 @@ const tag = edit('^comment'
     .replace('attribute', /\s+[a-zA-Z:_][\w.:-]*(?:\s*=\s*"[^"]*"|\s*=\s*'[^']*'|\s*=\s*[^\s"'=<>`]+)?/)
     .getRegex();
 const _inlineLabel = /(?:\[(?:\\.|[^\[\]\\])*\]|\\.|`[^`]*`|[^\[\]\\`])*?/;
-const link = edit(/^!?\[(label)\]\(\s*(href)(?:\s+(title))?\s*\)/)
+const link = edit(/^!?\[(label)\]\(\s*(href)(?:(?:[ \t]*(?:\n[ \t]*)?)(title))?\s*\)/)
     .replace('label', _inlineLabel)
-    .replace('href', /<(?:\\.|[^\n<>\\])+>|[^\s\x00-\x1f]*/)
+    .replace('href', /<(?:\\.|[^\n<>\\])+>|[^ \t\n\x00-\x1f]*/)
     .replace('title', /"(?:\\"?|[^"\\])*"|'(?:\\'?|[^'\\])*'|\((?:\\\)?|[^)\\])*\)/)
     .getRegex();
 const reflink = edit(/^!?\[(label)\]\[(ref)\]/)
@@ -56466,6 +56483,9 @@ function findClosingBracket(str, b) {
             }
         }
     }
+    if (level > 0) {
+        return -2;
+    }
     return -1;
 }
 
@@ -56473,26 +56493,17 @@ function outputLink(cap, link, raw, lexer, rules) {
     const href = link.href;
     const title = link.title || null;
     const text = cap[1].replace(rules.other.outputLinkReplace, '$1');
-    if (cap[0].charAt(0) !== '!') {
-        lexer.state.inLink = true;
-        const token = {
-            type: 'link',
-            raw,
-            href,
-            title,
-            text,
-            tokens: lexer.inlineTokens(text),
-        };
-        lexer.state.inLink = false;
-        return token;
-    }
-    return {
-        type: 'image',
+    lexer.state.inLink = true;
+    const token = {
+        type: cap[0].charAt(0) === '!' ? 'image' : 'link',
         raw,
         href,
         title,
         text,
+        tokens: lexer.inlineTokens(text),
     };
+    lexer.state.inLink = false;
+    return token;
 }
 function indentCodeCompensation(raw, text, rules) {
     const matchIndentToCode = raw.match(rules.other.indentCodeCompensation);
@@ -57032,6 +57043,10 @@ class _Tokenizer {
             else {
                 // find closing parenthesis
                 const lastParenIndex = findClosingBracket(cap[2], '()');
+                if (lastParenIndex === -2) {
+                    // more open parens than closed
+                    return;
+                }
                 if (lastParenIndex > -1) {
                     const start = cap[0].indexOf('!') === 0 ? 5 : 4;
                     const linkLen = start + cap[1].length + lastParenIndex;
@@ -57834,7 +57849,10 @@ class _Renderer {
         out += '>' + text + '</a>';
         return out;
     }
-    image({ href, title, text }) {
+    image({ href, title, text, tokens }) {
+        if (tokens) {
+            text = this.parser.parseInline(tokens, this.parser.textRenderer);
+        }
         const cleanHref = cleanUrl(href);
         if (cleanHref === null) {
             return escape(text);

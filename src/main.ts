@@ -1,6 +1,7 @@
 import type { PullRequestData } from './types'
 
 import { debug, endGroup, getInput, info, startGroup } from '@actions/core'
+import { getExecOutput } from '@actions/exec'
 import { context } from '@actions/github'
 import { checkReleaseBranch, extractChangelog, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, issue_comment, renderChangelogMarkdown } from './utils'
 import useGit from './utils/git'
@@ -18,6 +19,8 @@ export async function run() {
   issue_comment(token)
 
   pull_request(token)
+
+  pull_request_target(token)
 }
 
 async function pull_request(token: string) {
@@ -25,7 +28,7 @@ async function pull_request(token: string) {
     return false
   }
   const prNumber = getPullRequestNumber()
-  const { getPullRequestData, addComment, getPullRequestFiles, createRelease, getCommentList, updateComment } = useGithub(token)
+  const { getPullRequestData, addComment, getPullRequestFiles, getCommentList, updateComment } = useGithub(token)
   const { cloneRepo, checkoutBranch } = useGit(token)
 
   const prData = await getPullRequestData(prNumber) as PullRequestData
@@ -90,23 +93,39 @@ async function pull_request(token: string) {
         }
       })
     }
-    if (context.payload.action === 'closed' && context.payload.pull_request?.merged) {
-      await cloneRepo()
-      checkoutBranch(prData.head.ref)
-      const changeFiles = await getPullRequestFiles(prNumber)
-      info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
-      const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
-      info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
-      if (!releaseDirs.length) {
-        info('没有更新发布版本')
-        return
-      }
-      releaseDirs.forEach((release) => {
-        if (release.changelog) {
-          const title = `${release.name}@${release.version}`
-          createRelease(title, title, release.changelog)
-        }
-      })
+  }
+}
+
+async function pull_request_target(token: string) {
+  if (context.eventName !== 'pull_request_target') {
+    return false
+  }
+  const prNumber = getPullRequestNumber()
+  const { getPullRequestData, getPullRequestFiles, createRelease } = useGithub(token)
+
+  const prData = await getPullRequestData(prNumber) as PullRequestData
+  const isRelease = checkReleaseBranch(prData)
+  if (!isRelease) {
+    return false
+  }
+  if (context.payload.action === 'closed' && context.payload.pull_request?.merged) {
+    const changeFiles = await getPullRequestFiles(prNumber)
+    info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
+    const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
+    info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
+    if (!releaseDirs.length) {
+      info('没有更新发布版本')
+      return
     }
+
+    releaseDirs.forEach(async (release) => {
+      if (release.changelog && release.tag === 'latest') {
+        const title = `${release.name}@${release.version}`
+        await createRelease(title, title, release.changelog)
+      }
+      const { stdout } = await getExecOutput('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', '--dry-run', release.tag])
+
+      info(stdout)
+    })
   }
 }

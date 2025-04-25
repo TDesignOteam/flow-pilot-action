@@ -49,6 +49,11 @@
     "typescript": "^5.8.3",
     "vitest": "^3.1.2"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "simple-git-hooks"
+    ]
+  },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged"
   },
