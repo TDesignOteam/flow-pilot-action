@@ -45667,7 +45667,7 @@ function renderChangelog(heading, changelogs) {
 }
 function getPullRequestNumber() {
     var _a;
-    if (utils_1.context.eventName === 'pull_request') {
+    if (['pull_request', 'pull_request_target'].includes(utils_1.context.eventName)) {
         return Number(utils_1.context.payload.number);
     }
     if (utils_1.context.eventName === 'issue_comment' && ((_a = utils_1.context.payload.issue) === null || _a === void 0 ? void 0 : _a.pull_request)) {

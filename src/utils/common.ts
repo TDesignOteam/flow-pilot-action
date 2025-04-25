@@ -285,7 +285,7 @@ function renderChangelog(heading: string, changelogs: Record<string, string[]>) 
 }
 
 export function getPullRequestNumber() {
-  if (context.eventName === 'pull_request') {
+  if (['pull_request', 'pull_request_target'].includes(context.eventName)) {
     return Number(context.payload.number)
   }
   if (context.eventName === 'issue_comment' && context.payload.issue?.pull_request) {
