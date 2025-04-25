@@ -45360,7 +45360,7 @@ function pull_request_target(token) {
                     const title = `${release.name}@${release.version}`;
                     yield createRelease(title, title, release.changelog);
                 }
-                const { stdout } = yield (0, exec_1.getExecOutput)('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', '--dry-run', release.tag]);
+                const { stdout } = yield (0, exec_1.getExecOutput)('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', release.tag, '--dry-run']);
                 (0, core_1.info)(stdout);
             }));
         }
