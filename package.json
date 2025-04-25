@@ -41,7 +41,7 @@
     "@octokit/plugin-rest-endpoint-methods": "^14.0.0",
     "@types/node": "^22.14.1",
     "@vercel/ncc": "^0.38.3",
-    "eslint": "^9.25.0",
+    "eslint": "^9.25.1",
     "eslint-plugin-format": "^1.0.1",
     "lint-staged": "^15.5.1",
     "rimraf": "^6.0.1",
