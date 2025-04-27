@@ -45263,7 +45263,7 @@ function run() {
 function pull_request(token) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a;
-        if (github_1.context.eventName !== 'pull_request') {
+        if (github_1.context.eventName !== 'pull_request' || github_1.context.payload.action === 'closed') {
             return false;
         }
         const prNumber = (0, utils_1.getPullRequestNumber)();

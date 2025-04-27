@@ -24,7 +24,7 @@ export async function run() {
 }
 
 async function pull_request(token: string) {
-  if (context.eventName !== 'pull_request') {
+  if (context.eventName !== 'pull_request' || context.payload.action === 'closed') {
     return false
   }
   const prNumber = getPullRequestNumber()
