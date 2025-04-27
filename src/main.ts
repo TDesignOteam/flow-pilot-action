@@ -123,7 +123,7 @@ async function pull_request_target(token: string) {
         const title = `${release.name}@${release.version}`
         await createRelease(title, title, release.changelog)
       }
-      const { stdout } = await getExecOutput('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', release.tag, '--dry-run'])
+      const { stdout } = await getExecOutput('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', release.tag])
 
       info(stdout)
     })
