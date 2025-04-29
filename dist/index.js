@@ -45278,7 +45278,10 @@ const github_2 = __importDefault(__nccwpck_require__(9764));
 function issue_comment(token) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, _b, _c;
-        if (github_1.context.eventName !== 'issue_comment' || github_1.context.payload.action !== 'edited') {
+        if (github_1.context.eventName !== 'issue_comment') {
+            return false;
+        }
+        if (github_1.context.payload.action !== 'edited') {
             return false;
         }
         if (((_a = github_1.context.payload.changes) === null || _a === void 0 ? void 0 : _a.body) === ((_b = github_1.context.payload.comment) === null || _b === void 0 ? void 0 : _b.body)) {

@@ -10,7 +10,10 @@ import useGit from '../utils/git'
 import useGithub from '../utils/github'
 
 export async function issue_comment(token: string) {
-  if (context.eventName !== 'issue_comment' || context.payload.action !== 'edited') {
+  if (context.eventName !== 'issue_comment') {
+    return false
+  }
+  if (context.payload.action !== 'edited') {
     return false
   }
 
