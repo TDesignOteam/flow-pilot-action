@@ -5,9 +5,9 @@ import { info } from '@actions/core'
 import { exec } from '@actions/exec'
 import { context } from '@actions/github'
 import { globSync } from 'glob'
-import { checkIsForkPr, extractChangelog, extractReleaseLog, getInputPkgs, getPackages, getPrCommentWhitelist, getPullRequestNumber, getPullRequestReleaseDirs, stashPackageChangelog } from './common'
-import useGit from './git'
-import useGithub from './github'
+import { checkIsForkPr, extractChangelog, extractReleaseLog, getInputPkgs, getPackages, getPrCommentWhitelist, getPullRequestNumber, getPullRequestReleaseDirs, stashPackageChangelog } from '../utils/common'
+import useGit from '../utils/git'
+import useGithub from '../utils/github'
 
 export async function issue_comment(token: string) {
   if (context.eventName !== 'issue_comment' || context.payload.action !== 'edited') {

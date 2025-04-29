@@ -45222,7 +45222,32 @@ exports.CHANGELOG_REG = /-\s*([A-Z]+)(?:\(([A-Z\s_-]*)\))?\s*:\s*(.+)/i;
 
 /***/ }),
 
-/***/ 3084:
+/***/ 7708:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(1091), exports);
+
+
+/***/ }),
+
+/***/ 1091:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -45240,26 +45265,221 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.run = run;
+exports.issue_comment = issue_comment;
+const node_fs_1 = __nccwpck_require__(3024);
+const node_process_1 = __nccwpck_require__(1708);
+const core_1 = __nccwpck_require__(9999);
+const exec_1 = __nccwpck_require__(8872);
+const github_1 = __nccwpck_require__(2819);
+const glob_1 = __nccwpck_require__(5945);
+const common_1 = __nccwpck_require__(3942);
+const git_1 = __importDefault(__nccwpck_require__(8511));
+const github_2 = __importDefault(__nccwpck_require__(9764));
+function issue_comment(token) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b, _c;
+        if (github_1.context.eventName !== 'issue_comment' || github_1.context.payload.action !== 'edited') {
+            return false;
+        }
+        if (((_a = github_1.context.payload.changes) === null || _a === void 0 ? void 0 : _a.body) === ((_b = github_1.context.payload.comment) === null || _b === void 0 ? void 0 : _b.body)) {
+            return false;
+        }
+        const whitelist = yield (0, common_1.getPrCommentWhitelist)();
+        if (!whitelist.includes(github_1.context.actor)) {
+            return false;
+        }
+        const confirmLog = ((_c = github_1.context.payload.comment) === null || _c === void 0 ? void 0 : _c.body) || '';
+        confirmChangelog(confirmLog, token);
+        confirmReleaseLog(confirmLog, token);
+    });
+}
+function confirmChangelog(log, token) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b, _c, _d;
+        if (!log.startsWith('### 📝 更新日志')) {
+            return false;
+        }
+        const changelog = (0, common_1.extractChangelog)(((_a = github_1.context.payload.comment) === null || _a === void 0 ? void 0 : _a.body) || '', (0, common_1.getInputPkgs)());
+        (0, core_1.info)(`stash_changelog: ${JSON.stringify(changelog, null, 2)}`);
+        const prNumber = (0, common_1.getPullRequestNumber)();
+        const { getPullRequestData } = (0, github_2.default)(token);
+        const prData = yield getPullRequestData(prNumber);
+        const prLog = (0, common_1.extractChangelog)(((_b = github_1.context.payload.comment) === null || _b === void 0 ? void 0 : _b.body) || '', (0, common_1.getInputPkgs)());
+        (0, core_1.info)(`pr_log: ${JSON.stringify(prLog, null, 2)}`);
+        const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = (0, git_1.default)(token);
+        yield cloneRepo();
+        const isForkPr = (0, common_1.checkIsForkPr)(prData);
+        if (isForkPr) {
+            yield addRemote(prData.head.user.login, ((_d = (_c = prData.head) === null || _c === void 0 ? void 0 : _c.repo) === null || _d === void 0 ? void 0 : _d.clone_url) || '');
+            yield checkoutPr(prNumber);
+            yield (0, exec_1.exec)('git', [
+                'branch',
+                '--set-upstream-to',
+                `refs/remotes/${prData.head.user.login}/${prData.head.ref}`,
+                `pr-${prNumber}`,
+            ]);
+        }
+        else {
+            yield checkoutBranch(prData.head.ref);
+        }
+        const pkgs = (0, common_1.getPackages)((0, node_process_1.cwd)());
+        (0, core_1.info)(`pkgs: ${JSON.stringify(pkgs, null, 2)}`);
+        (0, common_1.stashPackageChangelog)(prData, pkgs, prLog);
+        yield (0, exec_1.exec)('git', ['add', '**/pr-*.md']);
+        yield (0, exec_1.exec)('git', ['status']);
+        if (!(yield isNeedCommit())) {
+            (0, core_1.info)('无需提交');
+            return true;
+        }
+        yield (0, exec_1.exec)('git', ['commit', '-m', 'chore: stash changelog [ci skip]']);
+        if (isForkPr) {
+            yield (0, exec_1.exec)('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`]);
+        }
+        else {
+            yield (0, exec_1.exec)('git', ['push', 'origin', prData.head.ref]);
+        }
+    });
+}
+function confirmReleaseLog(log, token) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!log.startsWith('# 🎉 Release')) {
+            return false;
+        }
+        const { pkgName, changelog } = (0, common_1.extractReleaseLog)(log);
+        (0, core_1.info)(`pkgName: ${pkgName}`);
+        (0, core_1.info)(`changelog: ${changelog}`);
+        const prNumber = (0, common_1.getPullRequestNumber)();
+        const { getPullRequestData, getPullRequestFiles } = (0, github_2.default)(token);
+        const prData = yield getPullRequestData(prNumber);
+        const { cloneRepo, checkoutBranch, isNeedCommit } = (0, git_1.default)(token);
+        yield cloneRepo();
+        checkoutBranch(prData.head.ref);
+        const changeFiles = yield getPullRequestFiles(prNumber);
+        (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
+        const releaseDirs = yield (0, common_1.getPullRequestReleaseDirs)(changeFiles);
+        (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
+        releaseDirs.forEach((release) => {
+            if (release.name !== pkgName) {
+                return;
+            }
+            const files = (0, glob_1.globSync)(`${release.dir}/.changelog/*.md`);
+            files.forEach((file) => {
+                (0, node_fs_1.unlinkSync)(file);
+                (0, core_1.info)(`delete file: ${file}`);
+            });
+            if (!(0, node_fs_1.existsSync)(`${release.dir}/CHANGELOG.md`)) {
+                (0, node_fs_1.writeFileSync)(`${release.dir}/CHANGELOG.md`, '', 'utf8');
+            }
+            const pkgChangelog = (0, node_fs_1.readFileSync)(`${release.dir}/CHANGELOG.md`, 'utf8');
+            const index = pkgChangelog.indexOf('## 🌈');
+            let newData = '';
+            if (index === -1) {
+                newData = pkgChangelog + changelog;
+            }
+            else {
+                newData = pkgChangelog.slice(0, index) + changelog + pkgChangelog.slice(index);
+            }
+            (0, node_fs_1.writeFileSync)(`${release.dir}/CHANGELOG.md`, newData, 'utf8');
+        });
+        yield (0, exec_1.exec)('git', ['add', '**/*.md']);
+        yield (0, exec_1.exec)('git', ['status']);
+        if (!(yield isNeedCommit())) {
+            (0, core_1.info)('无需提交');
+            return true;
+        }
+        yield (0, exec_1.exec)('git', ['commit', '-m', 'chore: changelog']);
+        yield (0, exec_1.exec)('git', ['push', 'origin', prData.head.ref]);
+    });
+}
+
+
+/***/ }),
+
+/***/ 3963:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.pull_request_target = pull_request_target;
 const core_1 = __nccwpck_require__(9999);
 const exec_1 = __nccwpck_require__(8872);
 const github_1 = __nccwpck_require__(2819);
 const utils_1 = __nccwpck_require__(9499);
-const git_1 = __importDefault(__nccwpck_require__(8511));
 const github_2 = __importDefault(__nccwpck_require__(9764));
-function run() {
+function pull_request_target(token) {
     return __awaiter(this, void 0, void 0, function* () {
-        const token = (0, core_1.getInput)('token', { required: true });
-        (0, core_1.startGroup)('context');
-        (0, core_1.info)(`context: ${JSON.stringify(github_1.context, null, 2)}`);
-        (0, core_1.endGroup)();
-        (0, core_1.info)(`eventName: ${github_1.context.eventName}`);
-        (0, core_1.info)(`action: ${github_1.context.payload.action}`);
-        (0, utils_1.issue_comment)(token);
-        pull_request(token);
-        pull_request_target(token);
+        var _a;
+        if (github_1.context.eventName !== 'pull_request_target') {
+            return false;
+        }
+        const prNumber = (0, utils_1.getPullRequestNumber)();
+        const { getPullRequestData, getPullRequestFiles, createRelease } = (0, github_2.default)(token);
+        const prData = yield getPullRequestData(prNumber);
+        const isRelease = (0, utils_1.checkReleaseBranch)(prData);
+        if (!isRelease) {
+            return false;
+        }
+        if (github_1.context.payload.action === 'closed' && ((_a = github_1.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.merged)) {
+            const changeFiles = yield getPullRequestFiles(prNumber);
+            (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
+            const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
+            (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
+            if (!releaseDirs.length) {
+                (0, core_1.info)('没有更新发布版本');
+                return;
+            }
+            releaseDirs.forEach((release) => __awaiter(this, void 0, void 0, function* () {
+                if (release.changelog && release.tag === 'latest') {
+                    const title = `${release.name}@${release.version}`;
+                    yield createRelease(title, title, release.changelog);
+                }
+                const { stdout } = yield (0, exec_1.getExecOutput)('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', release.tag]);
+                (0, core_1.info)(stdout);
+            }));
+        }
     });
 }
+
+
+/***/ }),
+
+/***/ 1753:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.pull_request = pull_request;
+const core_1 = __nccwpck_require__(9999);
+const github_1 = __nccwpck_require__(2819);
+const utils_1 = __nccwpck_require__(9499);
+const git_1 = __importDefault(__nccwpck_require__(8511));
+const github_2 = __importDefault(__nccwpck_require__(9764));
 function pull_request(token) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a;
@@ -45333,37 +45553,42 @@ function pull_request(token) {
         }
     });
 }
-function pull_request_target(token) {
+
+
+/***/ }),
+
+/***/ 3084:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.run = run;
+const core_1 = __nccwpck_require__(9999);
+const github_1 = __nccwpck_require__(2819);
+const github_event_1 = __nccwpck_require__(7708);
+const pull_request_1 = __nccwpck_require__(1753);
+const pull_request_target_1 = __nccwpck_require__(3963);
+function run() {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a;
-        if (github_1.context.eventName !== 'pull_request_target') {
-            return false;
-        }
-        const prNumber = (0, utils_1.getPullRequestNumber)();
-        const { getPullRequestData, getPullRequestFiles, createRelease } = (0, github_2.default)(token);
-        const prData = yield getPullRequestData(prNumber);
-        const isRelease = (0, utils_1.checkReleaseBranch)(prData);
-        if (!isRelease) {
-            return false;
-        }
-        if (github_1.context.payload.action === 'closed' && ((_a = github_1.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.merged)) {
-            const changeFiles = yield getPullRequestFiles(prNumber);
-            (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
-            const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
-            (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
-            if (!releaseDirs.length) {
-                (0, core_1.info)('没有更新发布版本');
-                return;
-            }
-            releaseDirs.forEach((release) => __awaiter(this, void 0, void 0, function* () {
-                if (release.changelog && release.tag === 'latest') {
-                    const title = `${release.name}@${release.version}`;
-                    yield createRelease(title, title, release.changelog);
-                }
-                const { stdout } = yield (0, exec_1.getExecOutput)('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', release.tag]);
-                (0, core_1.info)(stdout);
-            }));
-        }
+        const token = (0, core_1.getInput)('token', { required: true });
+        (0, core_1.startGroup)('context');
+        (0, core_1.info)(`context: ${JSON.stringify(github_1.context, null, 2)}`);
+        (0, core_1.endGroup)();
+        (0, core_1.info)(`eventName: ${github_1.context.eventName}`);
+        (0, core_1.info)(`action: ${github_1.context.payload.action}`);
+        (0, github_event_1.issue_comment)(token);
+        (0, pull_request_1.pull_request)(token);
+        (0, pull_request_target_1.pull_request_target)(token);
     });
 }
 
@@ -45941,155 +46166,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 __exportStar(__nccwpck_require__(3942), exports);
 __exportStar(__nccwpck_require__(8511), exports);
 __exportStar(__nccwpck_require__(9764), exports);
-__exportStar(__nccwpck_require__(1418), exports);
-
-
-/***/ }),
-
-/***/ 1418:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.issue_comment = issue_comment;
-const node_fs_1 = __nccwpck_require__(3024);
-const node_process_1 = __nccwpck_require__(1708);
-const core_1 = __nccwpck_require__(9999);
-const exec_1 = __nccwpck_require__(8872);
-const github_1 = __nccwpck_require__(2819);
-const glob_1 = __nccwpck_require__(5945);
-const common_1 = __nccwpck_require__(3942);
-const git_1 = __importDefault(__nccwpck_require__(8511));
-const github_2 = __importDefault(__nccwpck_require__(9764));
-function issue_comment(token) {
-    return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c;
-        if (github_1.context.eventName !== 'issue_comment' || github_1.context.payload.action !== 'edited') {
-            return false;
-        }
-        if (((_a = github_1.context.payload.changes) === null || _a === void 0 ? void 0 : _a.body) === ((_b = github_1.context.payload.comment) === null || _b === void 0 ? void 0 : _b.body)) {
-            return false;
-        }
-        const whitelist = yield (0, common_1.getPrCommentWhitelist)();
-        if (!whitelist.includes(github_1.context.actor)) {
-            return false;
-        }
-        const confirmLog = ((_c = github_1.context.payload.comment) === null || _c === void 0 ? void 0 : _c.body) || '';
-        confirmChangelog(confirmLog, token);
-        confirmReleaseLog(confirmLog, token);
-    });
-}
-function confirmChangelog(log, token) {
-    return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c, _d;
-        if (!log.startsWith('### 📝 更新日志')) {
-            return false;
-        }
-        const changelog = (0, common_1.extractChangelog)(((_a = github_1.context.payload.comment) === null || _a === void 0 ? void 0 : _a.body) || '', (0, common_1.getInputPkgs)());
-        (0, core_1.info)(`stash_changelog: ${JSON.stringify(changelog, null, 2)}`);
-        const prNumber = (0, common_1.getPullRequestNumber)();
-        const { getPullRequestData } = (0, github_2.default)(token);
-        const prData = yield getPullRequestData(prNumber);
-        const prLog = (0, common_1.extractChangelog)(((_b = github_1.context.payload.comment) === null || _b === void 0 ? void 0 : _b.body) || '', (0, common_1.getInputPkgs)());
-        (0, core_1.info)(`pr_log: ${JSON.stringify(prLog, null, 2)}`);
-        const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = (0, git_1.default)(token);
-        yield cloneRepo();
-        const isForkPr = (0, common_1.checkIsForkPr)(prData);
-        if (isForkPr) {
-            yield addRemote(prData.head.user.login, ((_d = (_c = prData.head) === null || _c === void 0 ? void 0 : _c.repo) === null || _d === void 0 ? void 0 : _d.clone_url) || '');
-            yield checkoutPr(prNumber);
-            yield (0, exec_1.exec)('git', [
-                'branch',
-                '--set-upstream-to',
-                `refs/remotes/${prData.head.user.login}/${prData.head.ref}`,
-                `pr-${prNumber}`,
-            ]);
-        }
-        else {
-            yield checkoutBranch(prData.head.ref);
-        }
-        const pkgs = (0, common_1.getPackages)((0, node_process_1.cwd)());
-        (0, core_1.info)(`pkgs: ${JSON.stringify(pkgs, null, 2)}`);
-        (0, common_1.stashPackageChangelog)(prData, pkgs, prLog);
-        yield (0, exec_1.exec)('git', ['add', '**/pr-*.md']);
-        yield (0, exec_1.exec)('git', ['status']);
-        if (!(yield isNeedCommit())) {
-            (0, core_1.info)('无需提交');
-            return true;
-        }
-        yield (0, exec_1.exec)('git', ['commit', '-m', 'chore: stash changelog [ci skip]']);
-        if (isForkPr) {
-            yield (0, exec_1.exec)('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`]);
-        }
-        else {
-            yield (0, exec_1.exec)('git', ['push', 'origin', prData.head.ref]);
-        }
-    });
-}
-function confirmReleaseLog(log, token) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (!log.startsWith('# 🎉 Release')) {
-            return false;
-        }
-        const { pkgName, changelog } = (0, common_1.extractReleaseLog)(log);
-        (0, core_1.info)(`pkgName: ${pkgName}`);
-        (0, core_1.info)(`changelog: ${changelog}`);
-        const prNumber = (0, common_1.getPullRequestNumber)();
-        const { getPullRequestData, getPullRequestFiles } = (0, github_2.default)(token);
-        const prData = yield getPullRequestData(prNumber);
-        const { cloneRepo, checkoutBranch, isNeedCommit } = (0, git_1.default)(token);
-        yield cloneRepo();
-        checkoutBranch(prData.head.ref);
-        const changeFiles = yield getPullRequestFiles(prNumber);
-        (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
-        const releaseDirs = yield (0, common_1.getPullRequestReleaseDirs)(changeFiles);
-        (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
-        releaseDirs.forEach((release) => {
-            if (release.name !== pkgName) {
-                return;
-            }
-            const files = (0, glob_1.globSync)(`${release.dir}/.changelog/*.md`);
-            files.forEach((file) => {
-                (0, node_fs_1.unlinkSync)(file);
-                (0, core_1.info)(`delete file: ${file}`);
-            });
-            if (!(0, node_fs_1.existsSync)(`${release.dir}/CHANGELOG.md`)) {
-                (0, node_fs_1.writeFileSync)(`${release.dir}/CHANGELOG.md`, '', 'utf8');
-            }
-            const pkgChangelog = (0, node_fs_1.readFileSync)(`${release.dir}/CHANGELOG.md`, 'utf8');
-            const index = pkgChangelog.indexOf('## 🌈');
-            let newData = '';
-            if (index === -1) {
-                newData = pkgChangelog + changelog;
-            }
-            else {
-                newData = pkgChangelog.slice(0, index) + changelog + pkgChangelog.slice(index);
-            }
-            (0, node_fs_1.writeFileSync)(`${release.dir}/CHANGELOG.md`, newData, 'utf8');
-        });
-        yield (0, exec_1.exec)('git', ['add', '**/*.md']);
-        yield (0, exec_1.exec)('git', ['status']);
-        if (!(yield isNeedCommit())) {
-            (0, core_1.info)('无需提交');
-            return true;
-        }
-        yield (0, exec_1.exec)('git', ['commit', '-m', 'chore: changelog']);
-        yield (0, exec_1.exec)('git', ['push', 'origin', prData.head.ref]);
-    });
-}
 
 
 /***/ }),
