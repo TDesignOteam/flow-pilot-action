@@ -45481,22 +45481,17 @@ exports.pull_request = pull_request;
 const core_1 = __nccwpck_require__(9999);
 const github_1 = __nccwpck_require__(2819);
 const utils_1 = __nccwpck_require__(9499);
-const git_1 = __importDefault(__nccwpck_require__(8511));
 const github_2 = __importDefault(__nccwpck_require__(9764));
 function pull_request(token) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a;
         if (github_1.context.eventName !== 'pull_request' || github_1.context.payload.action === 'closed') {
             return false;
         }
-        const prNumber = (0, utils_1.getPullRequestNumber)();
-        const { getPullRequestData, addComment, getPullRequestFiles, getCommentList, updateComment } = (0, github_2.default)(token);
-        const { cloneRepo, checkoutBranch } = (0, git_1.default)(token);
-        const prData = yield getPullRequestData(prNumber);
-        const isRelease = (0, utils_1.checkReleaseBranch)(prData);
+        const pullRequestData = github_1.context.payload.pull_request;
+        const isRelease = pullRequestData.head.ref.startsWith('release/');
         if (!isRelease) {
             let logs = '';
-            const prLog = (0, utils_1.extractChangelog)(prData.body || '', (0, utils_1.getInputPkgs)());
+            const prLog = (0, utils_1.extractChangelog)(pullRequestData.body || '', (0, utils_1.getInputPkgs)());
             (0, core_1.info)(`pr_log: ${JSON.stringify(prLog, null, 2)}`);
             Object.keys(prLog).forEach((pkgName) => {
                 if (!prLog[pkgName].length) {
@@ -45508,51 +45503,37 @@ function pull_request(token) {
                 });
             });
             if (logs) {
-                let commentId;
-                const commentList = yield getCommentList(prNumber);
-                (0, core_1.debug)(`commentList: ${JSON.stringify(commentList, null, 2)}`);
-                for (let i = commentList.length; i--;) {
-                    if ((_a = commentList[i].body) === null || _a === void 0 ? void 0 : _a.includes('<!-- FLOW-PR-CHANGELOG -->')) {
-                        commentId = commentList[i].id;
-                        break;
-                    }
-                }
                 const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的日志暂存区\n';
                 const body = `${logHead}### 📝 更新日志\n\n${logs}\n\n <!-- FLOW-PR-CHANGELOG -->`;
-                if (commentId) {
-                    updateComment(commentId, body);
-                }
-                else {
-                    addComment(prNumber, body);
-                }
+                (0, core_1.setOutput)('changelog', body);
             }
         }
-        else {
-            if (github_1.context.payload.action === 'opened') {
-                yield cloneRepo();
-                checkoutBranch(prData.head.ref);
-                const changeFiles = yield getPullRequestFiles(prNumber);
-                (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
-                const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
-                (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
-                if (!releaseDirs.length) {
-                    (0, core_1.info)('没有更新发布版本');
-                    return;
-                }
-                releaseDirs.forEach((release) => {
-                    if (release.tag === 'latest') {
-                        const changelogs = (0, utils_1.getStashChangelog)(release.dir);
-                        (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
-                        const md = (0, utils_1.renderChangelogMarkdown)(changelogs.changelogs);
-                        const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n';
-                        const currentDate = new Date();
-                        const year = currentDate.getFullYear();
-                        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-                        const day = String(currentDate.getDate()).padStart(2, '0');
-                        addComment(prNumber, `${logHead}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`);
-                    }
-                });
+        const isForkPr = pullRequestData.base.repo.full_name !== pullRequestData.head.repo.full_name;
+        if (isRelease && !isForkPr && github_1.context.payload.action === 'opened') {
+            const prNumber = (0, utils_1.getPullRequestNumber)();
+            const { addComment, getPullRequestFiles } = (0, github_2.default)(token);
+            const changeFiles = yield getPullRequestFiles(prNumber);
+            (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
+            const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
+            (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
+            (0, core_1.setOutput)('changelog', '');
+            if (!releaseDirs.length) {
+                (0, core_1.info)('没有更新发布版本');
+                return;
             }
+            releaseDirs.forEach((release) => {
+                if (release.tag === 'latest') {
+                    const changelogs = (0, utils_1.getStashChangelog)(release.dir);
+                    (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
+                    const md = (0, utils_1.renderChangelogMarkdown)(changelogs.changelogs);
+                    const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n';
+                    const currentDate = new Date();
+                    const year = currentDate.getFullYear();
+                    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(currentDate.getDate()).padStart(2, '0');
+                    addComment(prNumber, `${logHead}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`);
+                }
+            });
         }
     });
 }
