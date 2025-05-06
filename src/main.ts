@@ -5,7 +5,7 @@ import { pull_request } from './github-event/pull-request'
 import { pull_request_target } from './github-event/pull-request-target'
 
 export async function run() {
-  const token = getInput('token', { required: true })
+  const token = getInput('token') || ''
 
   startGroup('context')
   info(`context: ${JSON.stringify(context, null, 2)}`)

@@ -4,7 +4,6 @@ author: TDesign
 inputs:
   token:
     description: personal access token
-    required: true
   packages:
     description: packages
 runs:

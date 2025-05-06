@@ -45583,7 +45583,7 @@ const pull_request_1 = __nccwpck_require__(1753);
 const pull_request_target_1 = __nccwpck_require__(3963);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
-        const token = (0, core_1.getInput)('token', { required: true });
+        const token = (0, core_1.getInput)('token') || '';
         (0, core_1.startGroup)('context');
         (0, core_1.info)(`context: ${JSON.stringify(github_1.context, null, 2)}`);
         (0, core_1.endGroup)();
