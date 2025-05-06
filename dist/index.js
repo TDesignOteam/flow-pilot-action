@@ -45850,6 +45850,7 @@ function renderChangelogMarkdown(changelogs) {
                 Reflect.has(docsList, scope) ? docsList[scope].push(message) : docsList[scope] = [message];
                 break;
             case 'perf':
+            case 'refactor':
                 Reflect.has(perfList, scope) ? perfList[scope].push(message) : perfList[scope] = [message];
                 break;
             case 'breaking':
