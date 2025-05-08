@@ -45822,6 +45822,9 @@ function renderChangelogMarkdown(changelogs) {
         const type = ((_a = log.match(consts_1.CHANGELOG_REG)) === null || _a === void 0 ? void 0 : _a[1]) || '';
         const scope = ((_b = log.match(consts_1.CHANGELOG_REG)) === null || _b === void 0 ? void 0 : _b[2]) || '';
         const message = ((_c = log.match(consts_1.CHANGELOG_REG)) === null || _c === void 0 ? void 0 : _c[3]) || '';
+        if (!message) {
+            return;
+        }
         switch (type) {
             case 'feat':
                 Reflect.has(featList, scope) ? featList[scope].push(message) : featList[scope] = [message];

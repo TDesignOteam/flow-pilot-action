@@ -229,6 +229,10 @@ export function renderChangelogMarkdown(changelogs: string[]) {
     const type = log.match(CHANGELOG_REG)?.[1] || ''
     const scope = log.match(CHANGELOG_REG)?.[2] || ''
     const message = log.match(CHANGELOG_REG)?.[3] || ''
+    if (!message) {
+      return
+    }
+
     switch (type) {
       case 'feat':
         Reflect.has(featList, scope) ? featList[scope].push(message) : featList[scope] = [message]
