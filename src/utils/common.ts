@@ -122,7 +122,10 @@ export function stashPackageChangelog(prData: PullRequestData, packages: Package
     }
 
     const logs = changelogData
-      .map(log => `- ${log} @${prData.user.login} ([#${prData.number}](${prData.html_url}))`)
+      .map((log) => {
+        const contributor = prData.user.login === 'tdesign-bot' ? '' : `@${prData.user.login}`
+        return `- ${log} ${contributor} ([#${prData.number}](${prData.html_url}))`
+      })
       .filter(Boolean)
       .join('\n')
 
