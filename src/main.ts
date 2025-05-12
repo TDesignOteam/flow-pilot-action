@@ -2,6 +2,7 @@ import { endGroup, getInput, info, startGroup } from '@actions/core'
 import { context } from '@actions/github'
 import { issue_comment } from './github-event'
 import { pull_request } from './github-event/pull-request'
+import { pull_request_review } from './github-event/pull-request-review'
 import { pull_request_target } from './github-event/pull-request-target'
 
 export async function run() {
@@ -18,4 +19,6 @@ export async function run() {
   pull_request(token)
 
   pull_request_target(token)
+
+  pull_request_review(token)
 }

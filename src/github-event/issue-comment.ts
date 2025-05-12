@@ -31,7 +31,7 @@ export async function issue_comment(token: string) {
   confirmReleaseLog(confirmLog, token)
 }
 
-async function confirmChangelog(log: string, token: string) {
+export async function confirmChangelog(log: string, token: string) {
   if (!log.startsWith('### 📝 更新日志')) {
     return false
   }

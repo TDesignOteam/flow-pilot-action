@@ -45266,6 +45266,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.issue_comment = issue_comment;
+exports.confirmChangelog = confirmChangelog;
 const node_fs_1 = __nccwpck_require__(3024);
 const node_process_1 = __nccwpck_require__(1708);
 const core_1 = __nccwpck_require__(9999);
@@ -45392,6 +45393,70 @@ function confirmReleaseLog(log, token) {
         }
         yield (0, exec_1.exec)('git', ['commit', '-m', 'chore: changelog']);
         yield (0, exec_1.exec)('git', ['push', 'origin', prData.head.ref]);
+    });
+}
+
+
+/***/ }),
+
+/***/ 814:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.pull_request_review = pull_request_review;
+const core_1 = __nccwpck_require__(9999);
+const github_1 = __nccwpck_require__(2819);
+const utils_1 = __nccwpck_require__(9499);
+const issue_comment_1 = __nccwpck_require__(1091);
+function pull_request_review(token) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        if (github_1.context.eventName !== 'pull_request_review') {
+            return false;
+        }
+        if (github_1.context.payload.action !== 'submitted') {
+            return false;
+        }
+        if (((_a = github_1.context.payload.review) === null || _a === void 0 ? void 0 : _a.state) !== 'approved') {
+            return false;
+        }
+        const whitelist = yield (0, utils_1.getPrCommentWhitelist)();
+        if (!whitelist.includes(github_1.context.actor)) {
+            return false;
+        }
+        const pullRequestData = github_1.context.payload.pull_request;
+        const isRelease = pullRequestData.head.ref.startsWith('release/');
+        if (isRelease) {
+            return false;
+        }
+        let logs = '';
+        const prLog = (0, utils_1.extractChangelog)(pullRequestData.body || '', (0, utils_1.getInputPkgs)());
+        (0, core_1.info)(`pr_log: ${JSON.stringify(prLog, null, 2)}`);
+        Object.keys(prLog).forEach((pkgName) => {
+            if (!prLog[pkgName].length) {
+                return;
+            }
+            logs += `#### ${pkgName}\n`;
+            prLog[pkgName].forEach((log) => {
+                logs += `- ${log}\n`;
+            });
+        });
+        if (logs) {
+            const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的日志暂存区\n';
+            const body = `${logHead}### 📝 更新日志\n\n${logs}\n\n`;
+            (0, issue_comment_1.confirmChangelog)(body, token);
+        }
     });
 }
 
@@ -45561,6 +45626,7 @@ const core_1 = __nccwpck_require__(9999);
 const github_1 = __nccwpck_require__(2819);
 const github_event_1 = __nccwpck_require__(7708);
 const pull_request_1 = __nccwpck_require__(1753);
+const pull_request_review_1 = __nccwpck_require__(814);
 const pull_request_target_1 = __nccwpck_require__(3963);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -45573,6 +45639,7 @@ function run() {
         (0, github_event_1.issue_comment)(token);
         (0, pull_request_1.pull_request)(token);
         (0, pull_request_target_1.pull_request_target)(token);
+        (0, pull_request_review_1.pull_request_review)(token);
     });
 }
 
