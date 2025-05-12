@@ -35,7 +35,7 @@ export async function confirmChangelog(log: string, token: string) {
   if (!log.startsWith('### 📝 更新日志')) {
     return false
   }
-  const changelog = extractChangelog(context.payload.comment?.body || '', getInputPkgs())
+  const changelog = extractChangelog(log || '', getInputPkgs())
 
   info(`stash_changelog: ${JSON.stringify(changelog, null, 2)}`)
 
