@@ -43,8 +43,7 @@ export async function confirmChangelog(log: string, token: string) {
 
   const { getPullRequestData } = useGithub(token)
   const prData = await getPullRequestData(prNumber) as PullRequestData
-  const prLog = extractChangelog(context.payload.comment?.body || '', getInputPkgs())
-  info(`pr_log: ${JSON.stringify(prLog, null, 2)}`)
+
   const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = useGit(token)
   await cloneRepo()
   const isForkPr = checkIsForkPr(prData)
@@ -63,7 +62,7 @@ export async function confirmChangelog(log: string, token: string) {
   }
   const pkgs = getPackages(cwd())
   info(`pkgs: ${JSON.stringify(pkgs, null, 2)}`)
-  stashPackageChangelog(prData, pkgs, prLog)
+  stashPackageChangelog(prData, pkgs, changelog)
   await exec('git', ['add', '**/pr-*.md'])
   await exec('git', ['status'])
   if (!await isNeedCommit()) {

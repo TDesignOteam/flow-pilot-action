@@ -45299,7 +45299,7 @@ function issue_comment(token) {
 }
 function confirmChangelog(log, token) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c;
+        var _a, _b;
         if (!log.startsWith('### 📝 更新日志')) {
             return false;
         }
@@ -45308,13 +45308,11 @@ function confirmChangelog(log, token) {
         const prNumber = (0, common_1.getPullRequestNumber)();
         const { getPullRequestData } = (0, github_2.default)(token);
         const prData = yield getPullRequestData(prNumber);
-        const prLog = (0, common_1.extractChangelog)(((_a = github_1.context.payload.comment) === null || _a === void 0 ? void 0 : _a.body) || '', (0, common_1.getInputPkgs)());
-        (0, core_1.info)(`pr_log: ${JSON.stringify(prLog, null, 2)}`);
         const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = (0, git_1.default)(token);
         yield cloneRepo();
         const isForkPr = (0, common_1.checkIsForkPr)(prData);
         if (isForkPr) {
-            yield addRemote(prData.head.user.login, ((_c = (_b = prData.head) === null || _b === void 0 ? void 0 : _b.repo) === null || _c === void 0 ? void 0 : _c.clone_url) || '');
+            yield addRemote(prData.head.user.login, ((_b = (_a = prData.head) === null || _a === void 0 ? void 0 : _a.repo) === null || _b === void 0 ? void 0 : _b.clone_url) || '');
             yield checkoutPr(prNumber);
             yield (0, exec_1.exec)('git', [
                 'branch',
@@ -45328,7 +45326,7 @@ function confirmChangelog(log, token) {
         }
         const pkgs = (0, common_1.getPackages)((0, node_process_1.cwd)());
         (0, core_1.info)(`pkgs: ${JSON.stringify(pkgs, null, 2)}`);
-        (0, common_1.stashPackageChangelog)(prData, pkgs, prLog);
+        (0, common_1.stashPackageChangelog)(prData, pkgs, changelog);
         yield (0, exec_1.exec)('git', ['add', '**/pr-*.md']);
         yield (0, exec_1.exec)('git', ['status']);
         if (!(yield isNeedCommit())) {
