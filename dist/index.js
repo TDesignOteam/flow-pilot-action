@@ -45650,7 +45650,7 @@ function workflow_run(token) {
             return false;
         }
         const prNumber = github_1.context.payload.workflow_run.pull_requests[0].number;
-        if (prNumber) {
+        if (!prNumber) {
             (0, core_1.warning)(`prNumber:${prNumber}`);
             return false;
         }

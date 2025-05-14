@@ -26,7 +26,7 @@ export async function workflow_run(token: string) {
     return false
   }
   const prNumber = context.payload.workflow_run.pull_requests[0].number
-  if (prNumber) {
+  if (!prNumber) {
     warning(`prNumber:${prNumber}`)
     return false
   }
