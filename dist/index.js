@@ -45543,6 +45543,7 @@ exports.pull_request = pull_request;
 const core_1 = __nccwpck_require__(9999);
 const github_1 = __nccwpck_require__(2819);
 const utils_1 = __nccwpck_require__(9499);
+const git_1 = __importDefault(__nccwpck_require__(8511));
 const github_2 = __importDefault(__nccwpck_require__(9764));
 function pull_request(token) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -45574,6 +45575,9 @@ function pull_request(token) {
         if (isRelease && !isForkPr && github_1.context.payload.action === 'opened') {
             const prNumber = (0, utils_1.getPullRequestNumber)();
             const { addComment, getPullRequestFiles } = (0, github_2.default)(token);
+            const { cloneRepo, checkoutBranch } = (0, git_1.default)(token);
+            yield cloneRepo();
+            checkoutBranch(pullRequestData.head.ref);
             const changeFiles = yield getPullRequestFiles(prNumber);
             (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
             const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);

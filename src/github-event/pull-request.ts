@@ -2,6 +2,7 @@ import type { PullRequestData } from 'src/types'
 import { info, setOutput } from '@actions/core'
 import { context } from '@actions/github'
 import { extractChangelog, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, renderChangelogMarkdown } from 'src/utils'
+import useGit from 'src/utils/git'
 import useGithub from 'src/utils/github'
 
 export async function pull_request(token: string) {
@@ -38,6 +39,9 @@ export async function pull_request(token: string) {
   if (isRelease && !isForkPr && context.payload.action === 'opened') {
     const prNumber = getPullRequestNumber()
     const { addComment, getPullRequestFiles } = useGithub(token)
+    const { cloneRepo, checkoutBranch } = useGit(token)
+    await cloneRepo()
+    checkoutBranch(pullRequestData.head.ref)
     const changeFiles = await getPullRequestFiles(prNumber)
     info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
     const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
