@@ -39,7 +39,7 @@
   "devDependencies": {
     "@antfu/eslint-config": "^4.13.0",
     "@octokit/plugin-rest-endpoint-methods": "^14.0.0",
-    "@types/node": "^22.15.17",
+    "@types/node": "^22.15.18",
     "@vercel/ncc": "^0.38.3",
     "eslint": "^9.26.0",
     "eslint-plugin-format": "^1.0.1",
