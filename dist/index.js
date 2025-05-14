@@ -45603,6 +45603,84 @@ function pull_request(token) {
 
 /***/ }),
 
+/***/ 2999:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.workflow_run = workflow_run;
+const core_1 = __nccwpck_require__(9999);
+const github_1 = __nccwpck_require__(2819);
+const utils_1 = __nccwpck_require__(9499);
+const github_2 = __importDefault(__nccwpck_require__(9764));
+const issue_comment_1 = __nccwpck_require__(1091);
+function workflow_run(token) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b, _c;
+        if (github_1.context.eventName !== 'workflow_run') {
+            return false;
+        }
+        if (((_a = github_1.context.payload.workflow_run) === null || _a === void 0 ? void 0 : _a.event) !== 'pull_request') {
+            return false;
+        }
+        if (((_b = github_1.context.payload.workflow_run) === null || _b === void 0 ? void 0 : _b.status) !== 'completed') {
+            return false;
+        }
+        if (((_c = github_1.context.payload.workflow_run) === null || _c === void 0 ? void 0 : _c.conclusion) !== 'success') {
+            return false;
+        }
+        if (github_1.context.payload.pull_requests.length !== 1) {
+            return false;
+        }
+        const prNumber = github_1.context.payload.pull_requests[0].number;
+        if (prNumber) {
+            return false;
+        }
+        const whitelist = yield (0, utils_1.getPrCommentWhitelist)();
+        if (!whitelist.includes(github_1.context.actor)) {
+            return false;
+        }
+        const { getPullRequestData } = (0, github_2.default)(token);
+        const pullRequestData = yield getPullRequestData(prNumber);
+        const isRelease = pullRequestData.head.ref.startsWith('release/');
+        if (isRelease) {
+            return false;
+        }
+        let logs = '';
+        const prLog = (0, utils_1.extractChangelog)(pullRequestData.body || '', (0, utils_1.getInputPkgs)());
+        (0, core_1.info)(`pr_log: ${JSON.stringify(prLog, null, 2)}`);
+        Object.keys(prLog).forEach((pkgName) => {
+            if (!prLog[pkgName].length) {
+                return;
+            }
+            logs += `#### ${pkgName}\n`;
+            prLog[pkgName].forEach((log) => {
+                logs += `- ${log}\n`;
+            });
+        });
+        if (logs) {
+            const body = `### 📝 更新日志\n\n${logs}\n\n`;
+            (0, issue_comment_1.confirmChangelog)(body, token);
+        }
+    });
+}
+
+
+/***/ }),
+
 /***/ 3084:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -45625,6 +45703,7 @@ const github_event_1 = __nccwpck_require__(7708);
 const pull_request_1 = __nccwpck_require__(1753);
 const pull_request_review_1 = __nccwpck_require__(814);
 const pull_request_target_1 = __nccwpck_require__(3963);
+const workflow_run_1 = __nccwpck_require__(2999);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         const token = (0, core_1.getInput)('token') || '';
@@ -45637,6 +45716,7 @@ function run() {
         (0, pull_request_1.pull_request)(token);
         (0, pull_request_target_1.pull_request_target)(token);
         (0, pull_request_review_1.pull_request_review)(token);
+        (0, workflow_run_1.workflow_run)(token);
     });
 }
 
