@@ -1,7 +1,7 @@
 import type { PullRequestData } from 'src/types'
 import { info } from '@actions/core'
 import { context } from '@actions/github'
-import { extractChangelog, getInputPkgs, getPrCommentWhitelist } from 'src/utils'
+import { extractChangelog, getInputPkgs, getPrCommentWhitelist, getPullRequestNumber } from 'src/utils'
 import { confirmChangelog } from './issue-comment'
 
 export async function pull_request_review(token: string) {
@@ -18,7 +18,7 @@ export async function pull_request_review(token: string) {
   if (!whitelist.includes(context.actor)) {
     return false
   }
-
+  const prNumber = getPullRequestNumber()
   const pullRequestData = context.payload.pull_request as PullRequestData
 
   const isRelease = pullRequestData.head.ref.startsWith('release/')
@@ -41,6 +41,6 @@ export async function pull_request_review(token: string) {
   if (logs) {
     const body = `### 📝 更新日志\n\n${logs}\n\n`
 
-    confirmChangelog(body, token)
+    confirmChangelog(prNumber, body, token)
   }
 }

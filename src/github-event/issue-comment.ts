@@ -26,20 +26,20 @@ export async function issue_comment(token: string) {
   }
   const confirmLog = context.payload.comment?.body || ''
 
-  confirmChangelog(confirmLog, token)
+  const prNumber = getPullRequestNumber()
 
-  confirmReleaseLog(confirmLog, token)
+  confirmChangelog(prNumber, confirmLog, token)
+
+  confirmReleaseLog(prNumber, confirmLog, token)
 }
 
-export async function confirmChangelog(log: string, token: string) {
+export async function confirmChangelog(prNumber: number, log: string, token: string) {
   if (!log.startsWith('### 📝 更新日志')) {
     return false
   }
   const changelog = extractChangelog(log || '', getInputPkgs())
 
   info(`stash_changelog: ${JSON.stringify(changelog, null, 2)}`)
-
-  const prNumber = getPullRequestNumber()
 
   const { getPullRequestData } = useGithub(token)
   const prData = await getPullRequestData(prNumber) as PullRequestData
@@ -78,7 +78,7 @@ export async function confirmChangelog(log: string, token: string) {
   }
 }
 
-async function confirmReleaseLog(log: string, token: string) {
+async function confirmReleaseLog(prNumber: number, log: string, token: string) {
   if (!log.startsWith('# 🎉 Release')) {
     return false
   }
@@ -87,7 +87,6 @@ async function confirmReleaseLog(log: string, token: string) {
   info(`pkgName: ${pkgName}`)
   info(`changelog: ${changelog}`)
 
-  const prNumber = getPullRequestNumber()
   const { getPullRequestData, getPullRequestFiles } = useGithub(token)
   const prData = await getPullRequestData(prNumber) as PullRequestData
   const { cloneRepo, checkoutBranch, isNeedCommit } = useGit(token)

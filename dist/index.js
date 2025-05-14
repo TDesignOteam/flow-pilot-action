@@ -45293,11 +45293,12 @@ function issue_comment(token) {
             return false;
         }
         const confirmLog = ((_c = github_1.context.payload.comment) === null || _c === void 0 ? void 0 : _c.body) || '';
-        confirmChangelog(confirmLog, token);
-        confirmReleaseLog(confirmLog, token);
+        const prNumber = (0, common_1.getPullRequestNumber)();
+        confirmChangelog(prNumber, confirmLog, token);
+        confirmReleaseLog(prNumber, confirmLog, token);
     });
 }
-function confirmChangelog(log, token) {
+function confirmChangelog(prNumber, log, token) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, _b;
         if (!log.startsWith('### 📝 更新日志')) {
@@ -45305,7 +45306,6 @@ function confirmChangelog(log, token) {
         }
         const changelog = (0, common_1.extractChangelog)(log || '', (0, common_1.getInputPkgs)());
         (0, core_1.info)(`stash_changelog: ${JSON.stringify(changelog, null, 2)}`);
-        const prNumber = (0, common_1.getPullRequestNumber)();
         const { getPullRequestData } = (0, github_2.default)(token);
         const prData = yield getPullRequestData(prNumber);
         const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = (0, git_1.default)(token);
@@ -45342,7 +45342,7 @@ function confirmChangelog(log, token) {
         }
     });
 }
-function confirmReleaseLog(log, token) {
+function confirmReleaseLog(prNumber, log, token) {
     return __awaiter(this, void 0, void 0, function* () {
         if (!log.startsWith('# 🎉 Release')) {
             return false;
@@ -45350,7 +45350,6 @@ function confirmReleaseLog(log, token) {
         const { pkgName, changelog } = (0, common_1.extractReleaseLog)(log);
         (0, core_1.info)(`pkgName: ${pkgName}`);
         (0, core_1.info)(`changelog: ${changelog}`);
-        const prNumber = (0, common_1.getPullRequestNumber)();
         const { getPullRequestData, getPullRequestFiles } = (0, github_2.default)(token);
         const prData = yield getPullRequestData(prNumber);
         const { cloneRepo, checkoutBranch, isNeedCommit } = (0, git_1.default)(token);
@@ -45433,6 +45432,7 @@ function pull_request_review(token) {
         if (!whitelist.includes(github_1.context.actor)) {
             return false;
         }
+        const prNumber = (0, utils_1.getPullRequestNumber)();
         const pullRequestData = github_1.context.payload.pull_request;
         const isRelease = pullRequestData.head.ref.startsWith('release/');
         if (isRelease) {
@@ -45452,7 +45452,7 @@ function pull_request_review(token) {
         });
         if (logs) {
             const body = `### 📝 更新日志\n\n${logs}\n\n`;
-            (0, issue_comment_1.confirmChangelog)(body, token);
+            (0, issue_comment_1.confirmChangelog)(prNumber, body, token);
         }
     });
 }
@@ -45679,7 +45679,7 @@ function workflow_run(token) {
         });
         if (logs) {
             const body = `### 📝 更新日志\n\n${logs}\n\n`;
-            (0, issue_comment_1.confirmChangelog)(body, token);
+            (0, issue_comment_1.confirmChangelog)(prNumber, body, token);
         }
     });
 }
