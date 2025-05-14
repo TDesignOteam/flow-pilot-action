@@ -45633,7 +45633,7 @@ function workflow_run(token) {
         if (github_1.context.eventName !== 'workflow_run') {
             return false;
         }
-        if (((_a = github_1.context.payload.workflow_run) === null || _a === void 0 ? void 0 : _a.event) !== 'pull_request') {
+        if (((_a = github_1.context.payload.workflow_run) === null || _a === void 0 ? void 0 : _a.event) !== 'pull_request_review') {
             return false;
         }
         if (((_b = github_1.context.payload.workflow_run) === null || _b === void 0 ? void 0 : _b.status) !== 'completed') {

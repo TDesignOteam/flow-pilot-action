@@ -9,7 +9,7 @@ export async function workflow_run(token: string) {
   if (context.eventName !== 'workflow_run') {
     return false
   }
-  if (context.payload.workflow_run?.event !== 'pull_request') {
+  if (context.payload.workflow_run?.event !== 'pull_request_review') {
     return false
   }
   if (context.payload.workflow_run?.status !== 'completed') {
