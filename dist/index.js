@@ -45634,23 +45634,29 @@ function workflow_run(token) {
             return false;
         }
         if (((_a = github_1.context.payload.workflow_run) === null || _a === void 0 ? void 0 : _a.event) !== 'pull_request_review') {
+            (0, core_1.warning)(`context.payload.workflow_run?.event !== 'pull_request_review'`);
             return false;
         }
         if (((_b = github_1.context.payload.workflow_run) === null || _b === void 0 ? void 0 : _b.status) !== 'completed') {
+            (0, core_1.warning)(`context.payload.workflow_run?.status !== 'completed'`);
             return false;
         }
         if (((_c = github_1.context.payload.workflow_run) === null || _c === void 0 ? void 0 : _c.conclusion) !== 'success') {
+            (0, core_1.warning)(`context.payload.workflow_run?.conclusion !== 'success'`);
             return false;
         }
         if (github_1.context.payload.workflow_run.pull_requests.length !== 1) {
+            (0, core_1.warning)(`context.payload.workflow_run.pull_requests.length !== 1`);
             return false;
         }
         const prNumber = github_1.context.payload.workflow_run.pull_requests[0].number;
         if (prNumber) {
+            (0, core_1.warning)(`prNumber:${prNumber}`);
             return false;
         }
         const whitelist = yield (0, utils_1.getPrCommentWhitelist)();
         if (!whitelist.includes(github_1.context.actor)) {
+            (0, core_1.warning)(`no in whitelist:${github_1.context.actor}`);
             return false;
         }
         const { getPullRequestData } = (0, github_2.default)(token);
