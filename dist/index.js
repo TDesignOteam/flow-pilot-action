@@ -46012,7 +46012,7 @@ function renderChangelog(heading, changelogs) {
     content += `${heading}\n`;
     keys.forEach((key) => {
         if (key && changelogs[key].length > 1) {
-            content += `- ${pascalCase(key)}: \n`;
+            content += `- \`${pascalCase(key)}\`: \n`;
             changelogs[key].forEach((log) => {
                 content += `  - ${log}\n`;
             });
@@ -46020,7 +46020,7 @@ function renderChangelog(heading, changelogs) {
         else {
             changelogs[key].forEach((log) => {
                 content += '-';
-                content += key ? ` ${pascalCase(key)}:` : '';
+                content += key ? ` \`${pascalCase(key)}\`:` : '';
                 content += ` ${log}\n`;
             });
         }
