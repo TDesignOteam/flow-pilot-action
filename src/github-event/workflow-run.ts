@@ -18,10 +18,10 @@ export async function workflow_run(token: string) {
   if (context.payload.workflow_run?.conclusion !== 'success') {
     return false
   }
-  if (context.payload.pull_requests.length !== 1) {
+  if (context.payload.workflow_run.pull_requests.length !== 1) {
     return false
   }
-  const prNumber = context.payload.pull_requests[0].number
+  const prNumber = context.payload.workflow_run.pull_requests[0].number
   if (prNumber) {
     return false
   }

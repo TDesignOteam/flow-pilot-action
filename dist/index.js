@@ -45642,10 +45642,10 @@ function workflow_run(token) {
         if (((_c = github_1.context.payload.workflow_run) === null || _c === void 0 ? void 0 : _c.conclusion) !== 'success') {
             return false;
         }
-        if (github_1.context.payload.pull_requests.length !== 1) {
+        if (github_1.context.payload.workflow_run.pull_requests.length !== 1) {
             return false;
         }
-        const prNumber = github_1.context.payload.pull_requests[0].number;
+        const prNumber = github_1.context.payload.workflow_run.pull_requests[0].number;
         if (prNumber) {
             return false;
         }
