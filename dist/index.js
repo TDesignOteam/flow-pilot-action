@@ -45645,15 +45645,7 @@ function workflow_run(token) {
             (0, core_1.warning)(`context.payload.workflow_run?.conclusion !== 'success'`);
             return false;
         }
-        if (github_1.context.payload.workflow_run.pull_requests.length !== 1) {
-            (0, core_1.warning)(`context.payload.workflow_run.pull_requests.length !== 1`);
-            return false;
-        }
-        const prNumber = github_1.context.payload.workflow_run.pull_requests[0].number;
-        if (!prNumber) {
-            (0, core_1.warning)(`prNumber:${prNumber}`);
-            return false;
-        }
+        const prNumber = Number((0, core_1.getInput)('pr_number', { required: true }));
         const whitelist = yield (0, utils_1.getPrCommentWhitelist)();
         if (!whitelist.includes(github_1.context.actor)) {
             (0, core_1.warning)(`no in whitelist:${github_1.context.actor}`);

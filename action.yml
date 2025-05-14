@@ -6,6 +6,12 @@ inputs:
     description: personal access token
   packages:
     description: packages
+  pr_number:
+    description: pr id
+
+outputs:
+  changelog:
+    description: changelog
 runs:
   using: node20
   main: dist/index.js

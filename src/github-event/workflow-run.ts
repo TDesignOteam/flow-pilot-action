@@ -1,5 +1,5 @@
 import type { PullRequestData } from 'src/types'
-import { info, warning } from '@actions/core'
+import { getInput, info, warning } from '@actions/core'
 import { context } from '@actions/github'
 import { extractChangelog, getInputPkgs, getPrCommentWhitelist } from 'src/utils'
 import useGithub from 'src/utils/github'
@@ -21,15 +21,7 @@ export async function workflow_run(token: string) {
     warning(`context.payload.workflow_run?.conclusion !== 'success'`)
     return false
   }
-  if (context.payload.workflow_run.pull_requests.length !== 1) {
-    warning(`context.payload.workflow_run.pull_requests.length !== 1`)
-    return false
-  }
-  const prNumber = context.payload.workflow_run.pull_requests[0].number
-  if (!prNumber) {
-    warning(`prNumber:${prNumber}`)
-    return false
-  }
+  const prNumber = Number(getInput('pr_number', { required: true }))
   const whitelist = await getPrCommentWhitelist()
   if (!whitelist.includes(context.actor)) {
     warning(`no in whitelist:${context.actor}`)
