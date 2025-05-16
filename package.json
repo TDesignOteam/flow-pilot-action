@@ -37,7 +37,7 @@
     "marked": "^15.0.11"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.13.0",
+    "@antfu/eslint-config": "^4.13.1",
     "@octokit/plugin-rest-endpoint-methods": "^14.0.0",
     "@types/node": "^22.15.18",
     "@vercel/ncc": "^0.38.3",
