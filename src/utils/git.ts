@@ -11,7 +11,7 @@ export default function useGit(token: string) {
     // const repo_url = `https://${context.token}@github.com/${owner}/${repo}.git`
     const repo_url = `https://github.com/${owner}/${repo}.git`
     // await exec('git', ['clone', '-b', branchName, repo_url, `../${repo}`])
-    await exec('rm', ['-rf', './*'])
+    await exec('sudo', ['rm', '-rf', './*'])
     await exec('ls', ['-al'])
     await exec('git', ['clone', repo_url, '.'])
   }
