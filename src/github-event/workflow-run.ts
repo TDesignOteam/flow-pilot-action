@@ -1,4 +1,5 @@
 import type { PullRequestData } from 'src/types'
+import { unlinkSync } from 'node:fs'
 import { getInput, info, warning } from '@actions/core'
 import { context } from '@actions/github'
 import { extractChangelog, getInputPkgs, getPrCommentWhitelist } from 'src/utils'
@@ -49,7 +50,7 @@ export async function workflow_run(token: string) {
   })
   if (logs) {
     const body = `### 📝 更新日志\n\n${logs}\n\n`
-
+    unlinkSync('./pr-id.txt')
     confirmChangelog(prNumber, body, token)
   }
 }
