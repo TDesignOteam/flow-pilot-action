@@ -45577,7 +45577,7 @@ function pull_request(token) {
             const prNumber = (0, utils_1.getPullRequestNumber)();
             const { addComment, getPullRequestFiles } = (0, github_2.default)(token);
             const { cloneRepo, checkoutBranch } = (0, git_1.default)(token);
-            (0, node_fs_1.unlinkSync)('pr-id.txt');
+            (0, node_fs_1.unlinkSync)('./pr-id.txt');
             yield cloneRepo();
             checkoutBranch(pullRequestData.head.ref);
             const changeFiles = yield getPullRequestFiles(prNumber);

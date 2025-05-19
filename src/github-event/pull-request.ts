@@ -41,7 +41,7 @@ export async function pull_request(token: string) {
     const prNumber = getPullRequestNumber()
     const { addComment, getPullRequestFiles } = useGithub(token)
     const { cloneRepo, checkoutBranch } = useGit(token)
-    unlinkSync('pr-id.txt')
+    unlinkSync('./pr-id.txt')
     await cloneRepo()
     checkoutBranch(pullRequestData.head.ref)
     const changeFiles = await getPullRequestFiles(prNumber)
