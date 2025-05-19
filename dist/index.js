@@ -46106,6 +46106,7 @@ function useGit(token) {
             const repo_url = `https://github.com/${owner}/${repo}.git`;
             // await exec('git', ['clone', '-b', branchName, repo_url, `../${repo}`])
             yield (0, exec_1.exec)('rm', ['-rf', '*'], { cwd: '.' });
+            yield (0, exec_1.exec)('ls', ['-al']);
             yield (0, exec_1.exec)('git', ['clone', repo_url, '.']);
         });
     }
