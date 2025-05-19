@@ -1,4 +1,5 @@
 import type { PullRequestData } from 'src/types'
+import { unlinkSync } from 'node:fs'
 import { info, setOutput } from '@actions/core'
 import { context } from '@actions/github'
 import { extractChangelog, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, renderChangelogMarkdown } from 'src/utils'
@@ -40,6 +41,7 @@ export async function pull_request(token: string) {
     const prNumber = getPullRequestNumber()
     const { addComment, getPullRequestFiles } = useGithub(token)
     const { cloneRepo, checkoutBranch } = useGit(token)
+    unlinkSync('pr-id.txt')
     await cloneRepo()
     checkoutBranch(pullRequestData.head.ref)
     const changeFiles = await getPullRequestFiles(prNumber)

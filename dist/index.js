@@ -45540,6 +45540,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.pull_request = pull_request;
+const node_fs_1 = __nccwpck_require__(3024);
 const core_1 = __nccwpck_require__(9999);
 const github_1 = __nccwpck_require__(2819);
 const utils_1 = __nccwpck_require__(9499);
@@ -45576,6 +45577,7 @@ function pull_request(token) {
             const prNumber = (0, utils_1.getPullRequestNumber)();
             const { addComment, getPullRequestFiles } = (0, github_2.default)(token);
             const { cloneRepo, checkoutBranch } = (0, git_1.default)(token);
+            (0, node_fs_1.unlinkSync)('pr-id.txt');
             yield cloneRepo();
             checkoutBranch(pullRequestData.head.ref);
             const changeFiles = yield getPullRequestFiles(prNumber);
@@ -46105,7 +46107,6 @@ function useGit(token) {
             // const repo_url = `https://${context.token}@github.com/${owner}/${repo}.git`
             const repo_url = `https://github.com/${owner}/${repo}.git`;
             // await exec('git', ['clone', '-b', branchName, repo_url, `../${repo}`])
-            yield (0, exec_1.exec)('sudo', ['rm', '-rf', './*']);
             yield (0, exec_1.exec)('ls', ['-al']);
             yield (0, exec_1.exec)('git', ['clone', repo_url, '.']);
         });
