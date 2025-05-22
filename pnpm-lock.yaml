@@ -34,8 +34,8 @@ importers:
         specifier: ^4.13.1
         version: 4.13.1(@vue/compiler-sfc@3.5.13)(eslint-plugin-format@1.0.1(eslint@9.27.0))(eslint@9.27.0)(typescript@5.8.3)(vitest@3.1.4(@types/debug@4.1.12)(@types/node@22.15.21)(yaml@2.8.0))
       '@octokit/plugin-rest-endpoint-methods':
-        specifier: ^14.0.0
-        version: 14.0.0(@octokit/core@5.2.1)
+        specifier: ^15.0.0
+        version: 15.0.0(@octokit/core@5.2.1)
       '@types/node':
         specifier: ^22.15.21
         version: 22.15.21
@@ -492,9 +492,9 @@ packages:
     peerDependencies:
       '@octokit/core': '5'
 
-  '@octokit/plugin-rest-endpoint-methods@14.0.0':
-    resolution: {integrity: sha512-iQt6ovem4b7zZYZQtdv+PwgbL5VPq37th1m2x2TdkgimIDJpsi2A6Q/OI/23i/hR6z5mL0EgisNR4dcbmckSZQ==}
-    engines: {node: '>= 18'}
+  '@octokit/plugin-rest-endpoint-methods@15.0.0':
+    resolution: {integrity: sha512-db6UdWvpX7O6tNsdkPk1BttVwTeVdA4n8RDFeXOyjBCPjE2YPufIAlzWh8CyeH8hl/3dSuQXDa+qLmsBlkTY+Q==}
+    engines: {node: '>= 20'}
     peerDependencies:
       '@octokit/core': '>=6'
 
@@ -2685,7 +2685,7 @@ snapshots:
       '@octokit/core': 5.2.1
       '@octokit/types': 12.6.0
 
-  '@octokit/plugin-rest-endpoint-methods@14.0.0(@octokit/core@5.2.1)':
+  '@octokit/plugin-rest-endpoint-methods@15.0.0(@octokit/core@5.2.1)':
     dependencies:
       '@octokit/core': 5.2.1
       '@octokit/types': 14.0.0
