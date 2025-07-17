@@ -458,6 +458,45 @@ export const merged_pull_request_files: PullRequestFiles = [
   },
 ]
 
+export const merged_pull_request_files2: PullRequestFiles = [
+  {
+    sha: '850f61b832fa80a1ac70c41bb9c89b3898c46003',
+    filename: 'fixtures/repo1/packages/pkg-a/package.json',
+    status: 'modified',
+    additions: 1,
+    deletions: 1,
+    changes: 2,
+    blob_url: 'https://github.com/TDesignOteam/flow-pilot-action/blob/74a237b5638f07e3aad977c7c4380ec03081ceae/fixtures%2Frepo1%2Fpackages%2Fpkg-a%2Fpackage.json',
+    raw_url: 'https://github.com/TDesignOteam/flow-pilot-action/raw/74a237b5638f07e3aad977c7c4380ec03081ceae/fixtures%2Frepo1%2Fpackages%2Fpkg-a%2Fpackage.json',
+    contents_url: 'https://api.github.com/repos/TDesignOteam/flow-pilot-action/contents/fixtures%2Frepo1%2Fpackages%2Fpkg-a%2Fpackage.json?ref=74a237b5638f07e3aad977c7c4380ec03081ceae',
+    patch: '@@ -1,6 +1,6 @@\n {\n   "name": "pkg-a",\n-  "version": "1.0.0",\n+  "version": "1.0.1",\n   "packageManager": "pnpm@10.4.1",\n   "description": "",\n   "author": "",',
+  },
+  {
+    sha: '516d99705cb93e16cd2a4f0297380e1967fc7221',
+    filename: 'fixtures/repo1/packages/pkg-c/package.json',
+    status: 'modified',
+    additions: 1,
+    deletions: 1,
+    changes: 2,
+    blob_url: 'https://github.com/TDesignOteam/flow-pilot-action/blob/74a237b5638f07e3aad977c7c4380ec03081ceae/fixtures%2Frepo1%2Fpackages%2Fpkg-c%2Fpackage.json',
+    raw_url: 'https://github.com/TDesignOteam/flow-pilot-action/raw/74a237b5638f07e3aad977c7c4380ec03081ceae/fixtures%2Frepo1%2Fpackages%2Fpkg-c%2Fpackage.json',
+    contents_url: 'https://api.github.com/repos/TDesignOteam/flow-pilot-action/contents/fixtures%2Frepo1%2Fpackages%2Fpkg-c%2Fpackage.json?ref=74a237b5638f07e3aad977c7c4380ec03081ceae',
+    patch: '@@ -1,6 +1,6 @@\n {\n   "name": "pkg-c",\n-  "version": "1.0.0",\n+  "version": "1.0.1",\n   "packageManager": "pnpm@10.4.1",\n   "description": "",\n   "author": "",',
+  },
+  {
+    sha: '96fd31610a1a55920e571b5677c429e6c44fb05a',
+    filename: 'fixtures/repo1/packages/pkg-a/CHANGELOG.md',
+    status: 'added',
+    additions: 11,
+    deletions: 0,
+    changes: 11,
+    blob_url: 'https://github.com/liweijie0812/test-mono-log/blob/8428c7fed0d17357250e13edbc73739e94ff43c5/packages%2Fpkg-a%2FCHANGELOG.md',
+    raw_url: 'https://github.com/liweijie0812/test-mono-log/raw/8428c7fed0d17357250e13edbc73739e94ff43c5/packages%2Fpkg-a%2FCHANGELOG.md',
+    contents_url: 'https://api.github.com/repos/liweijie0812/test-mono-log/contents/packages%2Fpkg-a%2FCHANGELOG.md?ref=8428c7fed0d17357250e13edbc73739e94ff43c5',
+    patch: '@@ -0,0 +1,11 @@\n+## 🌈 1.0.1 `2025-4-7` \n+### 🚀 Features\n+- Button: \n+  - 新增属性c @liweijie0812 ([#4](https://github.com/liweijie0812/test-mono-log/pull/4))\n+  - 新增属性a,新增属性b @liweijie0812 ([#2](https://github.com/liweijie0812/test-mono-log/pull/2))\n+- Link: 新增属性c @liweijie0812 ([#2](https://github.com/liweijie0812/test-mono-log/pull/2))\n+\n+### 🐞 Bug Fixes\n+- Button: 修复属性b @liweijie0812 ([#4](https://github.com/liweijie0812/test-mono-log/pull/4))\n+\n+\n+## 🌈 1.0.0 `2025-4-7` \n+### 🚀 Features\n+- Button: \n+  - 新增属性c @liweijie0812 ([#4](https://github.com/liweijie0812/test-mono-log/pull/4))\n+',
+  },
+]
+
 export const issue_comment_data = {
   payload: {
     action: 'edited',
