@@ -12,6 +12,9 @@ import { marked } from 'marked'
 import { CHANGELOG_REG, NEW_VERSION_REG, OLD_VERSION_REG, SKIP_CHANGELOG_REG } from '../consts'
 
 export function pascalCase(str: string) {
+  if (str.toLowerCase() === 'qrcode') {
+    return 'QRCode'
+  }
   return camelcase(str, { pascalCase: true })
 }
 
