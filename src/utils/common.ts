@@ -82,7 +82,7 @@ export function extractChangelog(markdown: string, pkgNames: string[]) {
   return pkgLogs
 }
 export function extractReleaseLog(markdown: string) {
-  const md = parseMarkdown(markdown)
+  const md = parseMarkdown(markdown.replace(/\r\n/g, '\n'))
   let collectLogs = false
   let pkgName = ''
   const changelog: string[] = []
