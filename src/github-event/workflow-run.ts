@@ -1,9 +1,9 @@
-import type { PullRequestData } from 'src/types'
+import type { PullRequestData } from '../types'
 import { unlinkSync } from 'node:fs'
 import { getInput, info, warning } from '@actions/core'
 import { context } from '@actions/github'
-import { extractChangelog, getInputPkgs, getPrCommentWhitelist } from 'src/utils'
-import useGithub from 'src/utils/github'
+import { extractChangelog, getInputPkgs, getPrCommentWhitelist } from '../utils'
+import useGithub from '../utils/github'
 import { confirmChangelog } from './issue-comment'
 
 export async function workflow_run(token: string) {

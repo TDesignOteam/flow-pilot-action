@@ -1,7 +1,7 @@
-import type { PullRequestData } from 'src/types'
+import type { PullRequestData } from '../types'
 import { info } from '@actions/core'
 import { context } from '@actions/github'
-import { extractChangelog, getInputPkgs, getPrCommentWhitelist, getPullRequestNumber } from 'src/utils'
+import { extractChangelog, getInputPkgs, getPrCommentWhitelist, getPullRequestNumber } from '../utils'
 import { confirmChangelog } from './issue-comment'
 
 export async function pull_request_review(token: string) {
