@@ -154,13 +154,14 @@ export function stashPackageChangelog(prData: PullRequestData, packages: Package
       info(`Successfully wrote changelog to ${logFilePath}`)
     }
     catch (error) {
-      info(`Failed to write changelog to ${logFilePath}: ${error.message}`)
+      const errorMsg = (error instanceof Error) ? error.message : String(error)
+      info(`Failed to write changelog to ${logFilePath}: ${errorMsg}`)
     }
   })
 }
 
 export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
-  const changelogs = {}
+  const changelogs: Record<string, string> = {}
   return prFiles.filter((file) => {
     const logs: string[] = []
     if (file.filename.includes('CHANGELOG.md') && file.patch) {
