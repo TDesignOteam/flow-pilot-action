@@ -34,7 +34,7 @@
     "@manypkg/get-packages": "^2.2.2",
     "camelcase": "^8.0.0",
     "glob": "^11.0.3",
-    "marked": "^16.3.0"
+    "marked": "^16.4.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^5.4.1",
