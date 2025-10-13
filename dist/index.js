@@ -60387,7 +60387,7 @@ function translateText(secretId, secretKey, text) {
                 secretId,
                 secretKey,
             },
-            region: '',
+            region: 'ap-guangzhou',
             profile: {
                 httpProfile: {
                     endpoint: 'tmt.tencentcloudapi.com',
@@ -60402,7 +60402,8 @@ function translateText(secretId, secretKey, text) {
             Target: 'en',
             ProjectId: 0,
         };
-        return yield client.TextTranslate(params);
+        const translateText = yield client.TextTranslate(params);
+        return translateText.TargetText;
     });
 }
 

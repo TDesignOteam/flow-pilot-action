@@ -6,7 +6,7 @@ export async function translateText(secretId, secretKey, text: string) {
       secretId,
       secretKey,
     },
-    region: '',
+    region: 'ap-guangzhou',
     profile: {
       httpProfile: {
         endpoint: 'tmt.tencentcloudapi.com',
@@ -21,5 +21,6 @@ export async function translateText(secretId, secretKey, text: string) {
     Target: 'en',
     ProjectId: 0,
   }
-  return await client.TextTranslate(params)
+  const translateText = await client.TextTranslate(params)
+  return translateText.TargetText
 }
