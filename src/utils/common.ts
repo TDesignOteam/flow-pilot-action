@@ -92,6 +92,10 @@ export function extractReleaseLog(markdown: string) {
         pkgName = token.text.replace('🎉 Release', '').trim()
         collectLogs = true
       }
+      else if (token.text.startsWith('🎉 发布')) {
+        pkgName = token.text.replace('🎉 发布', '').trim()
+        collectLogs = true
+      }
       else {
         collectLogs = false
       }
