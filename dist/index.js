@@ -59621,6 +59621,8 @@ function pull_request(token) {
                     yield addComment(prNumber, `${logHead}# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`);
                     const secretId = (0, core_1.getInput)('tmt-secret-id');
                     const secretKey = (0, core_1.getInput)('tmt-secret-key');
+                    (0, core_1.info)(`secretId: ${secretId}`);
+                    (0, core_1.info)(`secretKey: ${secretKey}`);
                     if (secretId && secretKey) {
                         // tmt 翻译
                         const en_md = yield (0, tmt_1.translateText)(secretId, secretKey, md);
