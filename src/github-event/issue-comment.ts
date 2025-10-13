@@ -79,7 +79,8 @@ export async function confirmChangelog(prNumber: number, log: string, token: str
 }
 
 async function confirmReleaseLog(prNumber: number, log: string, token: string) {
-  if (!log.startsWith('# 🎉 Release') || !log.startsWith('# 🎉 发布')) {
+  const isReleaseHead = log.startsWith('# 🎉 发布') || log.startsWith('# 🎉 Release')
+  if (!isReleaseHead) {
     return false
   }
   let changelogFileName = 'CHANGELOG.md'

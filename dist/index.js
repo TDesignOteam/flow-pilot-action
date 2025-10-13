@@ -59359,7 +59359,8 @@ function confirmChangelog(prNumber, log, token) {
 }
 function confirmReleaseLog(prNumber, log, token) {
     return __awaiter(this, void 0, void 0, function* () {
-        if (!log.startsWith('# 🎉 Release') || !log.startsWith('# 🎉 发布')) {
+        const isReleaseHead = log.startsWith('# 🎉 发布') || log.startsWith('# 🎉 Release');
+        if (!isReleaseHead) {
             return false;
         }
         let changelogFileName = 'CHANGELOG.md';
