@@ -59360,6 +59360,7 @@ function confirmChangelog(prNumber, log, token) {
 function confirmReleaseLog(prNumber, log, token) {
     return __awaiter(this, void 0, void 0, function* () {
         const isReleaseHead = log.startsWith('# 🎉 发布') || log.startsWith('# 🎉 Release');
+        (0, core_1.info)(`isReleaseHead: ${isReleaseHead}`);
         if (!isReleaseHead) {
             return false;
         }

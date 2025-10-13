@@ -80,6 +80,7 @@ export async function confirmChangelog(prNumber: number, log: string, token: str
 
 async function confirmReleaseLog(prNumber: number, log: string, token: string) {
   const isReleaseHead = log.startsWith('# 🎉 发布') || log.startsWith('# 🎉 Release')
+  info(`isReleaseHead: ${isReleaseHead}`)
   if (!isReleaseHead) {
     return false
   }
