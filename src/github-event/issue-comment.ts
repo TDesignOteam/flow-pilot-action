@@ -79,9 +79,15 @@ export async function confirmChangelog(prNumber: number, log: string, token: str
 }
 
 async function confirmReleaseLog(prNumber: number, log: string, token: string) {
-  if (!log.startsWith('# 🎉 Release')) {
+  if (!log.startsWith('# 🎉 Release') || !log.startsWith('# 🎉 发布')) {
     return false
   }
+  let changelogFileName = 'CHANGELOG.md'
+
+  if (log.startsWith('# 🎉 Release')) {
+    changelogFileName = 'CHANGELOG.en-US.md'
+  }
+
   const { pkgName, changelog } = extractReleaseLog(log)
 
   info(`pkgName: ${pkgName}`)
@@ -105,11 +111,11 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
       unlinkSync(file)
       info(`delete file: ${file}`)
     })
-    if (!existsSync(`${release.dir}/CHANGELOG.md`)) {
-      writeFileSync(`${release.dir}/CHANGELOG.md`, '', 'utf8')
+    if (!existsSync(`${release.dir}/${changelogFileName}`)) {
+      writeFileSync(`${release.dir}/${changelogFileName}`, '', 'utf8')
     }
 
-    const pkgChangelog = readFileSync(`${release.dir}/CHANGELOG.md`, 'utf8')
+    const pkgChangelog = readFileSync(`${release.dir}/${changelogFileName}`, 'utf8')
     const index = pkgChangelog.indexOf('## 🌈')
     let newData = ''
     if (index === -1) {
@@ -118,7 +124,7 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
     else {
       newData = pkgChangelog.slice(0, index) + changelog + pkgChangelog.slice(index)
     }
-    writeFileSync(`${release.dir}/CHANGELOG.md`, newData, 'utf8')
+    writeFileSync(`${release.dir}/${changelogFileName}`, newData, 'utf8')
   })
 
   await exec('git', ['add', '**/*.md'])

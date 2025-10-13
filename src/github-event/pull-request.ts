@@ -1,9 +1,10 @@
 import type { PullRequestData } from 'src/types'
-import { info, setOutput } from '@actions/core'
+import { getInput, info, setOutput } from '@actions/core'
 import { context } from '@actions/github'
 import { extractChangelog, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, renderChangelogMarkdown } from 'src/utils'
 import useGit from 'src/utils/git'
 import useGithub from 'src/utils/github'
+import { translateText } from 'src/utils/tmt'
 
 export async function pull_request(token: string) {
   if (context.eventName !== 'pull_request' || context.payload.action === 'closed') {
@@ -51,7 +52,7 @@ export async function pull_request(token: string) {
       info('没有更新发布版本')
       return
     }
-    releaseDirs.forEach((release) => {
+    releaseDirs.forEach(async (release) => {
       if (release.tag === 'latest') {
         const changelogs = getStashChangelog(release.dir)
         info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
@@ -61,7 +62,16 @@ export async function pull_request(token: string) {
         const year = currentDate.getFullYear()
         const month = String(currentDate.getMonth() + 1).padStart(2, '0')
         const day = String(currentDate.getDate()).padStart(2, '0')
-        addComment(prNumber, `${logHead}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`)
+        // 中文日志
+        await addComment(prNumber, `${logHead}# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`)
+        const secretId = getInput('tmt-secret-id')
+        const secretKey = getInput('tmt-secret-key')
+        if (secretId && secretKey) {
+          // tmt 翻译
+          const en_md = await translateText(secretId, secretKey, md)
+          // 英文日志
+          await addComment(prNumber, `${logHead}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${en_md}`)
+        }
       }
     })
   }
