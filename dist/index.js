@@ -59624,6 +59624,7 @@ function pull_request(token) {
                     if (secretId && secretKey) {
                         // tmt 翻译
                         const en_md = yield (0, tmt_1.translateText)(secretId, secretKey, md);
+                        (0, core_1.info)(`en_md${en_md}`);
                         // 英文日志
                         yield addComment(prNumber, `${logHead}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${en_md}`);
                     }

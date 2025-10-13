@@ -69,6 +69,7 @@ export async function pull_request(token: string) {
         if (secretId && secretKey) {
           // tmt 翻译
           const en_md = await translateText(secretId, secretKey, md)
+          info(`en_md${en_md}`)
           // 英文日志
           await addComment(prNumber, `${logHead}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${en_md}`)
         }
