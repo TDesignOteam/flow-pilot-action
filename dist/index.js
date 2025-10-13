@@ -59627,7 +59627,7 @@ function pull_request(token) {
                         // tmt 翻译
                         const en_md = yield (0, tmt_1.translateText)(secretId, secretKey, md);
                         // 英文日志
-                        yield addComment(prNumber, `${logHead}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${en_md}`);
+                        yield addComment(prNumber, `${logHead.replace('CHANGELOG.md', 'CHANGELOG.en-US.md')}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${en_md}`);
                     }
                 }
             }));

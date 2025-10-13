@@ -70,7 +70,7 @@ export async function pull_request(token: string) {
           // tmt 翻译
           const en_md = await translateText(secretId, secretKey, md)
           // 英文日志
-          await addComment(prNumber, `${logHead}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${en_md}`)
+          await addComment(prNumber, `${logHead.replace('CHANGELOG.md', 'CHANGELOG.en-US.md')}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${en_md}`)
         }
       }
     })
