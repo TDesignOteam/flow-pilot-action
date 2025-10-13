@@ -1,6 +1,6 @@
 import * as tencentcloud from 'tencentcloud-sdk-nodejs-tmt'
 
-export async function translateText(secretId, secretKey, text: string) {
+export async function translateText(secretId: string, secretKey: string, text: string) {
   const clientConfig = {
     credential: {
       secretId,
