@@ -8,6 +8,12 @@ inputs:
     description: packages
   pr_number:
     description: pr id
+  tmt-secret-id:
+    description: tencent cloud tmt secret id
+    required: false
+  tmt-secret-key:
+    description: tencent cloud tmt secret key
+    required: false
 
 outputs:
   changelog:
