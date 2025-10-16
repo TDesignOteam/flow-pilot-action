@@ -248,6 +248,7 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
     return {
       dir: dirname(file.filename),
       name: packageData.name,
+      private: packageData?.private || false,
       version: file.patch?.match(NEW_VERSION_REG)?.[1],
       tag,
       changelog,

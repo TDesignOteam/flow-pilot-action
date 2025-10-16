@@ -32,6 +32,10 @@ export async function pull_request_target(token: string) {
         const title = `${release.name}@${release.version}`
         await createRelease(title, title, release.changelog)
       }
+      if (release.private) {
+        info(`${release.name} is private package, skip publish`)
+        return
+      }
       const { stdout } = await getExecOutput('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', release.tag])
 
       info(stdout)

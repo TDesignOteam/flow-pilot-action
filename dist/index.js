@@ -59532,6 +59532,10 @@ function pull_request_target(token) {
                     const title = `${release.name}@${release.version}`;
                     yield createRelease(title, title, release.changelog);
                 }
+                if (release.private) {
+                    (0, core_1.info)(`${release.name} is private package, skip publish`);
+                    return;
+                }
                 const { stdout } = yield (0, exec_1.getExecOutput)('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', release.tag]);
                 (0, core_1.info)(stdout);
             }));
@@ -59938,11 +59942,12 @@ function stashPackageChangelog(prData, packages, prChangelog) {
     });
 }
 function getPullRequestReleaseDirs(prFiles) {
-    const changelogs = {};
+    const zhChangelogs = {};
+    const enChangelogs = {};
     return prFiles.filter((file) => {
         var _a;
-        const logs = [];
         if (file.filename.includes('CHANGELOG.md') && file.patch) {
+            const logs = [];
             let isSkip = false;
             let hasNewReleaseLog = false;
             file.patch.split('\n').forEach((item) => {
@@ -59960,7 +59965,28 @@ function getPullRequestReleaseDirs(prFiles) {
                     logs.push(log);
                 }
             });
-            changelogs[(0, node_path_1.dirname)(file.filename)] = logs.join('\n');
+            zhChangelogs[(0, node_path_1.dirname)(file.filename)] = logs.join('\n');
+        }
+        if (file.filename.includes('CHANGELOG.en-US.md') && file.patch) {
+            const logs = [];
+            let isSkip = false;
+            let hasNewReleaseLog = false;
+            file.patch.split('\n').forEach((item) => {
+                if (isSkip)
+                    return;
+                if (item.startsWith('+')) {
+                    const log = item.slice(1);
+                    if (hasNewReleaseLog && log.includes('## 🌈')) {
+                        isSkip = true;
+                        return;
+                    }
+                    if (log.includes('## 🌈')) {
+                        hasNewReleaseLog = true;
+                    }
+                    logs.push(log);
+                }
+            });
+            enChangelogs[(0, node_path_1.dirname)(file.filename)] = logs.slice(1).join('\n');
         }
         if (file.status !== 'modified') {
             return false;
@@ -59991,12 +60017,17 @@ function getPullRequestReleaseDirs(prFiles) {
         if (packageData.version.includes('alpha')) {
             tag = 'alpha';
         }
+        let changelog = zhChangelogs[(0, node_path_1.dirname)(file.filename)] || '';
+        if (changelog && enChangelogs[(0, node_path_1.dirname)(file.filename)]) {
+            changelog = changelog.concat('\n---\n', enChangelogs[(0, node_path_1.dirname)(file.filename)]);
+        }
         return {
             dir: (0, node_path_1.dirname)(file.filename),
             name: packageData.name,
+            private: (packageData === null || packageData === void 0 ? void 0 : packageData.private) || false,
             version: (_b = (_a = file.patch) === null || _a === void 0 ? void 0 : _a.match(consts_1.NEW_VERSION_REG)) === null || _b === void 0 ? void 0 : _b[1],
             tag,
-            changelog: changelogs[(0, node_path_1.dirname)(file.filename)] || '',
+            changelog,
         };
     });
 }
