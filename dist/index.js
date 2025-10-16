@@ -59380,7 +59380,7 @@ function confirmReleaseLog(prNumber, log, token) {
         (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
         const releaseDirs = yield (0, common_1.getPullRequestReleaseDirs)(changeFiles);
         (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
-        releaseDirs.forEach((release) => __awaiter(this, void 0, void 0, function* () {
+        releaseDirs.forEach((release) => {
             if (release.name !== pkgName) {
                 return;
             }
@@ -59393,8 +59393,9 @@ function confirmReleaseLog(prNumber, log, token) {
                 (0, node_fs_1.writeFileSync)(`${release.dir}/${changelogFileName}`, '', 'utf8');
             }
             else {
-                yield (0, exec_1.exec)('git', ['fetch', 'origin', 'develop']);
-                yield (0, exec_1.exec)('git', ['checkout', 'origin/develop', '--', `${release.dir}/${changelogFileName}`]);
+                (0, exec_1.exec)('git', ['fetch', 'origin', 'develop']).then(() => {
+                    (0, exec_1.exec)('git', ['checkout', 'origin/develop', '--', `${release.dir}/${changelogFileName}`]);
+                });
             }
             const pkgChangelog = (0, node_fs_1.readFileSync)(`${release.dir}/${changelogFileName}`, 'utf8');
             const index = pkgChangelog.indexOf('## 🌈');
@@ -59406,7 +59407,7 @@ function confirmReleaseLog(prNumber, log, token) {
                 newData = pkgChangelog.slice(0, index) + changelog + pkgChangelog.slice(index);
             }
             (0, node_fs_1.writeFileSync)(`${release.dir}/${changelogFileName}`, newData, 'utf8');
-        }));
+        });
         yield (0, exec_1.exec)('git', ['add', '**/*.md']);
         yield (0, exec_1.exec)('git', ['status']);
         if (!(yield isNeedCommit())) {
