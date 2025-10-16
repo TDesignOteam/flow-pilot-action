@@ -104,7 +104,7 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
   info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
   const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
   info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
-  releaseDirs.forEach((release) => {
+  releaseDirs.forEach(async (release) => {
     if (release.name !== pkgName) {
       return
     }
@@ -115,6 +115,10 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
     })
     if (!existsSync(`${release.dir}/${changelogFileName}`)) {
       writeFileSync(`${release.dir}/${changelogFileName}`, '', 'utf8')
+    }
+    else {
+      await exec('git', ['fetch', 'origin', 'develop'])
+      await exec('git', ['checkout', 'origin/develop', '--', `${release.dir}/${changelogFileName}`])
     }
 
     const pkgChangelog = readFileSync(`${release.dir}/${changelogFileName}`, 'utf8')
