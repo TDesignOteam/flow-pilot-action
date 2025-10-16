@@ -27,11 +27,13 @@ describe('utils', () => {
 
   it('getPackages', () => {
     const packages = getPackages('fixtures/repo1')
-    expect(packages.length).toBe(2)
+    expect(packages.length).toBe(3)
     expect(packages[0].packageJson.name).toBe('pkg-a')
     expect(packages[0].relativeDir).toBe('packages/pkg-a')
-    expect(packages[1].packageJson.name).toBe('pkg-c')
-    expect(packages[1].relativeDir).toBe('packages/pkg-c')
+    expect(packages[1].packageJson.name).toBe('pkg-b')
+    expect(packages[1].relativeDir).toBe('packages/pkg-b')
+    expect(packages[2].packageJson.name).toBe('pkg-c')
+    expect(packages[2].relativeDir).toBe('packages/pkg-c')
   })
   describe('isExtractPRLog', () => {
     it('labels 包含 skip-changelog', () => {
@@ -70,9 +72,9 @@ describe('utils', () => {
   describe('extractChangelog', () => {
     it('repo1 pkg-b是私有包，不收集日志', () => {
       const packages = getPackages('fixtures/repo1')
-      expect(packages.length).toBe(2)
+      expect(packages.length).toBe(3)
       expect(packages[0].relativeDir).toBe('packages/pkg-a')
-      expect(packages[1].relativeDir).toBe('packages/pkg-c')
+      expect(packages[1].relativeDir).toBe('packages/pkg-b')
       const body = readFileSync('fixtures/pull_request_body/pr_body1.md', 'utf8').replaceAll('\n', '\r\n')
       const log = extractChangelog(body, packages.map(pkg => pkg.packageJson.name))
       expect(log).toMatchSnapshot()

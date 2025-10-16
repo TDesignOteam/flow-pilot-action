@@ -59613,7 +59613,7 @@ function pull_request(token) {
                 (0, core_1.info)('没有更新发布版本');
                 return;
             }
-            releaseDirs.forEach((release) => __awaiter(this, void 0, void 0, function* () {
+            releaseDirs.forEach((release) => {
                 if (release.tag === 'latest') {
                     const changelogs = (0, utils_1.getStashChangelog)(release.dir);
                     (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
@@ -59624,17 +59624,21 @@ function pull_request(token) {
                     const month = String(currentDate.getMonth() + 1).padStart(2, '0');
                     const day = String(currentDate.getDate()).padStart(2, '0');
                     // 中文日志
-                    yield addComment(prNumber, `${logHead}# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`);
+                    addComment(prNumber, `${logHead}# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`);
                     const secretId = (0, core_1.getInput)('tmt-secret-id', { trimWhitespace: true });
                     const secretKey = (0, core_1.getInput)('tmt-secret-key', { trimWhitespace: true });
-                    if (secretId && secretKey) {
+                    if (secretId && secretKey && md) {
                         // tmt 翻译
-                        const en_md = yield (0, tmt_1.translateText)(secretId, secretKey, md);
-                        // 英文日志
-                        yield addComment(prNumber, `${logHead.replace('CHANGELOG.md', 'CHANGELOG.en-US.md')}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${en_md}`);
+                        (0, tmt_1.translateText)(secretId, secretKey, md).then((text) => {
+                            (0, core_1.info)(`en_md: ${text}`);
+                            addComment(prNumber, `${logHead.replace('CHANGELOG.md', 'CHANGELOG.en-US.md')}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${text}`);
+                        }).catch((err) => {
+                            (0, core_1.info)(`翻译失败，${err}`);
+                            return '';
+                        });
                     }
                 }
-            }));
+            });
         }
     });
 }

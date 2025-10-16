@@ -52,7 +52,7 @@ export async function pull_request(token: string) {
       info('没有更新发布版本')
       return
     }
-    releaseDirs.forEach(async (release) => {
+    releaseDirs.forEach((release) => {
       if (release.tag === 'latest') {
         const changelogs = getStashChangelog(release.dir)
         info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
@@ -63,14 +63,18 @@ export async function pull_request(token: string) {
         const month = String(currentDate.getMonth() + 1).padStart(2, '0')
         const day = String(currentDate.getDate()).padStart(2, '0')
         // 中文日志
-        await addComment(prNumber, `${logHead}# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`)
+        addComment(prNumber, `${logHead}# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`)
         const secretId = getInput('tmt-secret-id', { trimWhitespace: true })
         const secretKey = getInput('tmt-secret-key', { trimWhitespace: true })
-        if (secretId && secretKey) {
+        if (secretId && secretKey && md) {
           // tmt 翻译
-          const en_md = await translateText(secretId, secretKey, md)
-          // 英文日志
-          await addComment(prNumber, `${logHead.replace('CHANGELOG.md', 'CHANGELOG.en-US.md')}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${en_md}`)
+          translateText(secretId, secretKey, md).then((text) => {
+            info(`en_md: ${text}`)
+            addComment(prNumber, `${logHead.replace('CHANGELOG.md', 'CHANGELOG.en-US.md')}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${text}`)
+          }).catch((err) => {
+            info(`翻译失败，${err}`)
+            return ''
+          })
         }
       }
     })

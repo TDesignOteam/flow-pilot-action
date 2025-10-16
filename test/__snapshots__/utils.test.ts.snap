@@ -7,6 +7,9 @@ exports[`utils > extractChangelog > repo1 pkg-b是私有包，不收集日志 1`
     "feat(Hook): add renderNodeJSX",
     "feat(Hook): add renderIcon",
   ],
+  "pkg-b": [
+    "chore(utils): add \`isString\` function",
+  ],
   "pkg-c": [
     "feat(Button): New Component",
   ],
