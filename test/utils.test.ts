@@ -2,7 +2,7 @@ import type { Tokens } from 'marked'
 import type { PullRequestData } from '../src/types'
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { merged_pull_request_files, merged_pull_request_files2, pull_request_data, pull_request_files } from '../fixtures/pull_request_data'
+import { merged_pull_request_files, merged_pull_request_files2, merged_pull_request_files3, pull_request_data, pull_request_files } from '../fixtures/pull_request_data'
 import {
   extractChangelog,
   extractReleaseLog,
@@ -146,6 +146,9 @@ describe('utils', () => {
 
     const paths2 = getPullRequestReleaseDirs(merged_pull_request_files2)
     expect(paths2).toMatchSnapshot()
+
+    const paths3 = getPullRequestReleaseDirs(merged_pull_request_files3)
+    expect(paths3).toMatchSnapshot()
   })
 
   it('getStashChangelog', () => {

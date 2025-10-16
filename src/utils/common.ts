@@ -164,10 +164,12 @@ export function stashPackageChangelog(prData: PullRequestData, packages: Package
 }
 
 export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
-  const changelogs = {}
+  const zhChangelogs = {}
+  const enChangelogs = {}
+
   return prFiles.filter((file) => {
-    const logs: string[] = []
     if (file.filename.includes('CHANGELOG.md') && file.patch) {
+      const logs: string[] = []
       let isSkip = false
       let hasNewReleaseLog = false
       file.patch.split('\n').forEach((item) => {
@@ -185,9 +187,31 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
           logs.push(log)
         }
       })
-
-      changelogs[dirname(file.filename)] = logs.join('\n')
+      zhChangelogs[dirname(file.filename)] = logs.join('\n')
     }
+
+    if (file.filename.includes('CHANGELOG.en-US.md') && file.patch) {
+      const logs: string[] = []
+      let isSkip = false
+      let hasNewReleaseLog = false
+      file.patch.split('\n').forEach((item) => {
+        if (isSkip)
+          return
+        if (item.startsWith('+')) {
+          const log = item.slice(1)
+          if (hasNewReleaseLog && log.includes('## 🌈')) {
+            isSkip = true
+            return
+          }
+          if (log.includes('## 🌈')) {
+            hasNewReleaseLog = true
+          }
+          logs.push(log)
+        }
+      })
+      enChangelogs[dirname(file.filename)] = logs.slice(1).join('\n')
+    }
+
     if (file.status !== 'modified') {
       return false
     }
@@ -217,12 +241,16 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
     if (packageData.version.includes('alpha')) {
       tag = 'alpha'
     }
+    let changelog = zhChangelogs[dirname(file.filename)] || ''
+    if (changelog && enChangelogs[dirname(file.filename)]) {
+      changelog = changelog.concat('\n---\n', enChangelogs[dirname(file.filename)])
+    }
     return {
       dir: dirname(file.filename),
       name: packageData.name,
       version: file.patch?.match(NEW_VERSION_REG)?.[1],
       tag,
-      changelog: changelogs[dirname(file.filename)] || '',
+      changelog,
     }
   })
 }
