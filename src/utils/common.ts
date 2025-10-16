@@ -114,7 +114,7 @@ export function extractReleaseLog(markdown: string) {
 
 export function getPackages(path: string) {
   const { packages } = getPackagesSync(path)
-  return packages.filter(pkg => pkg.packageJson?.private !== true)
+  return packages
 }
 
 export function stashPackageChangelog(prData: PullRequestData, packages: Package[], prChangelog: PackagesChangelog) {

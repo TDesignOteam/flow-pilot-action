@@ -59898,7 +59898,7 @@ function extractReleaseLog(markdown) {
 }
 function getPackages(path) {
     const { packages } = (0, get_packages_1.getPackagesSync)(path);
-    return packages.filter(pkg => { var _a; return ((_a = pkg.packageJson) === null || _a === void 0 ? void 0 : _a.private) !== true; });
+    return packages;
 }
 function stashPackageChangelog(prData, packages, prChangelog) {
     packages.forEach((pkg) => {
