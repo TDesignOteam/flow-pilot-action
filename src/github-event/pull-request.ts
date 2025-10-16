@@ -52,7 +52,7 @@ export async function pull_request(token: string) {
       info('没有更新发布版本')
       return
     }
-    releaseDirs.forEach((release) => {
+    for (const release of releaseDirs) {
       if (release.tag === 'latest') {
         const changelogs = getStashChangelog(release.dir)
         info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
@@ -64,7 +64,7 @@ export async function pull_request(token: string) {
         const month = String(currentDate.getMonth() + 1).padStart(2, '0')
         const day = String(currentDate.getDate()).padStart(2, '0')
         // 中文日志
-        addComment(prNumber, `${logHead}# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`)
+        await addComment(prNumber, `${logHead}# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`)
         const secretId = getInput('tmt-secret-id', { trimWhitespace: true })
         const secretKey = getInput('tmt-secret-key', { trimWhitespace: true })
         if (secretId && secretKey && md) {
@@ -78,6 +78,6 @@ export async function pull_request(token: string) {
           })
         }
       }
-    })
+    }
   }
 }
