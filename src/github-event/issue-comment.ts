@@ -136,5 +136,6 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
     return true
   }
   await exec('git', ['commit', '-m', 'chore: changelog'])
+  await exec('git', ['pull'])
   await exec('git', ['push', 'origin', prData.head.ref])
 }

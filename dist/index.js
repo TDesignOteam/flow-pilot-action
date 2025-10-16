@@ -59410,6 +59410,7 @@ function confirmReleaseLog(prNumber, log, token) {
             return true;
         }
         yield (0, exec_1.exec)('git', ['commit', '-m', 'chore: changelog']);
+        yield (0, exec_1.exec)('git', ['pull']);
         yield (0, exec_1.exec)('git', ['push', 'origin', prData.head.ref]);
     });
 }
