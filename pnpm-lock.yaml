@@ -30,15 +30,15 @@ importers:
         specifier: ^16.4.1
         version: 16.4.1
       tencentcloud-sdk-nodejs-tmt:
-        specifier: ^4.1.117
-        version: 4.1.117
+        specifier: ^4.1.133
+        version: 4.1.133
     devDependencies:
       '@antfu/eslint-config':
         specifier: ^5.4.1
         version: 5.4.1(@vue/compiler-sfc@3.5.13)(eslint-plugin-format@1.0.2(eslint@9.38.0))(eslint@9.38.0)(typescript@5.9.3)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@22.15.21)(yaml@2.8.1))
       '@octokit/plugin-rest-endpoint-methods':
-        specifier: ^16.1.0
-        version: 16.1.0(@octokit/core@5.2.1)
+        specifier: ^16.1.1
+        version: 16.1.1(@octokit/core@5.2.1)
       '@types/node':
         specifier: ^22.15.21
         version: 22.15.21
@@ -52,8 +52,8 @@ importers:
         specifier: ^1.0.2
         version: 1.0.2(eslint@9.38.0)
       lint-staged:
-        specifier: ^16.2.4
-        version: 16.2.4
+        specifier: ^16.2.5
+        version: 16.2.5
       rimraf:
         specifier: ^6.0.1
         version: 6.0.1
@@ -499,8 +499,8 @@ packages:
     peerDependencies:
       '@octokit/core': '5'
 
-  '@octokit/plugin-rest-endpoint-methods@16.1.0':
-    resolution: {integrity: sha512-nCsyiKoGRnhH5LkH8hJEZb9swpqOcsW+VXv1QoyUNQXJeVODG4+xM6UICEqyqe9XFr6LkL8BIiFCPev8zMDXPw==}
+  '@octokit/plugin-rest-endpoint-methods@16.1.1':
+    resolution: {integrity: sha512-VztDkhM0ketQYSh5Im3IcKWFZl7VIrrsCaHbDINkdYeiiAsJzjhS2xRFCSJgfN6VOcsoW4laMtsmf3HcNqIimg==}
     engines: {node: '>= 20'}
     peerDependencies:
       '@octokit/core': '>=6'
@@ -519,8 +519,8 @@ packages:
   '@octokit/types@13.10.0':
     resolution: {integrity: sha512-ifLaO34EbbPj0Xgro4G5lP5asESjwHracYJvVaPIyXMuiuXLlhic3S47cBdTb+jfODkTE5YtGCLt3Ay3+J97sA==}
 
-  '@octokit/types@15.0.0':
-    resolution: {integrity: sha512-8o6yDfmoGJUIeR9OfYU0/TUJTnMPG2r68+1yEdUeG2Fdqpj8Qetg0ziKIgcBm0RW/j29H41WP37CYCEhp6GoHQ==}
+  '@octokit/types@15.0.1':
+    resolution: {integrity: sha512-sdiirM93IYJ9ODDCBgmRPIboLbSkpLa5i+WLuXH8b8Atg+YMLAyLvDDhNWLV4OYd08tlvYfVm/dw88cqHWtw1Q==}
 
   '@pkgr/core@0.1.2':
     resolution: {integrity: sha512-fdDH1LSGfZdTH2sxdpVMw31BanV28K/Gry0cVFxaNP77neJSkd82mM8ErPNYs9e+0O7SdHBLTDzDgwUuy18RnQ==}
@@ -1583,13 +1583,13 @@ packages:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
 
-  lint-staged@16.2.4:
-    resolution: {integrity: sha512-Pkyr/wd90oAyXk98i/2KwfkIhoYQUMtss769FIT9hFM5ogYZwrk+GRE46yKXSg2ZGhcJ1p38Gf5gmI5Ohjg2yg==}
+  lint-staged@16.2.5:
+    resolution: {integrity: sha512-o36wH3OX0jRWqDw5dOa8a8x6GXTKaLM+LvhRaucZxez0IxA+KNDUCiyjBfNgsMNmchwSX6urLSL7wShcUqAang==}
     engines: {node: '>=20.17'}
     hasBin: true
 
-  listr2@9.0.4:
-    resolution: {integrity: sha512-1wd/kpAdKRLwv7/3OKC8zZ5U8e/fajCfWMxacUvB79S5nLrYGPtUI/8chMQhn3LQjsRVErTb9i1ECAwW0ZIHnQ==}
+  listr2@9.0.5:
+    resolution: {integrity: sha512-ME4Fb83LgEgwNw96RKNvKV4VTLuXfoKudAmm2lP8Kk87KaMK0/Xrx/aAkMWmT8mDb+3MlFDspfbCs7adjRxA2g==}
     engines: {node: '>=20.0.0'}
 
   local-pkg@1.1.2:
@@ -2115,8 +2115,8 @@ packages:
     resolution: {integrity: sha512-bzZ2f289vJz36l8bU/RZQrsvdLo/MNsETQ3w9KjTKknP4xJrmO8F+RE0nBuyKiEF0p+SR9V29it39lfjGnb4qg==}
     engines: {node: '>=10'}
 
-  tencentcloud-sdk-nodejs-tmt@4.1.117:
-    resolution: {integrity: sha512-brRLhWYt5WPxJUubyG0+9NjPC2en5/apLtU3cqFGIqjR4M8f4CzjK/s1TD+W25b81zDqVv2F95eDdxKCTurcNA==}
+  tencentcloud-sdk-nodejs-tmt@4.1.133:
+    resolution: {integrity: sha512-r2ZAct+Z0Pb0fpJldliYAVeDbbG9rYI3uj7gdSvF1b3ISasIY06Wl5PKDc3s/C0oP9Ss2xyYyajwGr3I0Gkotw==}
     engines: {node: '>=10'}
 
   tinybench@2.9.0:
@@ -2746,10 +2746,10 @@ snapshots:
       '@octokit/core': 5.2.1
       '@octokit/types': 12.6.0
 
-  '@octokit/plugin-rest-endpoint-methods@16.1.0(@octokit/core@5.2.1)':
+  '@octokit/plugin-rest-endpoint-methods@16.1.1(@octokit/core@5.2.1)':
     dependencies:
       '@octokit/core': 5.2.1
-      '@octokit/types': 15.0.0
+      '@octokit/types': 15.0.1
 
   '@octokit/request-error@5.1.1':
     dependencies:
@@ -2772,7 +2772,7 @@ snapshots:
     dependencies:
       '@octokit/openapi-types': 24.2.0
 
-  '@octokit/types@15.0.0':
+  '@octokit/types@15.0.1':
     dependencies:
       '@octokit/openapi-types': 26.0.0
 
@@ -3862,17 +3862,17 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
 
-  lint-staged@16.2.4:
+  lint-staged@16.2.5:
     dependencies:
       commander: 14.0.1
-      listr2: 9.0.4
+      listr2: 9.0.5
       micromatch: 4.0.8
       nano-spawn: 2.0.0
       pidtree: 0.6.0
       string-argv: 0.3.2
       yaml: 2.8.1
 
-  listr2@9.0.4:
+  listr2@9.0.5:
     dependencies:
       cli-truncate: 5.1.0
       colorette: 2.0.20
@@ -4576,7 +4576,7 @@ snapshots:
       - encoding
       - supports-color
 
-  tencentcloud-sdk-nodejs-tmt@4.1.117:
+  tencentcloud-sdk-nodejs-tmt@4.1.133:
     dependencies:
       tencentcloud-sdk-nodejs-common: 4.1.122
       tslib: 1.13.0

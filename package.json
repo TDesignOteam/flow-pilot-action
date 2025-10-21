@@ -35,16 +35,16 @@
     "camelcase": "^8.0.0",
     "glob": "^11.0.3",
     "marked": "^16.4.1",
-    "tencentcloud-sdk-nodejs-tmt": "^4.1.117"
+    "tencentcloud-sdk-nodejs-tmt": "^4.1.133"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^5.4.1",
-    "@octokit/plugin-rest-endpoint-methods": "^16.1.0",
+    "@octokit/plugin-rest-endpoint-methods": "^16.1.1",
     "@types/node": "^22.15.21",
     "@vercel/ncc": "^0.38.4",
     "eslint": "^9.38.0",
     "eslint-plugin-format": "^1.0.2",
-    "lint-staged": "^16.2.4",
+    "lint-staged": "^16.2.5",
     "rimraf": "^6.0.1",
     "simple-git-hooks": "^2.13.1",
     "typescript": "^5.9.3",
