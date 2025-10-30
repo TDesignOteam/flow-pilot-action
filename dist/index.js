@@ -59618,7 +59618,7 @@ function pull_request(token) {
                 (0, core_1.info)('没有更新发布版本');
                 return;
             }
-            releaseDirs.forEach((release) => {
+            for (const release of releaseDirs) {
                 if (release.tag === 'latest') {
                     const changelogs = (0, utils_1.getStashChangelog)(release.dir);
                     (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
@@ -59630,7 +59630,7 @@ function pull_request(token) {
                     const month = String(currentDate.getMonth() + 1).padStart(2, '0');
                     const day = String(currentDate.getDate()).padStart(2, '0');
                     // 中文日志
-                    addComment(prNumber, `${logHead}# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`);
+                    yield addComment(prNumber, `${logHead}# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`);
                     const secretId = (0, core_1.getInput)('tmt-secret-id', { trimWhitespace: true });
                     const secretKey = (0, core_1.getInput)('tmt-secret-key', { trimWhitespace: true });
                     if (secretId && secretKey && md) {
@@ -59644,7 +59644,7 @@ function pull_request(token) {
                         });
                     }
                 }
-            });
+            }
         }
     });
 }
