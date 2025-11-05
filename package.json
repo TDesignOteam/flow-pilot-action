@@ -42,13 +42,13 @@
     "@octokit/plugin-rest-endpoint-methods": "^16.1.0",
     "@types/node": "^22.15.21",
     "@vercel/ncc": "^0.38.4",
-    "eslint": "^9.38.0",
+    "eslint": "^9.39.1",
     "eslint-plugin-format": "^1.0.2",
     "lint-staged": "^16.2.6",
     "rimraf": "^6.1.0",
     "simple-git-hooks": "^2.13.1",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.6"
+    "vitest": "^4.0.7"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
