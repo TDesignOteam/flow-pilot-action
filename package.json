@@ -34,7 +34,7 @@
     "@manypkg/get-packages": "^2.2.2",
     "camelcase": "^8.0.0",
     "glob": "^11.0.3",
-    "marked": "^16.4.2",
+    "marked": "^17.0.0",
     "tencentcloud-sdk-nodejs-tmt": "^4.1.134"
   },
   "devDependencies": {
