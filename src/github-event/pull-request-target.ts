@@ -33,7 +33,7 @@ export async function pull_request_target(token: string) {
       }
       await exec('npm', ['-v'])
 
-      const { stdout } = await getExecOutput('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', release.tag], { env: { NODE_AUTH_TOKEN: '' } })
+      const { stdout } = await getExecOutput('npm', ['publish', '--tag', release.tag], { cwd: release.dir })
       info(stdout)
       // if (release.changelog && release.tag === 'latest') {
       //   const title = `${release.name}@${release.version}`
