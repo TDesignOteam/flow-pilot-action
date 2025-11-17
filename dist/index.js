@@ -59539,8 +59539,7 @@ function pull_request_target(token) {
                     return;
                 }
                 yield (0, exec_1.exec)('npm', ['-v']);
-                const idToken = yield (0, core_1.getIDToken)();
-                const { stdout } = yield (0, exec_1.getExecOutput)('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', release.tag], { env: { NODE_AUTH_TOKEN: idToken } });
+                const { stdout } = yield (0, exec_1.getExecOutput)('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', release.tag], { env: { NODE_AUTH_TOKEN: '' } });
                 (0, core_1.info)(stdout);
                 // if (release.changelog && release.tag === 'latest') {
                 //   const title = `${release.name}@${release.version}`

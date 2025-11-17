@@ -1,5 +1,5 @@
 import type { PullRequestData } from 'src/types'
-import { getIDToken, info } from '@actions/core'
+import { info } from '@actions/core'
 import { exec, getExecOutput } from '@actions/exec'
 import { context } from '@actions/github'
 import { checkReleaseBranch, getPullRequestNumber, getPullRequestReleaseDirs } from 'src/utils'
@@ -32,9 +32,8 @@ export async function pull_request_target(token: string) {
         return
       }
       await exec('npm', ['-v'])
-      const idToken = await getIDToken()
 
-      const { stdout } = await getExecOutput('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', release.tag], { env: { NODE_AUTH_TOKEN: idToken } })
+      const { stdout } = await getExecOutput('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', release.tag], { env: { NODE_AUTH_TOKEN: '' } })
       info(stdout)
       // if (release.changelog && release.tag === 'latest') {
       //   const title = `${release.name}@${release.version}`
