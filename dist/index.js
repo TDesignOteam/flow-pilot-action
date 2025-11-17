@@ -59518,7 +59518,7 @@ function pull_request_target(token) {
             return false;
         }
         const prNumber = (0, utils_1.getPullRequestNumber)();
-        const { getPullRequestData, getPullRequestFiles, createRelease } = (0, github_2.default)(token);
+        const { getPullRequestData, getPullRequestFiles } = (0, github_2.default)(token);
         const prData = yield getPullRequestData(prNumber);
         const isRelease = (0, utils_1.checkReleaseBranch)(prData);
         if (!isRelease) {
@@ -59534,10 +59534,10 @@ function pull_request_target(token) {
                 return;
             }
             for (const release of releaseDirs) {
-                if (release.changelog && release.tag === 'latest') {
-                    const title = `${release.name}@${release.version}`;
-                    yield createRelease(title, title, release.changelog);
-                }
+                // if (release.changelog && release.tag === 'latest') {
+                //   const title = `${release.name}@${release.version}`
+                //   await createRelease(title, title, release.changelog)
+                // }
                 if (release.private) {
                     (0, core_1.info)(`${release.name} is private package, skip publish`);
                     return;

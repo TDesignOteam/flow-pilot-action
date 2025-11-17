@@ -10,7 +10,7 @@ export async function pull_request_target(token: string) {
     return false
   }
   const prNumber = getPullRequestNumber()
-  const { getPullRequestData, getPullRequestFiles, createRelease } = useGithub(token)
+  const { getPullRequestData, getPullRequestFiles } = useGithub(token)
 
   const prData = await getPullRequestData(prNumber) as PullRequestData
   const isRelease = checkReleaseBranch(prData)
@@ -27,10 +27,10 @@ export async function pull_request_target(token: string) {
       return
     }
     for (const release of releaseDirs) {
-      if (release.changelog && release.tag === 'latest') {
-        const title = `${release.name}@${release.version}`
-        await createRelease(title, title, release.changelog)
-      }
+      // if (release.changelog && release.tag === 'latest') {
+      //   const title = `${release.name}@${release.version}`
+      //   await createRelease(title, title, release.changelog)
+      // }
       if (release.private) {
         info(`${release.name} is private package, skip publish`)
         return
