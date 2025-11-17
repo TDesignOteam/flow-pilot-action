@@ -1,6 +1,6 @@
 import type { PullRequestData } from 'src/types'
 import { info } from '@actions/core'
-import { exec, getExecOutput } from '@actions/exec'
+import { exec } from '@actions/exec'
 import { context } from '@actions/github'
 import { checkReleaseBranch, getPullRequestNumber, getPullRequestReleaseDirs } from 'src/utils'
 import useGithub from 'src/utils/github'
@@ -33,8 +33,7 @@ export async function pull_request_target(token: string) {
       }
       await exec('npm', ['-v'])
 
-      const { stdout } = await getExecOutput('npm', ['publish', '--tag', release.tag], { cwd: release.dir })
-      info(stdout)
+      await exec('pnpm', ['publish', '--no-git-checks', '--filter', `${release.name}`, '--tag', release.tag])
       // if (release.changelog && release.tag === 'latest') {
       //   const title = `${release.name}@${release.version}`
       //   await createRelease(title, title, release.changelog)

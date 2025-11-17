@@ -59539,8 +59539,7 @@ function pull_request_target(token) {
                     return;
                 }
                 yield (0, exec_1.exec)('npm', ['-v']);
-                const { stdout } = yield (0, exec_1.getExecOutput)('npm', ['publish', '--tag', release.tag], { cwd: release.dir });
-                (0, core_1.info)(stdout);
+                yield (0, exec_1.exec)('pnpm', ['publish', '--no-git-checks', '--filter', `${release.name}`, '--tag', release.tag]);
                 // if (release.changelog && release.tag === 'latest') {
                 //   const title = `${release.name}@${release.version}`
                 //   await createRelease(title, title, release.changelog)
