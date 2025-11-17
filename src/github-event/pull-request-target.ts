@@ -1,6 +1,6 @@
 import type { PullRequestData } from 'src/types'
 import { info } from '@actions/core'
-import { getExecOutput } from '@actions/exec'
+import { exec, getExecOutput } from '@actions/exec'
 import { context } from '@actions/github'
 import { checkReleaseBranch, getPullRequestNumber, getPullRequestReleaseDirs } from 'src/utils'
 import useGithub from 'src/utils/github'
@@ -26,8 +26,7 @@ export async function pull_request_target(token: string) {
       info('没有更新发布版本')
       return
     }
-
-    releaseDirs.forEach(async (release) => {
+    for (const release of releaseDirs) {
       if (release.changelog && release.tag === 'latest') {
         const title = `${release.name}@${release.version}`
         await createRelease(title, title, release.changelog)
@@ -36,9 +35,10 @@ export async function pull_request_target(token: string) {
         info(`${release.name} is private package, skip publish`)
         return
       }
+      await exec('npm', ['-v'])
       const { stdout } = await getExecOutput('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', release.tag])
 
       info(stdout)
-    })
+    }
   }
 }
