@@ -59534,17 +59534,18 @@ function pull_request_target(token) {
                 return;
             }
             for (const release of releaseDirs) {
-                // if (release.changelog && release.tag === 'latest') {
-                //   const title = `${release.name}@${release.version}`
-                //   await createRelease(title, title, release.changelog)
-                // }
                 if (release.private) {
                     (0, core_1.info)(`${release.name} is private package, skip publish`);
                     return;
                 }
                 yield (0, exec_1.exec)('npm', ['-v']);
-                const { stdout } = yield (0, exec_1.getExecOutput)('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', release.tag]);
+                const idToken = yield (0, core_1.getIDToken)();
+                const { stdout } = yield (0, exec_1.getExecOutput)('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', release.tag], { env: { NODE_AUTH_TOKEN: idToken } });
                 (0, core_1.info)(stdout);
+                // if (release.changelog && release.tag === 'latest') {
+                //   const title = `${release.name}@${release.version}`
+                //   await createRelease(title, title, release.changelog)
+                // }
             }
         }
     });

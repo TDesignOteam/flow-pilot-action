@@ -1,5 +1,5 @@
 import type { PullRequestData } from 'src/types'
-import { info } from '@actions/core'
+import { getIDToken, info } from '@actions/core'
 import { exec, getExecOutput } from '@actions/exec'
 import { context } from '@actions/github'
 import { checkReleaseBranch, getPullRequestNumber, getPullRequestReleaseDirs } from 'src/utils'
@@ -27,18 +27,19 @@ export async function pull_request_target(token: string) {
       return
     }
     for (const release of releaseDirs) {
-      // if (release.changelog && release.tag === 'latest') {
-      //   const title = `${release.name}@${release.version}`
-      //   await createRelease(title, title, release.changelog)
-      // }
       if (release.private) {
         info(`${release.name} is private package, skip publish`)
         return
       }
       await exec('npm', ['-v'])
-      const { stdout } = await getExecOutput('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', release.tag])
+      const idToken = await getIDToken()
 
+      const { stdout } = await getExecOutput('pnpm', ['publish', '--no-git-checks', '--filter', release.name, '--tag', release.tag], { env: { NODE_AUTH_TOKEN: idToken } })
       info(stdout)
+      // if (release.changelog && release.tag === 'latest') {
+      //   const title = `${release.name}@${release.version}`
+      //   await createRelease(title, title, release.changelog)
+      // }
     }
   }
 }
