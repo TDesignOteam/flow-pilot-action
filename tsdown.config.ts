@@ -5,6 +5,5 @@ export default defineConfig({
   platform: 'node',
   shims: true,
   entry: ['src/index.ts'],
-  noExternal: [...Object.keys(packageJson.dependencies), '@actions/github'],
-  exports: true,
+  noExternal: [...Object.keys(packageJson.dependencies)],
 })
