@@ -1,4 +1,4 @@
-import type { PullRequestData } from 'src/types'
+import type { PullRequestData } from '../types'
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { cwd } from 'node:process'
 import { info } from '@actions/core'
