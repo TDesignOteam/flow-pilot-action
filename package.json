@@ -14,12 +14,11 @@
   "bugs": {
     "url": "https://github.com/TDesignOteam/flow-pilot-action/issues"
   },
-  "main": "src/index.ts",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsdown --no-treeshake",
+    "build": "tsdown",
     "lint": "eslint . ",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
