@@ -36828,7 +36828,7 @@ function stashPackageChangelog(prData, packages, prChangelog) {
 			writeFileSync(logFilePath, logContent, "utf8");
 			(0, import_core$6.info)(`Successfully wrote changelog to ${logFilePath}`);
 		} catch (error$1) {
-			(0, import_core$6.info)(`Failed to write changelog to ${logFilePath}: ${error$1.message}`);
+			(0, import_core$6.info)(`Failed to write changelog to ${logFilePath}: ${error$1 instanceof Error ? error$1.message : String(error$1)}`);
 		}
 	});
 }
