@@ -1,9 +1,9 @@
-import type { PullRequestData } from 'src/types'
+import type { PullRequestData } from '../types'
 import { info } from '@actions/core'
 import { exec } from '@actions/exec'
 import { context } from '@actions/github'
-import { checkReleaseBranch, getPullRequestNumber, getPullRequestReleaseDirs } from 'src/utils'
-import useGithub from 'src/utils/github'
+import { checkReleaseBranch, getPullRequestNumber, getPullRequestReleaseDirs } from '../utils'
+import useGithub from '../utils/github'
 
 export async function pull_request_target(token: string) {
   if (context.eventName !== 'pull_request_target') {

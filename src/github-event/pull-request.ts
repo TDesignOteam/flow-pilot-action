@@ -1,11 +1,11 @@
-import type { PullRequestData } from 'src/types'
+import type { PullRequestData } from '../types'
 import { getInput, info, setOutput } from '@actions/core'
 import { exec } from '@actions/exec'
 import { context } from '@actions/github'
-import { extractChangelog, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, renderChangelogMarkdown } from 'src/utils'
-import useGit from 'src/utils/git'
-import useGithub from 'src/utils/github'
-import { translateText } from 'src/utils/tmt'
+import { extractChangelog, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, renderChangelogMarkdown } from '../utils'
+import useGit from '../utils/git'
+import useGithub from '../utils/github'
+import { translateText } from '../utils/tmt'
 
 export async function pull_request(token: string) {
   if (context.eventName !== 'pull_request') {
