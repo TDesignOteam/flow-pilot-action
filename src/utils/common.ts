@@ -3,8 +3,8 @@ import type { Tokens, TokensList } from 'marked'
 import type { PackagesChangelog, PullRequestData, PullRequestFiles } from '../types'
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
-import { getInput, info } from '@actions/core'
-import * as github from '@actions/github/lib/utils'
+import * as core from '@actions/core'
+import * as github from '@actions/github'
 import { getPackagesSync } from '@manypkg/get-packages'
 import camelcase from 'camelcase'
 import { globSync } from 'glob'
@@ -152,14 +152,14 @@ export function stashPackageChangelog(prData: PullRequestData, packages: Package
     ].join('\n')
     const logContent = `${logHead}${logs}\n`
 
-    info(`Attempting to write to ${logFilePath}`)
+    core.info(`Attempting to write to ${logFilePath}`)
     try {
       writeFileSync(logFilePath, logContent, 'utf8')
-      info(`Successfully wrote changelog to ${logFilePath}`)
+      core.info(`Successfully wrote changelog to ${logFilePath}`)
     }
     catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      info(`Failed to write changelog to ${logFilePath}: ${message}`)
+      core.info(`Failed to write changelog to ${logFilePath}: ${message}`)
     }
   })
 }
@@ -382,7 +382,7 @@ export async function getPrCommentWhitelist() {
 }
 
 export function getInputPkgs() {
-  const pkgs = getInput('packages', { trimWhitespace: true }) || ''
+  const pkgs = core.getInput('packages', { trimWhitespace: true }) || ''
   if (!pkgs) {
     return []
   }
