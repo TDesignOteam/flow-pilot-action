@@ -59506,6 +59506,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.pull_request_target = pull_request_target;
+const node_fs_1 = __nccwpck_require__(3024);
 const core_1 = __nccwpck_require__(6966);
 const exec_1 = __nccwpck_require__(2851);
 const github_1 = __nccwpck_require__(4903);
@@ -59543,6 +59544,7 @@ function pull_request_target(token) {
                 yield (0, exec_1.exec)('pnpm', ['config', 'get']);
                 const { stdout: userconfig } = yield (0, exec_1.getExecOutput)('npm', ['config', 'get', 'userconfig']);
                 (0, core_1.info)(`userconfig: ${userconfig.trim()}`);
+                (0, node_fs_1.writeFileSync)(userconfig.trim(), `//registry.npmjs.org/:_authToken=''}\n`, 'utf8');
                 yield (0, exec_1.exec)('pnpm', ['publish', '--no-git-checks', '--filter', `${release.name}`, '--tag', release.tag, '--loglevel', 'debug']);
                 // if (release.changelog && release.tag === 'latest') {
                 //   const title = `${release.name}@${release.version}`

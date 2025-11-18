@@ -1,4 +1,5 @@
 import type { PullRequestData } from 'src/types'
+import { writeFileSync } from 'node:fs'
 import { info } from '@actions/core'
 import { exec, getExecOutput } from '@actions/exec'
 import { context } from '@actions/github'
@@ -36,7 +37,7 @@ export async function pull_request_target(token: string) {
       await exec('pnpm', ['config', 'get'])
       const { stdout: userconfig } = await getExecOutput('npm', ['config', 'get', 'userconfig'])
       info(`userconfig: ${userconfig.trim()}`)
-
+      writeFileSync(userconfig.trim(), `//registry.npmjs.org/:_authToken=''}\n`, 'utf8')
       await exec('pnpm', ['publish', '--no-git-checks', '--filter', `${release.name}`, '--tag', release.tag, '--loglevel', 'debug'])
       // if (release.changelog && release.tag === 'latest') {
       //   const title = `${release.name}@${release.version}`
