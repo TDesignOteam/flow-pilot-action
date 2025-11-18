@@ -59506,7 +59506,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.pull_request_target = pull_request_target;
-const node_fs_1 = __nccwpck_require__(3024);
 const core_1 = __nccwpck_require__(6966);
 const exec_1 = __nccwpck_require__(2851);
 const github_1 = __nccwpck_require__(4903);
@@ -59539,13 +59538,7 @@ function pull_request_target(token) {
                     (0, core_1.info)(`${release.name} is private package, skip publish`);
                     return;
                 }
-                yield (0, exec_1.exec)('npm', ['-v']);
-                yield (0, exec_1.exec)('npm', ['config', 'ls', '-l']);
-                yield (0, exec_1.exec)('pnpm', ['config', 'get']);
-                const { stdout: userconfig } = yield (0, exec_1.getExecOutput)('npm', ['config', 'get', 'userconfig']);
-                (0, core_1.info)(`userconfig: ${userconfig.trim()}`);
-                (0, node_fs_1.writeFileSync)(userconfig.trim(), `//registry.npmjs.org/:_authToken=''\n`, 'utf8');
-                yield (0, exec_1.exec)('pnpm', ['publish', '--no-git-checks', '--filter', `${release.name}`, '--tag', release.tag, '--loglevel', 'debug']);
+                yield (0, exec_1.exec)('pnpm', ['publish', '--no-git-checks', '--filter', `${release.name}`, '--tag', release.tag]);
                 // if (release.changelog && release.tag === 'latest') {
                 //   const title = `${release.name}@${release.version}`
                 //   await createRelease(title, title, release.changelog)
@@ -59578,6 +59571,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.pull_request = pull_request;
 const core_1 = __nccwpck_require__(6966);
+const exec_1 = __nccwpck_require__(2851);
 const github_1 = __nccwpck_require__(4903);
 const utils_1 = __nccwpck_require__(128);
 const git_1 = __importDefault(__nccwpck_require__(6376));
@@ -59585,71 +59579,102 @@ const github_2 = __importDefault(__nccwpck_require__(953));
 const tmt_1 = __nccwpck_require__(7029);
 function pull_request(token) {
     return __awaiter(this, void 0, void 0, function* () {
-        if (github_1.context.eventName !== 'pull_request' || github_1.context.payload.action === 'closed') {
+        var _a;
+        if (github_1.context.eventName !== 'pull_request') {
             return false;
         }
         const pullRequestData = github_1.context.payload.pull_request;
         const isRelease = pullRequestData.head.ref.startsWith('release/');
-        if (!isRelease) {
-            let logs = '';
-            const prLog = (0, utils_1.extractChangelog)(pullRequestData.body || '', (0, utils_1.getInputPkgs)());
-            (0, core_1.info)(`pr_log: ${JSON.stringify(prLog, null, 2)}`);
-            Object.keys(prLog).forEach((pkgName) => {
-                if (!prLog[pkgName].length) {
+        if (github_1.context.payload.action === 'opened') {
+            if (!isRelease) {
+                let logs = '';
+                const prLog = (0, utils_1.extractChangelog)(pullRequestData.body || '', (0, utils_1.getInputPkgs)());
+                (0, core_1.info)(`pr_log: ${JSON.stringify(prLog, null, 2)}`);
+                Object.keys(prLog).forEach((pkgName) => {
+                    if (!prLog[pkgName].length) {
+                        return;
+                    }
+                    logs += `#### ${pkgName}\n`;
+                    prLog[pkgName].forEach((log) => {
+                        logs += `- ${log}\n`;
+                    });
+                });
+                if (logs) {
+                    const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的日志暂存区\n';
+                    const body = `${logHead}### 📝 更新日志\n\n${logs}\n\n <!-- FLOW-PR-CHANGELOG -->`;
+                    (0, core_1.setOutput)('changelog', body);
+                }
+            }
+            const isForkPr = pullRequestData.base.repo.full_name !== pullRequestData.head.repo.full_name;
+            if (isRelease && !isForkPr && github_1.context.payload.action === 'opened') {
+                const prNumber = (0, utils_1.getPullRequestNumber)();
+                const { addComment, getPullRequestFiles } = (0, github_2.default)(token);
+                const { cloneRepo, checkoutBranch } = (0, git_1.default)(token);
+                yield cloneRepo();
+                checkoutBranch(pullRequestData.head.ref);
+                const changeFiles = yield getPullRequestFiles(prNumber);
+                (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
+                const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
+                (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
+                (0, core_1.setOutput)('changelog', '');
+                if (!releaseDirs.length) {
+                    (0, core_1.info)('没有更新发布版本');
                     return;
                 }
-                logs += `#### ${pkgName}\n`;
-                prLog[pkgName].forEach((log) => {
-                    logs += `- ${log}\n`;
-                });
-            });
-            if (logs) {
-                const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的日志暂存区\n';
-                const body = `${logHead}### 📝 更新日志\n\n${logs}\n\n <!-- FLOW-PR-CHANGELOG -->`;
-                (0, core_1.setOutput)('changelog', body);
+                for (const release of releaseDirs) {
+                    if (release.tag === 'latest') {
+                        const changelogs = (0, utils_1.getStashChangelog)(release.dir);
+                        (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
+                        const md = (0, utils_1.renderChangelogMarkdown)(changelogs.changelogs);
+                        (0, core_1.info)(`markdownChangelogs: ${md}`);
+                        const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n';
+                        const currentDate = new Date();
+                        const year = currentDate.getFullYear();
+                        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(currentDate.getDate()).padStart(2, '0');
+                        // 中文日志
+                        yield addComment(prNumber, `${logHead}# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`);
+                        const secretId = (0, core_1.getInput)('tmt-secret-id', { trimWhitespace: true });
+                        const secretKey = (0, core_1.getInput)('tmt-secret-key', { trimWhitespace: true });
+                        if (secretId && secretKey && md) {
+                            // tmt 翻译
+                            (0, tmt_1.translateText)(secretId, secretKey, md).then((text) => {
+                                (0, core_1.info)(`en_md: ${text}`);
+                                addComment(prNumber, `${logHead.replace('CHANGELOG.md', 'CHANGELOG.en-US.md')}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${text}`);
+                            }).catch((err) => {
+                                (0, core_1.info)(`翻译失败，${err}`);
+                                return '';
+                            });
+                        }
+                    }
+                }
             }
         }
-        const isForkPr = pullRequestData.base.repo.full_name !== pullRequestData.head.repo.full_name;
-        if (isRelease && !isForkPr && github_1.context.payload.action === 'opened') {
-            const prNumber = (0, utils_1.getPullRequestNumber)();
-            const { addComment, getPullRequestFiles } = (0, github_2.default)(token);
-            const { cloneRepo, checkoutBranch } = (0, git_1.default)(token);
-            yield cloneRepo();
-            checkoutBranch(pullRequestData.head.ref);
-            const changeFiles = yield getPullRequestFiles(prNumber);
-            (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
-            const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
-            (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
-            (0, core_1.setOutput)('changelog', '');
-            if (!releaseDirs.length) {
-                (0, core_1.info)('没有更新发布版本');
-                return;
+        if (github_1.context.payload.action === 'closed') {
+            if (!isRelease) {
+                return false;
             }
-            for (const release of releaseDirs) {
-                if (release.tag === 'latest') {
-                    const changelogs = (0, utils_1.getStashChangelog)(release.dir);
-                    (0, core_1.info)(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
-                    const md = (0, utils_1.renderChangelogMarkdown)(changelogs.changelogs);
-                    (0, core_1.info)(`markdownChangelogs: ${md}`);
-                    const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n';
-                    const currentDate = new Date();
-                    const year = currentDate.getFullYear();
-                    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-                    const day = String(currentDate.getDate()).padStart(2, '0');
-                    // 中文日志
-                    yield addComment(prNumber, `${logHead}# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`);
-                    const secretId = (0, core_1.getInput)('tmt-secret-id', { trimWhitespace: true });
-                    const secretKey = (0, core_1.getInput)('tmt-secret-key', { trimWhitespace: true });
-                    if (secretId && secretKey && md) {
-                        // tmt 翻译
-                        (0, tmt_1.translateText)(secretId, secretKey, md).then((text) => {
-                            (0, core_1.info)(`en_md: ${text}`);
-                            addComment(prNumber, `${logHead.replace('CHANGELOG.md', 'CHANGELOG.en-US.md')}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${text}`);
-                        }).catch((err) => {
-                            (0, core_1.info)(`翻译失败，${err}`);
-                            return '';
-                        });
+            if (github_1.context.payload.action === 'closed' && ((_a = github_1.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.merged)) {
+                const prNumber = (0, utils_1.getPullRequestNumber)();
+                const { getPullRequestFiles } = (0, github_2.default)(token);
+                const changeFiles = yield getPullRequestFiles(prNumber);
+                (0, core_1.info)(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
+                const releaseDirs = yield (0, utils_1.getPullRequestReleaseDirs)(changeFiles);
+                (0, core_1.info)(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
+                if (!releaseDirs.length) {
+                    (0, core_1.info)('没有更新发布版本');
+                    return;
+                }
+                for (const release of releaseDirs) {
+                    if (release.private) {
+                        (0, core_1.info)(`${release.name} is private package, skip publish`);
+                        return;
                     }
+                    yield (0, exec_1.exec)('pnpm', ['publish', '--no-git-checks', '--filter', `${release.name}`, '--tag', release.tag]);
+                    // if (release.changelog && release.tag === 'latest') {
+                    //   const title = `${release.name}@${release.version}`
+                    //   await createRelease(title, title, release.changelog)
+                    // }
                 }
             }
         }
