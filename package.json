@@ -1,5 +1,6 @@
 {
   "name": "flow-pilot-action",
+  "type": "module",
   "private": true,
   "packageManager": "pnpm@10.6.5",
   "description": "",
@@ -18,8 +19,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "prebuild": "rimraf dist/*",
-    "build": "ncc build --license license.txt",
+    "build": "tsdown",
     "lint": "eslint . ",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
@@ -41,12 +41,11 @@
     "@antfu/eslint-config": "^6.2.0",
     "@octokit/plugin-rest-endpoint-methods": "^17.0.0",
     "@types/node": "^22.15.21",
-    "@vercel/ncc": "^0.38.4",
     "eslint": "^9.39.1",
     "eslint-plugin-format": "^1.0.2",
     "lint-staged": "^16.2.6",
-    "rimraf": "^6.1.0",
     "simple-git-hooks": "^2.13.1",
+    "tsdown": "^0.16.5",
     "typescript": "^5.9.3",
     "vitest": "^4.0.7"
   },
