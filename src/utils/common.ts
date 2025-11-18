@@ -4,7 +4,7 @@ import type { PackagesChangelog, PullRequestData, PullRequestFiles } from '../ty
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { getInput, info } from '@actions/core'
-import { context } from '@actions/github/lib/utils'
+import * as github from '@actions/github/lib/utils'
 import { getPackagesSync } from '@manypkg/get-packages'
 import camelcase from 'camelcase'
 import { globSync } from 'glob'
@@ -349,22 +349,22 @@ function renderChangelog(heading: string, changelogs: Record<string, string[]>) 
 }
 
 export function getPullRequestNumber() {
-  if (['pull_request', 'pull_request_target'].includes(context.eventName)) {
-    return Number(context.payload.number)
+  if (['pull_request', 'pull_request_target'].includes(github.context.eventName)) {
+    return Number(github.context.payload.number)
   }
-  if (context.eventName === 'issue_comment' && context.payload.issue?.pull_request) {
-    return Number(context.payload.issue.number)
+  if (github.context.eventName === 'issue_comment' && github.context.payload.issue?.pull_request) {
+    return Number(github.context.payload.issue.number)
   }
   return 0
 }
 
 export function getPullRequestBody() {
   let body = ''
-  if (context.eventName === 'pull_request') {
-    body = context.payload.pull_request?.body || ''
+  if (github.context.eventName === 'pull_request') {
+    body = github.context.payload.pull_request?.body || ''
   }
-  if (context.eventName === 'issue_comment' && context.payload.issue?.pull_request) {
-    body = context.payload.comment?.body || ''
+  if (github.context.eventName === 'issue_comment' && github.context.payload.issue?.pull_request) {
+    body = github.context.payload.comment?.body || ''
   }
   return body
 }
@@ -393,5 +393,5 @@ export function checkReleaseBranch(prData: PullRequestData) {
   return prData.head.ref.startsWith('release/')
 }
 export function checkIsForkPr(prData: PullRequestData) {
-  return prData.head.user.login !== context.repo.owner
+  return prData.head.user.login !== github.context.repo.owner
 }

@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, posix, win32 } from "node:path";
 import { lstat, readdir as readdir$1, readlink, realpath } from "node:fs/promises";
 import { StringDecoder } from "node:string_decoder";
-import { context } from "@actions/github/lib/utils";
+import * as github from "@actions/github/lib/utils";
 
 //#region rolldown:runtime
 var __create$1 = Object.create;
@@ -3788,18 +3788,18 @@ var require_webidl = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/undici@5.2
 	webidl$14.errors.exception = function(message) {
 		return /* @__PURE__ */ new TypeError(`${message.header}: ${message.message}`);
 	};
-	webidl$14.errors.conversionFailed = function(context$1) {
-		const plural$1 = context$1.types.length === 1 ? "" : " one of";
-		const message = `${context$1.argument} could not be converted to${plural$1}: ${context$1.types.join(", ")}.`;
+	webidl$14.errors.conversionFailed = function(context) {
+		const plural$1 = context.types.length === 1 ? "" : " one of";
+		const message = `${context.argument} could not be converted to${plural$1}: ${context.types.join(", ")}.`;
 		return webidl$14.errors.exception({
-			header: context$1.prefix,
+			header: context.prefix,
 			message
 		});
 	};
-	webidl$14.errors.invalidArgument = function(context$1) {
+	webidl$14.errors.invalidArgument = function(context) {
 		return webidl$14.errors.exception({
-			header: context$1.prefix,
-			message: `"${context$1.value}" is an invalid ${context$1.type}.`
+			header: context.prefix,
+			message: `"${context.value}" is an invalid ${context.type}.`
 		});
 	};
 	webidl$14.brandCheck = function(V$1, I$1, opts = void 0) {
@@ -8138,13 +8138,13 @@ var require_api_request = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/undic
 			});
 			addSignal$4(this, signal);
 		}
-		onConnect(abort$4, context$1) {
+		onConnect(abort$4, context) {
 			if (!this.callback) throw new RequestAbortedError$5();
 			this.abort = abort$4;
-			this.context = context$1;
+			this.context = context;
 		}
 		onHeaders(statusCode, rawHeaders, resume$2, statusMessage) {
-			const { callback, opaque, abort: abort$4, context: context$1, responseHeaders, highWaterMark } = this;
+			const { callback, opaque, abort: abort$4, context, responseHeaders, highWaterMark } = this;
 			const headers = responseHeaders === "raw" ? util$14.parseRawHeaders(rawHeaders) : util$14.parseHeaders(rawHeaders);
 			if (statusCode < 200) {
 				if (this.onInfo) this.onInfo({
@@ -8176,7 +8176,7 @@ var require_api_request = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/undic
 				trailers: this.trailers,
 				opaque,
 				body,
-				context: context$1
+				context
 			});
 		}
 		onData(chunk) {
@@ -8268,13 +8268,13 @@ var require_api_stream = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/undici
 			});
 			addSignal$3(this, signal);
 		}
-		onConnect(abort$4, context$1) {
+		onConnect(abort$4, context) {
 			if (!this.callback) throw new RequestAbortedError$4();
 			this.abort = abort$4;
-			this.context = context$1;
+			this.context = context;
 		}
 		onHeaders(statusCode, rawHeaders, resume$2, statusMessage) {
-			const { factory, opaque, context: context$1, callback, responseHeaders } = this;
+			const { factory, opaque, context, callback, responseHeaders } = this;
 			const headers = responseHeaders === "raw" ? util$13.parseRawHeaders(rawHeaders) : util$13.parseHeaders(rawHeaders);
 			if (statusCode < 200) {
 				if (this.onInfo) this.onInfo({
@@ -8303,7 +8303,7 @@ var require_api_stream = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/undici
 					statusCode,
 					headers,
 					opaque,
-					context: context$1
+					context
 				});
 				if (!res || typeof res.write !== "function" || typeof res.end !== "function" || typeof res.on !== "function") throw new InvalidReturnValueError$1("expected Writable");
 				finished(res, { readable: false }, (err) => {
@@ -8454,15 +8454,15 @@ var require_api_pipeline = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/undi
 			this.res = null;
 			addSignal$2(this, signal);
 		}
-		onConnect(abort$4, context$1) {
+		onConnect(abort$4, context) {
 			const { ret, res } = this;
 			assert$10(!res, "pipeline cannot be retried");
 			if (ret.destroyed) throw new RequestAbortedError$3();
 			this.abort = abort$4;
-			this.context = context$1;
+			this.context = context;
 		}
 		onHeaders(statusCode, rawHeaders, resume$2) {
-			const { opaque, handler: handler$1, context: context$1 } = this;
+			const { opaque, handler: handler$1, context } = this;
 			if (statusCode < 200) {
 				if (this.onInfo) {
 					const headers = this.responseHeaders === "raw" ? util$12.parseRawHeaders(rawHeaders) : util$12.parseHeaders(rawHeaders);
@@ -8483,7 +8483,7 @@ var require_api_pipeline = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/undi
 					headers,
 					opaque,
 					body: this.res,
-					context: context$1
+					context
 				});
 			} catch (err) {
 				this.res.on("error", util$12.nop);
@@ -8556,7 +8556,7 @@ var require_api_upgrade = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/undic
 			this.context = null;
 			addSignal$1(this, signal);
 		}
-		onConnect(abort$4, context$1) {
+		onConnect(abort$4, context) {
 			if (!this.callback) throw new RequestAbortedError$2();
 			this.abort = abort$4;
 			this.context = null;
@@ -8565,7 +8565,7 @@ var require_api_upgrade = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/undic
 			throw new SocketError$1("bad upgrade", null);
 		}
 		onUpgrade(statusCode, rawHeaders, socket) {
-			const { callback, opaque, context: context$1 } = this;
+			const { callback, opaque, context } = this;
 			assert$9.strictEqual(statusCode, 101);
 			removeSignal$1(this);
 			this.callback = null;
@@ -8574,7 +8574,7 @@ var require_api_upgrade = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/undic
 				headers,
 				socket,
 				opaque,
-				context: context$1
+				context
 			});
 		}
 		onError(err) {
@@ -8630,16 +8630,16 @@ var require_api_connect = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/undic
 			this.abort = null;
 			addSignal(this, signal);
 		}
-		onConnect(abort$4, context$1) {
+		onConnect(abort$4, context) {
 			if (!this.callback) throw new RequestAbortedError$1();
 			this.abort = abort$4;
-			this.context = context$1;
+			this.context = context;
 		}
 		onHeaders() {
 			throw new SocketError("bad connect", null);
 		}
 		onUpgrade(statusCode, rawHeaders, socket) {
-			const { callback, opaque, context: context$1 } = this;
+			const { callback, opaque, context } = this;
 			removeSignal(this);
 			this.callback = null;
 			let headers = rawHeaders;
@@ -8649,7 +8649,7 @@ var require_api_connect = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/undic
 				headers,
 				socket,
 				opaque,
-				context: context$1
+				context
 			});
 		}
 		onError(err) {
@@ -17361,8 +17361,8 @@ var require_dist_node$8 = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/@octo
 	function isKeyOperator(operator) {
 		return operator === ";" || operator === "&" || operator === "?";
 	}
-	function getValues(context$1, operator, key, modifier) {
-		var value = context$1[key], result = [];
+	function getValues(context, operator, key, modifier) {
+		var value = context[key], result = [];
 		if (isDefined(value) && value !== "") if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
 			value = value.toString();
 			if (modifier && modifier !== "*") value = value.substring(0, parseInt(modifier, 10));
@@ -17396,7 +17396,7 @@ var require_dist_node$8 = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/@octo
 	function parseUrl$1(template) {
 		return { expand: expand$3.bind(null, template) };
 	}
-	function expand$3(template, context$1) {
+	function expand$3(template, context) {
 		var operators = [
 			"+",
 			"#",
@@ -17416,7 +17416,7 @@ var require_dist_node$8 = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/@octo
 				}
 				expression.split(/,/g).forEach(function(variable) {
 					var tmp = /([^:\*]*)(?::(\d+)|(\*))?/.exec(variable);
-					values.push(getValues(context$1, operator, tmp[1], tmp[2] || tmp[3]));
+					values.push(getValues(context, operator, tmp[1], tmp[2] || tmp[3]));
 				});
 				if (operator && operator !== "+") {
 					var separator = ",";
@@ -21357,7 +21357,7 @@ var LRUCache = class LRUCache {
 			},
 			free: c.#free,
 			isBackgroundFetch: (p) => c.#isBackgroundFetch(p),
-			backgroundFetch: (k$1, index, options, context$1) => c.#backgroundFetch(k$1, index, options, context$1),
+			backgroundFetch: (k$1, index, options, context) => c.#backgroundFetch(k$1, index, options, context),
 			moveToTail: (index) => c.#moveToTail(index),
 			indexes: (options) => c.#indexes(options),
 			rindexes: (options) => c.#rindexes(options),
@@ -22017,7 +22017,7 @@ var LRUCache = class LRUCache {
 		const v$1 = this.#valList[index];
 		return this.#isBackgroundFetch(v$1) ? v$1.__staleWhileFetching : v$1;
 	}
-	#backgroundFetch(k$1, index, options, context$1) {
+	#backgroundFetch(k$1, index, options, context) {
 		const v$1 = index === void 0 ? void 0 : this.#valList[index];
 		if (this.#isBackgroundFetch(v$1)) return v$1;
 		const ac = new AC();
@@ -22026,7 +22026,7 @@ var LRUCache = class LRUCache {
 		const fetchOpts = {
 			signal: ac.signal,
 			options,
-			context: context$1
+			context
 		};
 		const cb = (v$2, updateCache = false) => {
 			const { aborted } = ac.signal;
@@ -22100,7 +22100,7 @@ var LRUCache = class LRUCache {
 		return !!b$1 && b$1 instanceof Promise && b$1.hasOwnProperty("__staleWhileFetching") && b$1.__abortController instanceof AC;
 	}
 	async fetch(k$1, fetchOptions = {}) {
-		const { allowStale = this.allowStale, updateAgeOnGet = this.updateAgeOnGet, noDeleteOnStaleGet = this.noDeleteOnStaleGet, ttl = this.ttl, noDisposeOnSet = this.noDisposeOnSet, size = 0, sizeCalculation = this.sizeCalculation, noUpdateTTL = this.noUpdateTTL, noDeleteOnFetchRejection = this.noDeleteOnFetchRejection, allowStaleOnFetchRejection = this.allowStaleOnFetchRejection, ignoreFetchAbort = this.ignoreFetchAbort, allowStaleOnFetchAbort = this.allowStaleOnFetchAbort, context: context$1, forceRefresh = false, status, signal } = fetchOptions;
+		const { allowStale = this.allowStale, updateAgeOnGet = this.updateAgeOnGet, noDeleteOnStaleGet = this.noDeleteOnStaleGet, ttl = this.ttl, noDisposeOnSet = this.noDisposeOnSet, size = 0, sizeCalculation = this.sizeCalculation, noUpdateTTL = this.noUpdateTTL, noDeleteOnFetchRejection = this.noDeleteOnFetchRejection, allowStaleOnFetchRejection = this.allowStaleOnFetchRejection, ignoreFetchAbort = this.ignoreFetchAbort, allowStaleOnFetchAbort = this.allowStaleOnFetchAbort, context, forceRefresh = false, status, signal } = fetchOptions;
 		if (!this.#hasFetchMethod) {
 			if (status) status.fetch = "get";
 			return this.get(k$1, {
@@ -22129,7 +22129,7 @@ var LRUCache = class LRUCache {
 		let index = this.#keyMap.get(k$1);
 		if (index === void 0) {
 			if (status) status.fetch = "miss";
-			const p = this.#backgroundFetch(k$1, index, options, context$1);
+			const p = this.#backgroundFetch(k$1, index, options, context);
 			return p.__returned = p;
 		} else {
 			const v$1 = this.#valList[index];
@@ -22149,7 +22149,7 @@ var LRUCache = class LRUCache {
 				if (status) this.#statusTTL(status, index);
 				return v$1;
 			}
-			const p = this.#backgroundFetch(k$1, index, options, context$1);
+			const p = this.#backgroundFetch(k$1, index, options, context);
 			const staleVal = p.__staleWhileFetching !== void 0 && allowStale;
 			if (status) {
 				status.fetch = isStale ? "stale" : "refresh";
@@ -22166,12 +22166,12 @@ var LRUCache = class LRUCache {
 	memo(k$1, memoOptions = {}) {
 		const memoMethod = this.#memoMethod;
 		if (!memoMethod) throw new Error("no memoMethod provided to constructor");
-		const { context: context$1, forceRefresh, ...options } = memoOptions;
+		const { context, forceRefresh, ...options } = memoOptions;
 		const v$1 = this.get(k$1, options);
 		if (!forceRefresh && v$1 !== void 0) return v$1;
 		const vv = memoMethod(k$1, v$1, {
 			options,
-			context: context$1
+			context
 		});
 		this.set(k$1, vv, options);
 		return vv;
@@ -29996,11 +29996,11 @@ var require_reusify = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/reusify@1
 //#region node_modules/.pnpm/fastq@1.19.1/node_modules/fastq/queue.js
 var require_queue = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/fastq@1.19.1/node_modules/fastq/queue.js": ((exports, module) => {
 	var reusify = require_reusify();
-	function fastqueue(context$1, worker, _concurrency) {
-		if (typeof context$1 === "function") {
+	function fastqueue(context, worker, _concurrency) {
+		if (typeof context === "function") {
 			_concurrency = worker;
-			worker = context$1;
-			context$1 = null;
+			worker = context;
+			context = null;
 		}
 		if (!(_concurrency >= 1)) throw new Error("fastqueue concurrency must be equal to or greater than 1");
 		var cache = reusify(Task);
@@ -30080,7 +30080,7 @@ var require_queue = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/fastq@1.19.
 		}
 		function push(value, done) {
 			var current = cache.get();
-			current.context = context$1;
+			current.context = context;
 			current.release = release;
 			current.value = value;
 			current.callback = done || noop;
@@ -30095,12 +30095,12 @@ var require_queue = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/fastq@1.19.
 			}
 			else {
 				_running++;
-				worker.call(context$1, current.value, current.worked);
+				worker.call(context, current.value, current.worked);
 			}
 		}
 		function unshift(value, done) {
 			var current = cache.get();
-			current.context = context$1;
+			current.context = context;
 			current.release = release;
 			current.value = value;
 			current.callback = done || noop;
@@ -30115,7 +30115,7 @@ var require_queue = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/fastq@1.19.
 			}
 			else {
 				_running++;
-				worker.call(context$1, current.value, current.worked);
+				worker.call(context, current.value, current.worked);
 			}
 		}
 		function release(holder) {
@@ -30125,7 +30125,7 @@ var require_queue = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/fastq@1.19.
 				if (queueTail === queueHead) queueTail = null;
 				queueHead = next.next;
 				next.next = null;
-				worker.call(context$1, next.value, next.worked);
+				worker.call(context, next.value, next.worked);
 				if (queueTail === null) self$1.empty();
 			} else _running--;
 			else if (--_running === 0) self$1.drain();
@@ -30165,18 +30165,18 @@ var require_queue = /* @__PURE__ */ __commonJS({ "node_modules/.pnpm/fastq@1.19.
 			self$1.release(self$1);
 		};
 	}
-	function queueAsPromised(context$1, worker, _concurrency) {
-		if (typeof context$1 === "function") {
+	function queueAsPromised(context, worker, _concurrency) {
+		if (typeof context === "function") {
 			_concurrency = worker;
-			worker = context$1;
-			context$1 = null;
+			worker = context;
+			context = null;
 		}
 		function asyncWrapper(arg, cb) {
 			worker.call(this, arg).then(function(res) {
 				cb(null, res);
 			}, cb);
 		}
-		var queue = fastqueue(context$1, asyncWrapper, _concurrency);
+		var queue = fastqueue(context, asyncWrapper, _concurrency);
 		var pushCb = queue.push;
 		var unshiftCb = queue.unshift;
 		queue.push = push;
@@ -36977,8 +36977,8 @@ function renderChangelog(heading, changelogs) {
 	return content;
 }
 function getPullRequestNumber() {
-	if (["pull_request", "pull_request_target"].includes(context.eventName)) return Number(context.payload.number);
-	if (context.eventName === "issue_comment" && context.payload.issue?.pull_request) return Number(context.payload.issue.number);
+	if (["pull_request", "pull_request_target"].includes(github.context.eventName)) return Number(github.context.payload.number);
+	if (github.context.eventName === "issue_comment" && github.context.payload.issue?.pull_request) return Number(github.context.payload.issue.number);
 	return 0;
 }
 async function getPrCommentWhitelist() {
@@ -36993,7 +36993,7 @@ function checkReleaseBranch(prData) {
 	return prData.head.ref.startsWith("release/");
 }
 function checkIsForkPr(prData) {
-	return prData.head.user.login !== context.repo.owner;
+	return prData.head.user.login !== github.context.repo.owner;
 }
 
 //#endregion
