@@ -1,21 +1,21 @@
 import type { PullRequestData } from '../types'
 import { getInput, info, setOutput } from '@actions/core'
 import { exec } from '@actions/exec'
-import { context } from '@actions/github'
+import * as github from '@actions/github'
 import { extractChangelog, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, renderChangelogMarkdown } from '../utils'
 import useGit from '../utils/git'
 import useGithub from '../utils/github'
 import { translateText } from '../utils/tmt'
 
 export async function pull_request(token: string) {
-  if (context.eventName !== 'pull_request') {
+  if (github.context.eventName !== 'pull_request') {
     return false
   }
-  const pullRequestData = context.payload.pull_request as PullRequestData
+  const pullRequestData = github.context.payload.pull_request as PullRequestData
 
   const isRelease = pullRequestData.head.ref.startsWith('release/')
 
-  if (context.payload.action === 'opened') {
+  if (github.context.payload.action === 'opened') {
     if (!isRelease) {
       let logs = ''
       const prLog = extractChangelog(pullRequestData.body || '', getInputPkgs())
@@ -39,7 +39,7 @@ export async function pull_request(token: string) {
     }
     const isForkPr = pullRequestData.base.repo.full_name !== pullRequestData.head.repo.full_name
 
-    if (isRelease && !isForkPr && context.payload.action === 'opened') {
+    if (isRelease && !isForkPr && github.context.payload.action === 'opened') {
       const prNumber = getPullRequestNumber()
       const { addComment, getPullRequestFiles } = useGithub(token)
       const { cloneRepo, checkoutBranch } = useGit(token)
@@ -84,11 +84,11 @@ export async function pull_request(token: string) {
     }
   }
 
-  if (context.payload.action === 'closed') {
+  if (github.context.payload.action === 'closed') {
     if (!isRelease) {
       return false
     }
-    if (context.payload.action === 'closed' && context.payload.pull_request?.merged) {
+    if (github.context.payload.action === 'closed' && github.context.payload.pull_request?.merged) {
       const prNumber = getPullRequestNumber()
       const { createRelease, getPullRequestFiles } = useGithub(token)
       const changeFiles = await getPullRequestFiles(prNumber)

@@ -1,8 +1,8 @@
-import { context, getOctokit } from '@actions/github'
+import * as github from '@actions/github'
 
 export default function useGithub(token: string) {
-  const octokit = getOctokit(token)
-  const { repo, owner } = context.repo
+  const octokit = github.getOctokit(token)
+  const { repo, owner } = github.context.repo
 
   async function getPullRequestData(pr_number: number) {
     const { data } = await octokit.rest.pulls.get({

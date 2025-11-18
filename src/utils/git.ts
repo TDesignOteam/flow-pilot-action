@@ -1,8 +1,8 @@
 import { exec, getExecOutput } from '@actions/exec'
-import { context } from '@actions/github'
+import * as github from '@actions/github'
 
 export default function useGit(token: string) {
-  const { repo, owner } = context.repo
+  const { repo, owner } = github.context.repo
   async function cloneRepo() {
     await exec(`git config --global user.email "tdesign@tencent.com"`)
     await exec(`git config --global user.name "tdesign-bot"`)

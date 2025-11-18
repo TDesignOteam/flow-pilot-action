@@ -1,25 +1,25 @@
 import type { PullRequestData } from '../types'
-import { info } from '@actions/core'
-import { context } from '@actions/github'
+import * as core from '@actions/core'
+import * as github from '@actions/github'
 import { extractChangelog, getInputPkgs, getPrCommentWhitelist, getPullRequestNumber } from '../utils'
 import { confirmChangelog } from './issue-comment'
 
 export async function pull_request_review(token: string) {
-  if (context.eventName !== 'pull_request_review') {
+  if (github.context.eventName !== 'pull_request_review') {
     return false
   }
-  if (context.payload.action !== 'submitted') {
+  if (github.context.payload.action !== 'submitted') {
     return false
   }
-  if (context.payload.review?.state !== 'approved') {
+  if (github.context.payload.review?.state !== 'approved') {
     return false
   }
   const whitelist = await getPrCommentWhitelist()
-  if (!whitelist.includes(context.actor)) {
+  if (!whitelist.includes(github.context.actor)) {
     return false
   }
   const prNumber = getPullRequestNumber()
-  const pullRequestData = context.payload.pull_request as PullRequestData
+  const pullRequestData = github.context.payload.pull_request as PullRequestData
 
   const isRelease = pullRequestData.head.ref.startsWith('release/')
   if (isRelease) {
@@ -27,7 +27,7 @@ export async function pull_request_review(token: string) {
   }
   let logs = ''
   const prLog = extractChangelog(pullRequestData.body || '', getInputPkgs())
-  info(`pr_log: ${JSON.stringify(prLog, null, 2)}`)
+  core.info(`pr_log: ${JSON.stringify(prLog, null, 2)}`)
   Object.keys(prLog).forEach((pkgName) => {
     if (!prLog[pkgName].length) {
       return

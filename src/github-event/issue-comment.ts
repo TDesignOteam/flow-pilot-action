@@ -1,30 +1,30 @@
 import type { PullRequestData } from '../types'
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { cwd } from 'node:process'
-import { info } from '@actions/core'
+import * as core from '@actions/core'
 import { exec } from '@actions/exec'
-import { context } from '@actions/github'
+import * as github from '@actions/github'
 import { globSync } from 'glob'
 import { checkIsForkPr, extractChangelog, extractReleaseLog, getInputPkgs, getPackages, getPrCommentWhitelist, getPullRequestNumber, getPullRequestReleaseDirs, stashPackageChangelog } from '../utils/common'
 import useGit from '../utils/git'
 import useGithub from '../utils/github'
 
 export async function issue_comment(token: string) {
-  if (context.eventName !== 'issue_comment') {
+  if (github.context.eventName !== 'issue_comment') {
     return false
   }
-  if (context.payload.action !== 'edited') {
+  if (github.context.payload.action !== 'edited') {
     return false
   }
 
-  if (context.payload.changes?.body === context.payload.comment?.body) {
+  if (github.context.payload.changes?.body === github.context.payload.comment?.body) {
     return false
   }
   const whitelist = await getPrCommentWhitelist()
-  if (!whitelist.includes(context.actor)) {
+  if (!whitelist.includes(github.context.actor)) {
     return false
   }
-  const confirmLog = context.payload.comment?.body || ''
+  const confirmLog = github.context.payload.comment?.body || ''
 
   const prNumber = getPullRequestNumber()
 
@@ -39,7 +39,7 @@ export async function confirmChangelog(prNumber: number, log: string, token: str
   }
   const changelog = extractChangelog(log || '', getInputPkgs())
 
-  info(`stash_changelog: ${JSON.stringify(changelog, null, 2)}`)
+  core.info(`stash_changelog: ${JSON.stringify(changelog, null, 2)}`)
 
   const { getPullRequestData } = useGithub(token)
   const prData = await getPullRequestData(prNumber) as PullRequestData
@@ -61,12 +61,12 @@ export async function confirmChangelog(prNumber: number, log: string, token: str
     await checkoutBranch(prData.head.ref)
   }
   const pkgs = getPackages(cwd())
-  info(`pkgs: ${JSON.stringify(pkgs, null, 2)}`)
+  core.info(`pkgs: ${JSON.stringify(pkgs, null, 2)}`)
   stashPackageChangelog(prData, pkgs, changelog)
   await exec('git', ['add', '**/pr-*.md'])
   await exec('git', ['status'])
   if (!await isNeedCommit()) {
-    info('无需提交')
+    core.info('无需提交')
     return true
   }
   await exec('git', ['commit', '-m', 'chore: stash changelog [ci skip]'])
@@ -80,7 +80,7 @@ export async function confirmChangelog(prNumber: number, log: string, token: str
 
 async function confirmReleaseLog(prNumber: number, log: string, token: string) {
   const isReleaseHead = log.startsWith('# 🎉 发布') || log.startsWith('# 🎉 Release')
-  info(`isReleaseHead: ${isReleaseHead}`)
+  core.info(`isReleaseHead: ${isReleaseHead}`)
   if (!isReleaseHead) {
     return false
   }
@@ -92,8 +92,8 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
 
   const { pkgName, changelog } = extractReleaseLog(log)
 
-  info(`pkgName: ${pkgName}`)
-  info(`changelog: ${changelog}`)
+  core.info(`pkgName: ${pkgName}`)
+  core.info(`changelog: ${changelog}`)
 
   const { getPullRequestData, getPullRequestFiles } = useGithub(token)
   const prData = await getPullRequestData(prNumber) as PullRequestData
@@ -101,9 +101,9 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
   await cloneRepo()
   checkoutBranch(prData.head.ref)
   const changeFiles = await getPullRequestFiles(prNumber)
-  info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
+  core.info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
   const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
-  info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
+  core.info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
   for (const release of releaseDirs) {
     if (release.name !== pkgName) {
       return
@@ -111,7 +111,7 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
     const files = globSync(`${release.dir}/.changelog/*.md`)
     files.forEach((file) => {
       unlinkSync(file)
-      info(`delete file: ${file}`)
+      core.info(`delete file: ${file}`)
     })
     if (!existsSync(`${release.dir}/${changelogFileName}`)) {
       writeFileSync(`${release.dir}/${changelogFileName}`, '', 'utf8')
@@ -136,7 +136,7 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
   await exec('git', ['add', '**/*.md'])
   await exec('git', ['status'])
   if (!await isNeedCommit()) {
-    info('无需提交')
+    core.info('无需提交')
     return true
   }
   await exec('git', ['commit', '-m', 'chore: changelog'])

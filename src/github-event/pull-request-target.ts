@@ -1,12 +1,12 @@
 import type { PullRequestData } from '../types'
-import { info } from '@actions/core'
+import * as core from '@actions/core'
 import { exec } from '@actions/exec'
-import { context } from '@actions/github'
+import * as github from '@actions/github'
 import { checkReleaseBranch, getPullRequestNumber, getPullRequestReleaseDirs } from '../utils'
 import useGithub from '../utils/github'
 
 export async function pull_request_target(token: string) {
-  if (context.eventName !== 'pull_request_target') {
+  if (github.context.eventName !== 'pull_request_target') {
     return false
   }
   const prNumber = getPullRequestNumber()
@@ -17,18 +17,18 @@ export async function pull_request_target(token: string) {
   if (!isRelease) {
     return false
   }
-  if (context.payload.action === 'closed' && context.payload.pull_request?.merged) {
+  if (github.context.payload.action === 'closed' && github.context.payload.pull_request?.merged) {
     const changeFiles = await getPullRequestFiles(prNumber)
-    info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
+    core.info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
     const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
-    info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
+    core.info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
     if (!releaseDirs.length) {
-      info('没有更新发布版本')
+      core.info('没有更新发布版本')
       return
     }
     for (const release of releaseDirs) {
       if (release.private) {
-        info(`${release.name} is private package, skip publish`)
+        core.info(`${release.name} is private package, skip publish`)
         return
       }
 
