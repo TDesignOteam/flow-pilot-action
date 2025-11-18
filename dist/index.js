@@ -59539,7 +59539,7 @@ function pull_request_target(token) {
                     return;
                 }
                 yield (0, exec_1.exec)('npm', ['-v']);
-                yield (0, exec_1.exec)('pnpm', ['publish', '--no-git-checks', '--filter', `${release.name}`, '--tag', release.tag, '--registry', 'https://registry.npmjs.org/']);
+                yield (0, exec_1.exec)('pnpm', ['publish', '--no-git-checks', '--filter', `${release.name}`, '--tag', release.tag, '--loglevel', 'silly']);
                 // if (release.changelog && release.tag === 'latest') {
                 //   const title = `${release.name}@${release.version}`
                 //   await createRelease(title, title, release.changelog)
