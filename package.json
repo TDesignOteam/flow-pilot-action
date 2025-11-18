@@ -19,7 +19,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown --no-treeshake",
     "lint": "eslint . ",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
