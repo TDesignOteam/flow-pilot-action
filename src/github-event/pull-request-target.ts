@@ -32,6 +32,7 @@ export async function pull_request_target(token: string) {
         return
       }
       await exec('npm', ['-v'])
+      await exec('pnpm', ['config', 'get'])
 
       await exec('pnpm', ['publish', '--no-git-checks', '--filter', `${release.name}`, '--tag', release.tag, '--loglevel', 'debug'])
       // if (release.changelog && release.tag === 'latest') {
