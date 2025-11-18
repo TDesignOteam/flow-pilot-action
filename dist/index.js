@@ -59541,6 +59541,8 @@ function pull_request_target(token) {
                 yield (0, exec_1.exec)('npm', ['-v']);
                 yield (0, exec_1.exec)('npm', ['config', 'ls', '-l']);
                 yield (0, exec_1.exec)('pnpm', ['config', 'get']);
+                const { stdout: userconfig } = yield (0, exec_1.getExecOutput)('npm', ['config', 'get', 'userconfig']);
+                (0, core_1.info)(`userconfig: ${userconfig.trim()}`);
                 yield (0, exec_1.exec)('pnpm', ['publish', '--no-git-checks', '--filter', `${release.name}`, '--tag', release.tag, '--loglevel', 'debug']);
                 // if (release.changelog && release.tag === 'latest') {
                 //   const title = `${release.name}@${release.version}`
