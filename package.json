@@ -31,7 +31,7 @@
     "@actions/exec": "^1.1.1",
     "@actions/github": "^6.0.1",
     "@manypkg/get-packages": "^3.1.0",
-    "camelcase": "^8.0.0",
+    "camelcase": "^9.0.0",
     "glob": "^12.0.0",
     "marked": "^17.0.0",
     "tencentcloud-sdk-nodejs-tmt": "^4.1.134"
