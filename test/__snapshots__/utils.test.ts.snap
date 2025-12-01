@@ -56,9 +56,9 @@ exports[`utils > extractReleaseLog 1`] = `
 exports[`utils > getMergedPullRequestReleaseDirs 1`] = `
 [
   {
-    "changelog": "## 🌈 1.0.1 \`2025-4-7\` 
+    "changelog": "## 🌈 1.0.1 \`2025-4-7\`
 ### 🚀 Features
-- Button: 
+- Button:
   - 新增属性c @liweijie0812 ([#4](https://github.com/liweijie0812/test-mono-log/pull/4))
   - 新增属性a,新增属性b @liweijie0812 ([#2](https://github.com/liweijie0812/test-mono-log/pull/2))
 - Link: 新增属性c @liweijie0812 ([#2](https://github.com/liweijie0812/test-mono-log/pull/2))
@@ -87,9 +87,9 @@ exports[`utils > getMergedPullRequestReleaseDirs 1`] = `
 exports[`utils > getMergedPullRequestReleaseDirs 2`] = `
 [
   {
-    "changelog": "## 🌈 1.0.1 \`2025-4-7\` 
+    "changelog": "## 🌈 1.0.1 \`2025-4-7\`
 ### 🚀 Features
-- Button: 
+- Button:
   - 新增属性c @liweijie0812 ([#4](https://github.com/liweijie0812/test-mono-log/pull/4))
   - 新增属性a,新增属性b @liweijie0812 ([#2](https://github.com/liweijie0812/test-mono-log/pull/2))
 - Link: 新增属性c @liweijie0812 ([#2](https://github.com/liweijie0812/test-mono-log/pull/2))
@@ -118,9 +118,9 @@ exports[`utils > getMergedPullRequestReleaseDirs 2`] = `
 exports[`utils > getMergedPullRequestReleaseDirs 3`] = `
 [
   {
-    "changelog": "## 🌈 1.0.1 \`2025-4-7\` 
+    "changelog": "## 🌈 1.0.1 \`2025-4-7\`
 ### 🚀 Features
-- Button: 
+- Button:
   - 新增属性c @liweijie0812 ([#4](https://github.com/liweijie0812/test-mono-log/pull/4))
   - 新增属性a,新增属性b @liweijie0812 ([#2](https://github.com/liweijie0812/test-mono-log/pull/2))
 - Link: 新增属性c @liweijie0812 ([#2](https://github.com/liweijie0812/test-mono-log/pull/2))
@@ -131,7 +131,7 @@ exports[`utils > getMergedPullRequestReleaseDirs 3`] = `
 
 ---
 ### 🚀 Features
-- Button: 
+- Button:
   - Added prop c @liweijie0812 ([#4](https://github.com/liweijie0812/test-mono-log/pull/4))
   - Added prop a, added prop b @liweijie0812 ([#2](https://github.com/liweijie0812/test-mono-log/pull/2))
 - Link: Added prop c @liweijie0812 ([#2](https://github.com/liweijie0812/test-mono-log/pull/2))

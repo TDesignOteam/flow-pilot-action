@@ -139,7 +139,11 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
     core.info('无需提交')
     return true
   }
-  await exec('git', ['commit', '-m', 'chore: changelog'])
+  let commitMsg = 'chore: update chinese changelog'
+  if (changelogFileName === 'CHANGELOG.en-US.md') {
+    commitMsg = 'chore: update english changelog'
+  }
+  await exec('git', ['commit', '-m', commitMsg])
   await exec('git', ['pull'])
   await exec('git', ['push', 'origin', prData.head.ref])
 }
