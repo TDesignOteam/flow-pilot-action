@@ -185,7 +185,7 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
           if (log.includes('## 🌈')) {
             hasNewReleaseLog = true
           }
-          logs.push(log)
+          logs.push(log.trimEnd())
         }
       })
       zhChangelogs[dirname(file.filename)] = logs.join('\n')
@@ -207,7 +207,7 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
           if (log.includes('## 🌈')) {
             hasNewReleaseLog = true
           }
-          logs.push(log)
+          logs.push(log.trimEnd())
         }
       })
       enChangelogs[dirname(file.filename)] = logs.slice(1).join('\n')
