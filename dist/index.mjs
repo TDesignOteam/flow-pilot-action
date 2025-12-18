@@ -35247,7 +35247,9 @@ const CHANGELOG_REG = /-\s*([A-Z]+)(?:\(([A-Z\s_-]*)\))?\s*:\s*(.+)/i;
 //#region src/utils/common.ts
 function pascalCase(str$1) {
 	if (str$1.toLowerCase() === "qrcode") return "QRCode";
-	return camelCase(str$1, { pascalCase: true });
+	const pascalCaseStr = camelCase(str$1, { pascalCase: true });
+	if (pascalCaseStr.startsWith("Use")) return pascalCaseStr.replace(/^Use(?=[A-Z])/, "use");
+	return pascalCaseStr;
 }
 function parseMarkdown(markdown) {
 	return d$1.lexer(markdown);

@@ -60,6 +60,7 @@ PR 在维护者审核通过后会合并，谢谢！
 
 - feat(Hook): add renderNodeJSX
 - feat(Hook): add renderIcon
+- feat(useChat): add useChat
 
 #### pkg-b
 

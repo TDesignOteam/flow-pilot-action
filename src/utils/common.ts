@@ -15,7 +15,11 @@ export function pascalCase(str: string) {
   if (str.toLowerCase() === 'qrcode') {
     return 'QRCode'
   }
-  return camelcase(str, { pascalCase: true })
+  const pascalCaseStr = camelcase(str, { pascalCase: true })
+  if (pascalCaseStr.startsWith('Use')) {
+    return pascalCaseStr.replace(/^Use(?=[A-Z])/, 'use')
+  }
+  return pascalCaseStr
 }
 
 export function parseMarkdown(markdown: string): TokensList {
