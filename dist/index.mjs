@@ -35782,12 +35782,10 @@ async function confirmReleaseLog(prNumber, log$2, token) {
 		import_core$5.info("无需提交");
 		return true;
 	}
-	let commitMsg = "chore: update Chinese changelog";
-	if (changelogFileName === "CHANGELOG.en-US.md") commitMsg = "chore: update English changelog";
 	await (0, import_exec$2.exec)("git", [
 		"commit",
 		"-m",
-		commitMsg
+		`chore: update ${changelogFileName}`
 	]);
 	await (0, import_exec$2.exec)("git", ["pull"]);
 	await (0, import_exec$2.exec)("git", [
