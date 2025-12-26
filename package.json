@@ -34,7 +34,7 @@
     "camelcase": "^9.0.0",
     "glob": "^13.0.0",
     "marked": "^17.0.1",
-    "tencentcloud-sdk-nodejs-tmt": "^4.1.134"
+    "tencentcloud-sdk-nodejs-hunyuan": "^4.1.158"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^6.7.3",

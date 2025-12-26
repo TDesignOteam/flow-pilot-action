@@ -5,7 +5,7 @@ import * as github from '@actions/github'
 import { extractChangelog, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, renderChangelogMarkdown } from '../utils'
 import useGit from '../utils/git'
 import useGithub from '../utils/github'
-import { translateText } from '../utils/tmt'
+import { translateText } from '../utils/translate'
 
 export async function pull_request(token: string) {
   if (github.context.eventName !== 'pull_request') {
