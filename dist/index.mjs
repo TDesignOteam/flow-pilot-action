@@ -86263,8 +86263,8 @@ async function pull_request(token) {
 				const month = String(currentDate.getMonth() + 1).padStart(2, "0");
 				const day = String(currentDate.getDate()).padStart(2, "0");
 				await addComment(prNumber, `${logHead}# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`);
-				const secretId = (0, import_core.getInput)("tmt-secret-id", { trimWhitespace: true });
-				const secretKey = (0, import_core.getInput)("tmt-secret-key", { trimWhitespace: true });
+				const secretId = (0, import_core.getInput)("translate-secret-id", { trimWhitespace: true });
+				const secretKey = (0, import_core.getInput)("translate-secret-key", { trimWhitespace: true });
 				if (secretId && secretKey && md) translateText(secretId, secretKey, md).then((text) => {
 					(0, import_core.info)(`en_md: ${text}`);
 					addComment(prNumber, `${logHead.replace("CHANGELOG.md", "CHANGELOG.en-US.md")}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${text}`);
