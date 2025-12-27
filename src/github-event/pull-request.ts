@@ -5,7 +5,7 @@ import * as github from '@actions/github'
 import { extractChangelog, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, renderChangelogMarkdown } from '../utils'
 import useGit from '../utils/git'
 import useGithub from '../utils/github'
-import { translateText } from '../utils/tmt'
+import { translateText } from '../utils/translate'
 
 export async function pull_request(token: string) {
   if (github.context.eventName !== 'pull_request') {
@@ -67,8 +67,8 @@ export async function pull_request(token: string) {
           const day = String(currentDate.getDate()).padStart(2, '0')
           // 中文日志
           await addComment(prNumber, `${logHead}# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`)
-          const secretId = getInput('tmt-secret-id', { trimWhitespace: true })
-          const secretKey = getInput('tmt-secret-key', { trimWhitespace: true })
+          const secretId = getInput('translate-secret-id', { trimWhitespace: true })
+          const secretKey = getInput('translate-secret-key', { trimWhitespace: true })
           if (secretId && secretKey && md) {
           // tmt 翻译
             translateText(secretId, secretKey, md).then((text) => {

@@ -1,5 +1,5 @@
-name: tdesign-pr-trigger-action
-description: tdesign-pr-trigger-action
+name: flow-pilot-action
+description: flow-pilot-action
 author: TDesign
 inputs:
   token:
@@ -8,11 +8,11 @@ inputs:
     description: packages
   pr_number:
     description: pr id
-  tmt-secret-id:
-    description: tencent cloud tmt secret id
+  translate-secret-id:
+    description: translate secret id
     required: false
-  tmt-secret-key:
-    description: tencent cloud tmt secret key
+  translate-secret-key:
+    description: translate secret key
     required: false
 
 outputs:
