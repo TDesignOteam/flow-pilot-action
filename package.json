@@ -2,7 +2,7 @@
   "name": "flow-pilot-action",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@10.26.1",
+  "packageManager": "pnpm@10.27.0",
   "description": "",
   "author": "tdesign",
   "license": "MIT",
@@ -44,7 +44,7 @@
     "eslint-plugin-format": "^1.1.0",
     "lint-staged": "^16.2.7",
     "simple-git-hooks": "^2.13.1",
-    "tsdown": "^0.18.2",
+    "tsdown": "^0.18.4",
     "typescript": "^5.9.3",
     "vitest": "^4.0.16"
   },
