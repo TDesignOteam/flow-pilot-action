@@ -54,6 +54,9 @@ export function isReleasePR(prData: PullRequestData) {
   return prData.head.ref.startsWith('release/')
 }
 
+/**
+ * 提取 PR 日志
+ */
 export function extractChangelog(markdown: string, pkgNames: string[]) {
   const md = parseMarkdown(markdown)
   const changelogHeading = getChangelogHeading()
@@ -85,6 +88,10 @@ export function extractChangelog(markdown: string, pkgNames: string[]) {
   })
   return pkgLogs
 }
+
+/**
+ * 提取 release 日志
+ */
 export function extractReleaseLog(markdown: string) {
   const md = parseMarkdown(markdown.replace(/\r\n/g, '\n'))
   let collectLogs = false
@@ -106,10 +113,10 @@ export function extractReleaseLog(markdown: string) {
     }
     if (collectLogs) {
       if (token.type === 'heading' && token.depth > 1) {
-        changelog.push(token.raw)
+        changelog.push(`${token.raw.trimEnd()}\n\n`)
       }
       if (token.type === 'list') {
-        changelog.push(`${token.raw}\n\n`)
+        changelog.push(`${token.raw.trimEnd()}\n\n`)
       }
     }
   })
