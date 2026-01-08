@@ -27,7 +27,7 @@ var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __esmMin = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
 var __commonJSMin = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
-var __export = (all, symbols) => {
+var __exportAll = (all, symbols) => {
 	let target = {};
 	for (var name in all) {
 		__defProp(target, name, {
@@ -34494,7 +34494,7 @@ function renderChangelogMarkdown(changelogs) {
 	const otherList = {};
 	changelogs.forEach((log$1) => {
 		const type$1 = log$1.match(CHANGELOG_REG)?.[1] || "";
-		const scope = log$1.match(CHANGELOG_REG)?.[2] || "";
+		const scope = pascalCase(log$1.match(CHANGELOG_REG)?.[2] || "");
 		const message = log$1.match(CHANGELOG_REG)?.[3] || "";
 		if (!message) return;
 		switch (type$1) {
@@ -34535,13 +34535,13 @@ function renderChangelog(heading, changelogs) {
 	content += `${heading}\n`;
 	keys.forEach((key) => {
 		if (key && changelogs[key].length > 1) {
-			content += `- \`${pascalCase(key)}\`: \n`;
+			content += `- \`${key}\`: \n`;
 			changelogs[key].forEach((log$1) => {
 				content += `  - ${log$1}\n`;
 			});
 		} else changelogs[key].forEach((log$1) => {
 			content += "-";
-			content += key ? ` \`${pascalCase(key)}\`:` : "";
+			content += key ? ` \`${key}\`:` : "";
 			content += ` ${log$1}\n`;
 		});
 	});
@@ -85581,7 +85581,7 @@ var init_version = __esmMin((() => {
 
 //#endregion
 //#region node_modules/.pnpm/uuid@9.0.1/node_modules/uuid/dist/esm-node/index.js
-var esm_node_exports = /* @__PURE__ */ __export({
+var esm_node_exports = /* @__PURE__ */ __exportAll({
 	NIL: () => nil_default,
 	parse: () => parse_default,
 	stringify: () => stringify_default,

@@ -287,7 +287,7 @@ export function renderChangelogMarkdown(changelogs: string[]) {
 
   changelogs.forEach((log) => {
     const type = log.match(CHANGELOG_REG)?.[1] || ''
-    const scope = log.match(CHANGELOG_REG)?.[2] || ''
+    const scope = pascalCase(log.match(CHANGELOG_REG)?.[2] || '')
     const message = log.match(CHANGELOG_REG)?.[3] || ''
     if (!message) {
       return
@@ -336,7 +336,7 @@ function renderChangelog(heading: string, changelogs: Record<string, string[]>) 
   content += `${heading}\n`
   keys.forEach((key) => {
     if (key && changelogs[key].length > 1) {
-      content += `- \`${pascalCase(key)}\`: \n`
+      content += `- \`${key}\`: \n`
       changelogs[key].forEach((log) => {
         content += `  - ${log}\n`
       })
@@ -344,7 +344,7 @@ function renderChangelog(heading: string, changelogs: Record<string, string[]>) 
     else {
       changelogs[key].forEach((log) => {
         content += '-'
-        content += key ? ` \`${pascalCase(key)}\`:` : ''
+        content += key ? ` \`${key}\`:` : ''
         content += ` ${log}\n`
       })
     }
