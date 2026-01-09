@@ -178,6 +178,7 @@ exports[`utils > getStashChangelog 1`] = `
 
 exports[`utils > renderChangelogMarkdown 1`] = `
 "### 🚀 Features
+
 - \`Button\`: New Component @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 - \`Hook\`: 
   - add renderNodeJSX @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
@@ -185,9 +186,11 @@ exports[`utils > renderChangelogMarkdown 1`] = `
 - \`useChat\`: add useChat @liweijie0812 ([#6](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 
 ### 🐞 Bug Fixes
+
 - \`Card\`: fix card bug @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 
 ### 🚧 Others
+
 - a chore log @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 - a other log @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))
 - \`Hook\`: add Hook @liweijie0812 ([#7](https://github.com/TDesignOteam/flow-pilot-action/pull/6))

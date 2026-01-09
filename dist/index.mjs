@@ -34538,7 +34538,7 @@ function renderChangelog(heading, changelogs) {
 	let content = "";
 	const keys = Object.keys(changelogs).sort();
 	if (!keys.length) return "";
-	content += `${heading}\n`;
+	content += `${heading}\n\n`;
 	keys.forEach((key) => {
 		if (key && changelogs[key].length > 1) {
 			content += `- \`${key}\`: \n`;
