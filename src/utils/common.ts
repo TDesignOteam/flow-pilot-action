@@ -142,7 +142,7 @@ export function stashPackageChangelog(prData: PullRequestData, packages: Package
     const logs = changelogData
       .map((log) => {
         const contributor = prData.user.login === 'tdesign-bot' ? '' : `@${prData.user.login}`
-        const prLink = /\[commmon#\d+\]/.test(log) ? '' : `(#${prData.number})`
+        const prLink = /\[common#\d+\]/.test(log) ? '' : `([#${prData.number}](${prData.html_url}))`
         return `- ${log} ${contributor} ${prLink}`
       })
       .filter(Boolean)
