@@ -33827,7 +33827,7 @@ function stashPackageChangelog(prData, packages, prChangelog) {
 		const changelogDir = `${pkg.dir}/.changelog`;
 		if (!existsSync(changelogDir)) mkdirSync(changelogDir, { recursive: true });
 		const logs = changelogData.map((log$1) => {
-			return `- ${log$1} ${prData.user.login === "tdesign-bot" ? "" : `@${prData.user.login}`} ${/\[common#\d+\]/.test(log$1) ? "" : `([#${prData.number}](${prData.html_url}))`}`;
+			return `- ${log$1}${prData.user.login === "tdesign-bot" ? "" : ` @${prData.user.login}`}${/\[common#\d+\]/.test(log$1) ? "" : ` ([#${prData.number}](${prData.html_url}))`}`;
 		}).filter(Boolean).join("\n");
 		const logFilePath = `${changelogDir}/pr-${prData.number}.md`;
 		if (!logs) {
