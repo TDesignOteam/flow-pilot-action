@@ -27,7 +27,7 @@
     "prepare": "simple-git-hooks"
   },
   "dependencies": {
-    "@actions/core": "^2.0.3",
+    "@actions/core": "^3.0.0",
     "@actions/exec": "^2.0.0",
     "@actions/github": "^7.0.0",
     "@manypkg/get-packages": "^3.1.0",
