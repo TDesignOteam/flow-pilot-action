@@ -2,7 +2,7 @@
   "name": "flow-pilot-action",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@10.29.2",
+  "packageManager": "pnpm@10.29.3",
   "description": "",
   "author": "tdesign",
   "license": "MIT",
@@ -32,14 +32,14 @@
     "@actions/github": "^9.0.0",
     "@manypkg/get-packages": "^3.1.0",
     "camelcase": "^9.0.0",
-    "glob": "^13.0.1",
-    "marked": "^17.0.1",
-    "tencentcloud-sdk-nodejs-hunyuan": "^4.1.182"
+    "glob": "^13.0.3",
+    "marked": "^17.0.2",
+    "tencentcloud-sdk-nodejs-hunyuan": "^4.1.186"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^7.3.0",
+    "@antfu/eslint-config": "^7.4.3",
     "@octokit/plugin-rest-endpoint-methods": "^17.0.0",
-    "@types/node": "^24.10.12",
+    "@types/node": "^24.10.13",
     "eslint": "^10.0.0",
     "eslint-plugin-format": "^1.4.0",
     "lint-staged": "^16.2.7",
