@@ -30590,6 +30590,7 @@ b.parse;
 x.lex;
 //#endregion
 //#region src/consts.ts
+const SKIP_CHANGELOG_REG = /\[x\] 本条 PR 不需要纳入 Changelog/i;
 const OLD_VERSION_REG = /\s*-\s*"version":\s*"(.*)"/;
 const NEW_VERSION_REG = /\s*\+\s*"version":\s*"(.*)"/;
 const CHANGELOG_REG = /-\s*([A-Z]+)(?:\(([A-Z\s_-]*)\))?\s*:\s*(.+)/i;
@@ -30610,6 +30611,13 @@ function parseMarkdown(markdown) {
 }
 function getChangelogHeading() {
 	return parseMarkdown("### 📝 更新日志")[0];
+}
+function isExtractPRLog(prData) {
+	if (prData.user.type === "Bot") return false;
+	if (prData.labels.some((label) => label.name === "skip-changelog")) return false;
+	if (prData.head.ref.startsWith("release/")) return false;
+	if (prData.body && SKIP_CHANGELOG_REG.test(prData.body)) return false;
+	return true;
 }
 /**
 * 提取 PR 日志
@@ -30676,7 +30684,8 @@ function stashPackageChangelog(prData, packages, prChangelog) {
 			return `- ${log}${prData.user.login === "tdesign-bot" || CONTRIBUTOR_WITH_SPACE_REG.test(log) ? "" : ` @${prData.user.login}`}${COMMON_PR_REG.test(log) ? "" : ` ([#${prData.number}](${prData.html_url}))`}`;
 		}).filter(Boolean).join("\n");
 		const logFilePath = `${changelogDir}/pr-${prData.number}.md`;
-		if (!logs) {
+		const skipChangelog = isExtractPRLog(prData);
+		if (!logs || skipChangelog) {
 			if (existsSync$1(logFilePath)) unlinkSync(logFilePath);
 			return;
 		}

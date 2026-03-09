@@ -154,7 +154,8 @@ export function stashPackageChangelog(prData: PullRequestData, packages: Package
       .join('\n')
 
     const logFilePath = `${changelogDir}/pr-${prData.number}.md`
-    if (!logs) {
+    const skipChangelog = isExtractPRLog(prData)
+    if (!logs || skipChangelog) {
       if (existsSync(logFilePath)) {
         unlinkSync(logFilePath)
       }
