@@ -11,13 +11,18 @@ import { globSync } from 'glob'
 import { marked } from 'marked'
 import { CHANGELOG_REG, NEW_VERSION_REG, OLD_VERSION_REG, SKIP_CHANGELOG_REG } from '../consts'
 
+const USE_PASCAL_CASE_REG = /^Use(?=[A-Z])/
+const RN_TO_LF_REG = /\r\n/g
+const COMMON_PR_REG = /\[common#\d+\]/
+const CONTRIBUTOR_WITH_SPACE_REG = /@.*\s$/
+
 export function pascalCase(str: string) {
   if (str.toLowerCase() === 'qrcode') {
     return 'QRCode'
   }
   const pascalCaseStr = camelcase(str, { pascalCase: true })
   if (pascalCaseStr.startsWith('Use')) {
-    return pascalCaseStr.replace(/^Use(?=[A-Z])/, 'use')
+    return pascalCaseStr.replace(USE_PASCAL_CASE_REG, 'use')
   }
   return pascalCaseStr
 }
@@ -35,7 +40,7 @@ export function isExtractPRLog(prData: PullRequestData) {
     return false
   }
 
-  if (prData.labels.find(label => label.name === 'skip-changelog')) {
+  if (prData.labels.some(label => label.name === 'skip-changelog')) {
     return false
   }
 
@@ -93,7 +98,7 @@ export function extractChangelog(markdown: string, pkgNames: string[]) {
  * 提取 release 日志
  */
 export function extractReleaseLog(markdown: string) {
-  const md = parseMarkdown(markdown.replace(/\r\n/g, '\n'))
+  const md = parseMarkdown(markdown.replace(RN_TO_LF_REG, '\n'))
   let collectLogs = false
   let pkgName = ''
   const changelog: string[] = []
@@ -141,8 +146,8 @@ export function stashPackageChangelog(prData: PullRequestData, packages: Package
 
     const logs = changelogData
       .map((log) => {
-        const contributor = prData.user.login === 'tdesign-bot' ? '' : ` @${prData.user.login}`
-        const prLink = /\[common#\d+\]/.test(log) ? '' : ` ([#${prData.number}](${prData.html_url}))`
+        const contributor = prData.user.login === 'tdesign-bot' || CONTRIBUTOR_WITH_SPACE_REG.test(log) ? '' : ` @${prData.user.login}`
+        const prLink = COMMON_PR_REG.test(log) ? '' : ` ([#${prData.number}](${prData.html_url}))`
         return `- ${log}${contributor}${prLink}`
       })
       .filter(Boolean)
@@ -256,7 +261,7 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
     }
     let changelog = zhChangelogs[dirname(file.filename)] || ''
     if (changelog && enChangelogs[dirname(file.filename)]) {
-      changelog = changelog.concat('\n---\n', enChangelogs[dirname(file.filename)])
+      changelog = [...changelog, '\n---\n', enChangelogs[dirname(file.filename)]].join('')
     }
     return {
       dir: dirname(file.filename),
