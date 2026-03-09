@@ -30684,7 +30684,7 @@ function stashPackageChangelog(prData, packages, prChangelog) {
 			return `- ${log}${prData.user.login === "tdesign-bot" || CONTRIBUTOR_WITH_SPACE_REG.test(log) ? "" : ` @${prData.user.login}`}${COMMON_PR_REG.test(log) ? "" : ` ([#${prData.number}](${prData.html_url}))`}`;
 		}).filter(Boolean).join("\n");
 		const logFilePath = `${changelogDir}/pr-${prData.number}.md`;
-		const skipChangelog = isExtractPRLog(prData);
+		const skipChangelog = !isExtractPRLog(prData);
 		if (!logs || skipChangelog) {
 			if (existsSync$1(logFilePath)) unlinkSync(logFilePath);
 			return;
