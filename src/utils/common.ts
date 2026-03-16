@@ -7,8 +7,8 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { getPackagesSync } from '@manypkg/get-packages'
 import camelcase from 'camelcase'
-import { globSync } from 'glob'
 import { marked } from 'marked'
+import { globSync } from 'tinyglobby'
 import { CHANGELOG_REG, NEW_VERSION_REG, OLD_VERSION_REG, SKIP_CHANGELOG_REG } from '../consts'
 
 const USE_PASCAL_CASE_REG = /^Use(?=[A-Z])/

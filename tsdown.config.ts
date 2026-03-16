@@ -45,7 +45,6 @@ export default defineConfig({
       'get-intrinsic',
       'get-proto',
       'get-stream',
-      'glob',
       'gopd',
       'has-symbols',
       'has-tostringtag',
