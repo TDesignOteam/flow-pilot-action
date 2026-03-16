@@ -7,7 +7,7 @@ export default defineConfig({
   entry: ['src/index.ts'],
   deps: {
     alwaysBundle: [...Object.keys(packageJson.dependencies)],
-    onlyAllowBundle: [
+    onlyBundle: [
       '@actions/core',
       '@actions/exec',
       '@actions/github',
