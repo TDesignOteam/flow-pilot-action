@@ -32,20 +32,20 @@
     "@actions/github": "^9.0.0",
     "@manypkg/get-packages": "^3.1.0",
     "camelcase": "^9.0.0",
-    "marked": "^17.0.4",
+    "marked": "^17.0.5",
     "tencentcloud-sdk-nodejs-hunyuan": "^4.1.188",
     "tinyglobby": "^0.2.15"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^7.7.2",
+    "@antfu/eslint-config": "^7.7.3",
     "@octokit/plugin-rest-endpoint-methods": "^17.0.0",
     "@types/node": "^24.12.0",
-    "eslint": "^10.0.3",
+    "eslint": "^10.1.0",
     "nano-staged": "^0.9.0",
     "simple-git-hooks": "^2.13.1",
-    "tsdown": "^0.21.3",
+    "tsdown": "^0.21.4",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.1"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
