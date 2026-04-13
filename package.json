@@ -29,7 +29,7 @@
   "dependencies": {
     "@actions/core": "^3.0.0",
     "@actions/exec": "^3.0.0",
-    "@actions/github": "^9.0.0",
+    "@actions/github": "^9.1.0",
     "@manypkg/get-packages": "^3.1.0",
     "camelcase": "^9.0.0",
     "marked": "^17.0.6",
@@ -37,7 +37,7 @@
     "tinyglobby": "^0.2.16"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^8.1.0",
+    "@antfu/eslint-config": "^8.2.0",
     "@octokit/plugin-rest-endpoint-methods": "^17.0.0",
     "@types/node": "^24.12.2",
     "eslint": "^10.2.0",
@@ -45,7 +45,7 @@
     "simple-git-hooks": "^2.13.1",
     "tsdown": "^0.21.7",
     "typescript": "^6.0.2",
-    "vitest": "^4.1.3"
+    "vitest": "^4.1.4"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
