@@ -40,11 +40,11 @@
     "@antfu/eslint-config": "^8.2.0",
     "@octokit/plugin-rest-endpoint-methods": "^17.0.0",
     "@types/node": "^24.12.2",
-    "eslint": "^10.2.0",
+    "eslint": "^10.2.1",
     "nano-staged": "^1.0.2",
     "simple-git-hooks": "^2.13.1",
-    "tsdown": "^0.21.7",
-    "typescript": "^6.0.2",
+    "tsdown": "^0.21.9",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.4"
   },
   "pnpm": {
