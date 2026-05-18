@@ -37,7 +37,7 @@
     "tinyglobby": "^0.2.16"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^8.3.0",
+    "@antfu/eslint-config": "^9.0.0",
     "@octokit/plugin-rest-endpoint-methods": "^17.0.0",
     "@types/node": "^24.12.3",
     "eslint": "^10.3.0",
