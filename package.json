@@ -32,9 +32,9 @@
     "@actions/github": "^9.1.1",
     "@manypkg/get-packages": "^3.1.0",
     "camelcase": "^9.0.0",
-    "marked": "^18.0.4",
+    "marked": "^18.0.5",
     "tencentcloud-sdk-nodejs-hunyuan": "^4.1.188",
-    "tinyglobby": "^0.2.16"
+    "tinyglobby": "^0.2.17"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.0.0",
@@ -43,9 +43,9 @@
     "eslint": "^10.4.0",
     "nano-staged": "^1.0.2",
     "simple-git-hooks": "^2.13.1",
-    "tsdown": "^0.22.0",
+    "tsdown": "^0.22.2",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.8"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm nano-staged"
