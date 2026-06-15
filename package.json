@@ -2,7 +2,7 @@
   "name": "flow-pilot-action",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@10.33.4",
+  "packageManager": "pnpm@11.6.0",
   "description": "",
   "author": "tdesign",
   "license": "MIT",
@@ -46,11 +46,6 @@
     "tsdown": "^0.22.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.7"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "simple-git-hooks"
-    ]
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm nano-staged"
