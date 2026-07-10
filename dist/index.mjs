@@ -79640,11 +79640,8 @@ async function pull_request(token) {
 				return;
 			}
 			for (const release of releaseDirs) {
-				if (release.private) {
-					info(`${release.name} is private package, skip publish`);
-					return;
-				}
-				await exec("pnpm", [
+				if (release.private) info(`${release.name} is private package, skip publish`);
+				else await exec("pnpm", [
 					"publish",
 					"--no-git-checks",
 					"--filter",
