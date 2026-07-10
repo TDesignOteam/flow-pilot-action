@@ -28,9 +28,9 @@ export async function issue_comment(token: string) {
 
   const prNumber = getPullRequestNumber()
 
-  confirmChangelog(prNumber, confirmLog, token)
+  await confirmChangelog(prNumber, confirmLog, token)
 
-  confirmReleaseLog(prNumber, confirmLog, token)
+  await confirmReleaseLog(prNumber, confirmLog, token)
 }
 
 export async function confirmChangelog(prNumber: number, log: string, token: string) {
@@ -99,14 +99,14 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
   const prData = await getPullRequestData(prNumber) as PullRequestData
   const { cloneRepo, checkoutBranch, isNeedCommit } = useGit(token)
   await cloneRepo()
-  checkoutBranch(prData.head.ref)
+  await checkoutBranch(prData.head.ref)
   const changeFiles = await getPullRequestFiles(prNumber)
   core.info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
   const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
   core.info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
   for (const release of releaseDirs) {
     if (release.name !== pkgName) {
-      return
+      continue
     }
     const files = globSync(`${release.dir}/.changelog/*.md`)
     files.forEach((file) => {
