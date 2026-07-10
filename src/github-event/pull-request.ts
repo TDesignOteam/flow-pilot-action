@@ -102,10 +102,11 @@ export async function pull_request(token: string) {
       for (const release of releaseDirs) {
         if (release.private) {
           info(`${release.name} is private package, skip publish`)
-          return
+        }
+        else {
+          await exec('pnpm', ['publish', '--no-git-checks', '--filter', `${release.name}`, '--tag', release.tag])
         }
 
-        await exec('pnpm', ['publish', '--no-git-checks', '--filter', `${release.name}`, '--tag', release.tag])
         if (release.changelog && release.tag === 'latest') {
           const title = `${release.name}@${release.version}`
           await createRelease(title, title, release.changelog)
