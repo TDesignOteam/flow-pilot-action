@@ -28304,6 +28304,7 @@ async function confirmReleaseLog(prNumber, log, token) {
 	const { getPullRequestData, getPullRequestFiles } = useGithub(token);
 	const prData = await getPullRequestData(prNumber);
 	const { cloneRepo, checkoutBranch, isNeedCommit } = useGit(token);
+	const defaultBranch = prData.base.ref;
 	await cloneRepo();
 	await checkoutBranch(prData.head.ref);
 	const changeFiles = await getPullRequestFiles(prNumber);
@@ -28321,11 +28322,11 @@ async function confirmReleaseLog(prNumber, log, token) {
 			await exec("git", [
 				"fetch",
 				"origin",
-				"develop"
+				defaultBranch
 			]);
 			await exec("git", [
 				"checkout",
-				"origin/develop",
+				`origin/${defaultBranch}`,
 				"--",
 				`${release.dir}/${changelogFileName}`
 			]);

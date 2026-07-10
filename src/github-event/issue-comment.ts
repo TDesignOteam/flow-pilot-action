@@ -98,6 +98,7 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
   const { getPullRequestData, getPullRequestFiles } = useGithub(token)
   const prData = await getPullRequestData(prNumber) as PullRequestData
   const { cloneRepo, checkoutBranch, isNeedCommit } = useGit(token)
+  const defaultBranch = prData.base.ref
   await cloneRepo()
   await checkoutBranch(prData.head.ref)
   const changeFiles = await getPullRequestFiles(prNumber)
@@ -117,8 +118,8 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
       writeFileSync(`${release.dir}/${changelogFileName}`, '', 'utf8')
     }
     else {
-      await exec('git', ['fetch', 'origin', 'develop'])
-      await exec('git', ['checkout', 'origin/develop', '--', `${release.dir}/${changelogFileName}`])
+      await exec('git', ['fetch', 'origin', defaultBranch])
+      await exec('git', ['checkout', `origin/${defaultBranch}`, '--', `${release.dir}/${changelogFileName}`])
     }
 
     const pkgChangelog = readFileSync(`${release.dir}/${changelogFileName}`, 'utf8')
