@@ -79651,7 +79651,12 @@ async function pull_request(token) {
 				]);
 				if (release.changelog && release.tag === "latest") {
 					const title = `${release.name}@${release.version}`;
-					await createRelease(title, title, release.changelog);
+					try {
+						await createRelease(title, title, release.changelog);
+						info(`${release.name} release created: ${title}`);
+					} catch (err) {
+						info(`Failed to create release for ${release.name}: ${err}`);
+					}
 				}
 			}
 		}
