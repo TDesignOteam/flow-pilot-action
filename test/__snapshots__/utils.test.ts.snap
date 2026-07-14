@@ -1,5 +1,23 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`utils > extractChangelog > all 日志应用到所有包 1`] = `
+{
+  "pkg-a": [
+    "feat(Button): New Component",
+    "chore(utils): add \`isString\` function",
+  ],
+  "pkg-b": [
+    "feat(Button): New Component",
+    "chore(utils): add \`isString\` function",
+    "fix(link): fix link",
+  ],
+  "pkg-c": [
+    "feat(Button): New Component",
+    "chore(utils): add \`isString\` function",
+  ],
+}
+`;
+
 exports[`utils > extractChangelog > repo1 pkg-b是私有包，不收集日志 1`] = `
 {
   "pkg-a": [
