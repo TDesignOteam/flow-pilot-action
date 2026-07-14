@@ -91,6 +91,13 @@ describe('utils', () => {
       expect(log).toMatchSnapshot()
     })
 
+    it('all 日志应用到所有包', () => {
+      const packages = getPackages('fixtures/repo2')
+      const body = readFileSync('fixtures/pull_request_body/pr_body4.md', 'utf8')
+      const log = extractChangelog(body, packages.map(pkg => pkg.packageJson.name))
+      expect(log).toMatchSnapshot()
+    })
+
     // it('本条 PR 不需要纳入 Changelog', () => {
     //   const packages = getPackages('fixtures/repo1')
 

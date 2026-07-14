@@ -27832,10 +27832,10 @@ function extractChangelog(markdown, pkgNames) {
 	md.forEach((token) => {
 		if (token.type === changelogHeading.type && token.depth === changelogHeading.depth) collectLogs = token.text === changelogHeading.text;
 		if (collectLogs && token.type === "heading" && token.depth === pkgDepth) pkgName = token.text;
-		if (collectLogs && token.type === "list" && pkgNames.includes(pkgName)) token.items.forEach((item) => {
+		if (collectLogs && token.type === "list" && (pkgName === "all" || pkgNames.includes(pkgName))) token.items.forEach((item) => {
 			if (item.type === "list_item" && item.tokens.length) {
 				const token = item.tokens[0];
-				pkgLogs[pkgName].push(token.text);
+				(pkgName === "all" ? pkgNames : [pkgName]).forEach((name) => pkgLogs[name].push(token.text));
 			}
 		});
 	});

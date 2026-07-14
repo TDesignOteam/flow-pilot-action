@@ -81,12 +81,13 @@ export function extractChangelog(markdown: string, pkgNames: string[]) {
     if (collectLogs && token.type === 'heading' && token.depth === pkgDepth) {
       pkgName = token.text
     }
-    if (collectLogs && token.type === 'list' && pkgNames.includes(pkgName)) {
+    if (collectLogs && token.type === 'list' && (pkgName === 'all' || pkgNames.includes(pkgName))) {
       const items = token.items as Tokens.ListItem[]
       items.forEach((item) => {
         if (item.type === 'list_item' && item.tokens.length) {
           const token = item.tokens[0] as Tokens.Text
-          pkgLogs[pkgName].push(token.text)
+          const targetPkgNames = pkgName === 'all' ? pkgNames : [pkgName]
+          targetPkgNames.forEach(name => pkgLogs[name].push(token.text))
         }
       })
     }
