@@ -140,7 +140,7 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
     core.info('无需提交')
     return true
   }
-  const commitMsg = `chore: update ${changelogFileName}`
+  const commitMsg = `chore: update ${pkgName} ${changelogFileName}`
   await exec('git', ['commit', '-m', commitMsg])
   await exec('git', ['pull'])
   await exec('git', ['push', 'origin', prData.head.ref])

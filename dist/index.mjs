@@ -28347,7 +28347,7 @@ async function confirmReleaseLog(prNumber, log, token) {
 	await exec("git", [
 		"commit",
 		"-m",
-		`chore: update ${changelogFileName}`
+		`chore: update ${pkgName} ${changelogFileName}`
 	]);
 	await exec("git", ["pull"]);
 	await exec("git", [
