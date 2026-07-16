@@ -1,8 +1,8 @@
 import type { PullRequestData } from '../types'
+import { cwd } from 'node:process'
 import { getInput, info, setOutput } from '@actions/core'
-import { exec } from '@actions/exec'
 import * as github from '@actions/github'
-import { extractChangelog, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, renderChangelogMarkdown } from '../utils'
+import { extractChangelog, getConfiguredPackages, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, publishRelease, renderChangelogMarkdown } from '../utils'
 import useGit from '../utils/git'
 import useGithub from '../utils/github'
 import { translateText } from '../utils/translate'
@@ -44,10 +44,10 @@ export async function pull_request(token: string) {
       const { addComment, getPullRequestFiles } = useGithub(token)
       const { cloneRepo, checkoutBranch } = useGit(token)
       await cloneRepo()
-      checkoutBranch(pullRequestData.head.ref)
+      await checkoutBranch(pullRequestData.head.ref)
       const changeFiles = await getPullRequestFiles(prNumber)
       info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
-      const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
+      const releaseDirs = await getPullRequestReleaseDirs(changeFiles, getConfiguredPackages(cwd()))
       info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
       setOutput('changelog', '')
       if (!releaseDirs.length) {
@@ -56,7 +56,7 @@ export async function pull_request(token: string) {
       }
       for (const release of releaseDirs) {
         if (release.tag === 'latest') {
-          const changelogs = getStashChangelog(release.dir)
+          const changelogs = getStashChangelog(release.dir, release.type)
           info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
           const md = renderChangelogMarkdown(changelogs.changelogs)
           info(`markdownChangelogs: ${md}`)
@@ -71,13 +71,14 @@ export async function pull_request(token: string) {
           const secretKey = getInput('translate-secret-key', { trimWhitespace: true })
           if (secretId && secretKey && md) {
           // tmt 翻译
-            translateText(secretId, secretKey, md).then((text) => {
+            try {
+              const text = await translateText(secretId, secretKey, md)
               info(`en_md: ${text}`)
-              addComment(prNumber, `${logHead.replace('CHANGELOG.md', 'CHANGELOG.en-US.md')}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${text}`)
-            }).catch((err) => {
+              await addComment(prNumber, `${logHead.replace('CHANGELOG.md', 'CHANGELOG.en-US.md')}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${text}`)
+            }
+            catch (err) {
               info(`翻译失败，${err}`)
-              return ''
-            })
+            }
           }
         }
       }
@@ -91,9 +92,12 @@ export async function pull_request(token: string) {
     if (github.context.payload.action === 'closed' && github.context.payload.pull_request?.merged) {
       const prNumber = getPullRequestNumber()
       const { createRelease, getPullRequestFiles } = useGithub(token)
+      if (!pullRequestData.merge_commit_sha)
+        throw new Error('The merged pull request does not have a merge commit SHA')
+      await useGit(token).checkoutCommit(pullRequestData.merge_commit_sha)
       const changeFiles = await getPullRequestFiles(prNumber)
       info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
-      const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
+      const releaseDirs = await getPullRequestReleaseDirs(changeFiles, getConfiguredPackages(cwd()))
       info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
       if (!releaseDirs.length) {
         info('没有更新发布版本')
@@ -104,14 +108,14 @@ export async function pull_request(token: string) {
           info(`${release.name} is private package, skip publish`)
         }
         else {
-          await exec('pnpm', ['publish', '--no-git-checks', '--filter', `${release.name}`, '--tag', release.tag])
+          await publishRelease(release)
         }
 
         if (release.changelog && release.tag === 'latest') {
           const title = `${release.name}@${release.version}`
           try {
             info(`Creating release for ${release.name}: ${title}`)
-            await createRelease(title, title, release.changelog)
+            await createRelease(title, title, release.changelog, pullRequestData.merge_commit_sha)
             info(`${release.name} release created: ${title}`)
           }
           catch (err) {

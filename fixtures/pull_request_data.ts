@@ -419,6 +419,33 @@ export const pull_request_files: PullRequestFiles = [
   },
 ]
 
+export const flutter_pull_request_files: PullRequestFiles = [
+  {
+    sha: 'flutter-a',
+    filename: 'fixtures/repo3/packages/flutter-a/pubspec.yaml',
+    status: 'modified',
+    additions: 1,
+    deletions: 1,
+    changes: 2,
+    blob_url: '',
+    raw_url: '',
+    contents_url: '',
+    patch: '@@ -1,3 +1,3 @@\n name: flutter_a\n-version: "0.9.0"\n+version: "1.0.0"',
+  },
+  {
+    sha: 'flutter-private',
+    filename: 'fixtures/repo3/packages/flutter-private/pubspec.yaml',
+    status: 'modified',
+    additions: 1,
+    deletions: 1,
+    changes: 2,
+    blob_url: '',
+    raw_url: '',
+    contents_url: '',
+    patch: '@@ -1,4 +1,4 @@\n name: flutter_private\n-version: 0.9.0\n+version: 1.0.0\n publish_to: none',
+  },
+]
+
 export const merged_pull_request_files: PullRequestFiles = [
   {
     sha: '850f61b832fa80a1ac70c41bb9c89b3898c46003',

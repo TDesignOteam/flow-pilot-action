@@ -90,6 +90,7 @@ exports[`utils > getMergedPullRequestReleaseDirs 1`] = `
     "name": "pkg-a",
     "private": false,
     "tag": "latest",
+    "type": "node",
     "version": "1.0.1",
   },
   {
@@ -98,6 +99,7 @@ exports[`utils > getMergedPullRequestReleaseDirs 1`] = `
     "name": "pkg-c",
     "private": false,
     "tag": "latest",
+    "type": "node",
     "version": "1.0.1",
   },
 ]
@@ -121,6 +123,7 @@ exports[`utils > getMergedPullRequestReleaseDirs 2`] = `
     "name": "pkg-a",
     "private": false,
     "tag": "latest",
+    "type": "node",
     "version": "1.0.1",
   },
   {
@@ -129,6 +132,7 @@ exports[`utils > getMergedPullRequestReleaseDirs 2`] = `
     "name": "pkg-c",
     "private": false,
     "tag": "latest",
+    "type": "node",
     "version": "1.0.1",
   },
 ]
@@ -163,6 +167,7 @@ exports[`utils > getMergedPullRequestReleaseDirs 3`] = `
     "name": "pkg-a",
     "private": false,
     "tag": "latest",
+    "type": "node",
     "version": "1.0.1",
   },
   {
@@ -171,6 +176,7 @@ exports[`utils > getMergedPullRequestReleaseDirs 3`] = `
     "name": "pkg-c",
     "private": false,
     "tag": "latest",
+    "type": "node",
     "version": "1.0.1",
   },
 ]

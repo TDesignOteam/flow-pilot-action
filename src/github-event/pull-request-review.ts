@@ -41,6 +41,6 @@ export async function pull_request_review(token: string) {
   if (logs) {
     const body = `### 📝 更新日志\n\n${logs}\n\n`
 
-    confirmChangelog(prNumber, body, token)
+    await confirmChangelog(prNumber, body, token)
   }
 }

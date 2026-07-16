@@ -1,15 +1,18 @@
-import type { Package } from '@manypkg/get-packages'
 import type { Tokens, TokensList } from 'marked'
-import type { PackagesChangelog, PullRequestData, PullRequestFiles } from '../types'
+import type { PackagesChangelog, PackageType, PullRequestData, PullRequestFiles, ReleasePackage } from '../types'
+import type { Package } from './get-packages'
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
-import { dirname } from 'node:path'
+import { basename, dirname, resolve } from 'node:path'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import { getPackagesSync } from '@manypkg/get-packages'
 import camelcase from 'camelcase'
 import { marked } from 'marked'
 import { globSync } from 'tinyglobby'
+import { parse } from 'yaml'
 import { CHANGELOG_REG, NEW_VERSION_REG, OLD_VERSION_REG, SKIP_CHANGELOG_REG } from '../consts'
+import { getPackages } from './get-packages'
+
+export { getPackages }
 
 const USE_PASCAL_CASE_REG = /^Use(?=[A-Z])/
 const RN_TO_LF_REG = /\r\n/g
@@ -129,14 +132,9 @@ export function extractReleaseLog(markdown: string) {
   return { pkgName, changelog: changelog.join('') }
 }
 
-export function getPackages(path: string) {
-  const { packages } = getPackagesSync(path)
-  return packages
-}
-
 export function stashPackageChangelog(prData: PullRequestData, packages: Package[], prChangelog: PackagesChangelog) {
   packages.forEach((pkg) => {
-    const changelogData = prChangelog[pkg.packageJson.name]
+    const changelogData = prChangelog[pkg.name]
     if (!changelogData)
       return
 
@@ -183,7 +181,48 @@ export function stashPackageChangelog(prData: PullRequestData, packages: Package
   })
 }
 
-export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
+function getManifestType(filename: string): PackageType | undefined {
+  const manifestName = basename(filename)
+  if (manifestName === 'package.json')
+    return 'node'
+  if (manifestName === 'pubspec.yaml')
+    return 'flutter'
+}
+
+function getPubspecVersion(patch: string, marker: '+' | '-') {
+  for (const line of patch.split('\n')) {
+    if (!line.startsWith(marker) || !/^version\s*:/.test(line.slice(1)))
+      continue
+
+    const data = parse(line.slice(1))
+    if (data && typeof data === 'object' && 'version' in data && (typeof data.version === 'string' || typeof data.version === 'number'))
+      return String(data.version)
+  }
+}
+
+function getChangedVersions(patch: string, type: PackageType) {
+  if (type === 'node') {
+    return {
+      oldVersion: patch.match(OLD_VERSION_REG)?.[1],
+      newVersion: patch.match(NEW_VERSION_REG)?.[1],
+    }
+  }
+
+  return {
+    oldVersion: getPubspecVersion(patch, '-'),
+    newVersion: getPubspecVersion(patch, '+'),
+  }
+}
+
+function readPackageManifest(path: string, type: PackageType): Record<string, unknown> {
+  const content = readFileSync(path, 'utf8')
+  const data = type === 'node' ? JSON.parse(content) : parse(content)
+  if (!data || typeof data !== 'object')
+    throw new Error(`Package manifest "${path}" must contain an object`)
+  return data
+}
+
+export function getPullRequestReleaseDirs(prFiles: PullRequestFiles, packages?: Package[]): ReleasePackage[] {
   const zhChangelogs: Record<string, string> = {}
   const enChangelogs: Record<string, string> = {}
 
@@ -235,30 +274,44 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
     if (file.status !== 'modified') {
       return false
     }
-    if (!file.filename.includes('package.json')) {
+    const type = getManifestType(file.filename)
+    if (!type) {
       return false
     }
-    if (!file.patch?.includes('version')) {
+    if (packages && !packages.some(pkg => pkg.type === type && pkg.dir === resolve(dirname(file.filename)))) {
       return false
     }
-    const newVersion = file.patch.match(NEW_VERSION_REG)
-    const oldVersion = file.patch.match(OLD_VERSION_REG)
+    if (!file.patch) {
+      throw new Error(`Cannot determine version changes because the patch for "${file.filename}" is unavailable`)
+    }
+    if (!file.patch.includes('version')) {
+      return false
+    }
+    const { newVersion, oldVersion } = getChangedVersions(file.patch, type)
     if (!newVersion || !oldVersion) {
       return false
     }
-    if (newVersion[1] === oldVersion[1]) {
+    if (newVersion === oldVersion) {
       return false
     }
 
     return true
   }).map((file) => {
-    const packageJson = readFileSync(file.filename, 'utf8')
-    const packageData = JSON.parse(packageJson)
+    const type = getManifestType(file.filename) as PackageType
+    const packageData = readPackageManifest(file.filename, type)
+    const version = getChangedVersions(file.patch || '', type).newVersion as string
+    if (typeof packageData.name !== 'string')
+      throw new Error(`Package manifest "${file.filename}" is missing a valid "name" field`)
+    if (typeof packageData.version !== 'string' && typeof packageData.version !== 'number')
+      throw new Error(`Package manifest "${file.filename}" is missing a valid "version" field`)
+    if (String(packageData.version) !== version)
+      throw new Error(`Package manifest "${file.filename}" has version "${packageData.version}", expected "${version}" from the pull request diff`)
+
     let tag = 'latest'
-    if (packageData.version.includes('beta')) {
+    if (version.includes('beta')) {
       tag = 'beta'
     }
-    if (packageData.version.includes('alpha')) {
+    if (version.includes('alpha')) {
       tag = 'alpha'
     }
     let changelog = zhChangelogs[dirname(file.filename)] || ''
@@ -268,18 +321,23 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles) {
     return {
       dir: dirname(file.filename),
       name: packageData.name,
-      private: packageData?.private || false,
-      version: file.patch?.match(NEW_VERSION_REG)?.[1],
+      private: type === 'node' ? packageData.private === true : packageData.publish_to === 'none',
+      version,
+      type,
       tag,
       changelog,
     }
   })
 }
 
-export function getStashChangelog(path: string) {
+export function getStashChangelog(path: string, type: PackageType) {
   const files = globSync(`${path}/.changelog/*.md`)
-  const packageJson = readFileSync(`${path}/package.json`, 'utf8')
-  const pkg = JSON.parse(packageJson)
+  const manifestPath = `${path}/${type === 'node' ? 'package.json' : 'pubspec.yaml'}`
+  const manifest = readPackageManifest(manifestPath, type)
+  if (typeof manifest.name !== 'string')
+    throw new Error(`Package manifest "${manifestPath}" is missing a valid "name" field`)
+  if (typeof manifest.version !== 'string' && typeof manifest.version !== 'number')
+    throw new Error(`Package manifest "${manifestPath}" is missing a valid "version" field`)
   const changelogs: string[] = []
   files.forEach((file) => {
     readFileSync(file, 'utf8').split('\n').forEach((line) => {
@@ -289,7 +347,7 @@ export function getStashChangelog(path: string) {
     },
     )
   })
-  return { pkg: pkg.name, version: pkg.version, changelogs }
+  return { pkg: manifest.name, version: String(manifest.version), changelogs }
 }
 
 export function renderChangelogMarkdown(changelogs: string[]) {
@@ -406,6 +464,12 @@ export function getInputPkgs() {
     return []
   }
   return pkgs.split(',').map(pkg => pkg.trim())
+}
+
+export function getConfiguredPackages(path: string) {
+  const packageNames = getInputPkgs()
+  const packages = getPackages(path)
+  return packageNames.length ? packages.filter(pkg => packageNames.includes(pkg.name)) : packages
 }
 
 export function checkReleaseBranch(prData: PullRequestData) {

@@ -15,13 +15,13 @@ export async function run() {
   info(`eventName: ${github.context.eventName}`)
   info(`action: ${github.context.payload.action}`)
 
-  issue_comment(token)
+  await issue_comment(token)
 
-  pull_request(token)
+  await pull_request(token)
 
-  pull_request_target(token)
+  await pull_request_target(token)
 
-  pull_request_review(token)
+  await pull_request_review(token)
 
-  workflow_run(token)
+  await workflow_run(token)
 }

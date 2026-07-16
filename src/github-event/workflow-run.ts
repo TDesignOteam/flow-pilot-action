@@ -51,6 +51,6 @@ export async function workflow_run(token: string) {
   if (logs) {
     const body = `### 📝 更新日志\n\n${logs}\n\n`
     unlinkSync('./pr-id.txt')
-    confirmChangelog(prNumber, body, token)
+    await confirmChangelog(prNumber, body, token)
   }
 }
