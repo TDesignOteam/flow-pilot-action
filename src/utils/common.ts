@@ -459,11 +459,10 @@ export async function getPrCommentWhitelist() {
 }
 
 export function getInputPkgs() {
-  const pkgs = core.getInput('packages', { trimWhitespace: true }) || ''
-  if (!pkgs) {
-    return []
-  }
-  return pkgs.split(',').map(pkg => pkg.trim())
+  return core.getMultilineInput('packages', { trimWhitespace: true })
+    .flatMap(line => line.split(','))
+    .map(pkg => pkg.trim())
+    .filter(Boolean)
 }
 
 export function getConfiguredPackages(path: string) {

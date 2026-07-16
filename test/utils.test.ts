@@ -6,6 +6,7 @@ import { flutter_pull_request_files, merged_pull_request_files, merged_pull_requ
 import {
   extractChangelog,
   extractReleaseLog,
+  getInputPkgs,
   getPackages,
   getPullRequestReleaseDirs,
   getStashChangelog,
@@ -16,6 +17,17 @@ import {
 } from '../src/utils/common'
 
 describe('utils', () => {
+  it('getInputPkgs supports comma and multiline formats', () => {
+    process.env.INPUT_PACKAGES = 'pkg-a,pkg-b\npkg-c\r\n\npkg-d'
+
+    try {
+      expect(getInputPkgs()).toEqual(['pkg-a', 'pkg-b', 'pkg-c', 'pkg-d'])
+    }
+    finally {
+      delete process.env.INPUT_PACKAGES
+    }
+  })
+
   it('parseMarkdown', () => {
     const list = parseMarkdown('### 📝 更新日志')
     const data = list[0] as Tokens.Heading

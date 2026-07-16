@@ -16633,6 +16633,19 @@ function getInput(name, options) {
 	return val.trim();
 }
 /**
+* Gets the values of an multiline input.  Each value is also trimmed.
+*
+* @param     name     name of the input to get
+* @param     options  optional. See InputOptions.
+* @returns   string[]
+*
+*/
+function getMultilineInput(name, options) {
+	const inputs = getInput(name, options).split("\n").filter((x) => x !== "");
+	if (options && options.trimWhitespace === false) return inputs;
+	return inputs.map((input) => input.trim());
+}
+/**
 * Sets the value of an output.
 *
 * @param     name     name of the output to set
@@ -31058,9 +31071,7 @@ async function getPrCommentWhitelist() {
 	return (await (await fetch("https://raw.githubusercontent.com/Tencent/tdesign/refs/heads/main/.github/.pr-comment-ci-whitelist")).text()).split("\n");
 }
 function getInputPkgs() {
-	const pkgs = getInput("packages", { trimWhitespace: true }) || "";
-	if (!pkgs) return [];
-	return pkgs.split(",").map((pkg) => pkg.trim());
+	return getMultilineInput("packages", { trimWhitespace: true }).flatMap((line) => line.split(",")).map((pkg) => pkg.trim()).filter(Boolean);
 }
 function getConfiguredPackages(path) {
 	const packageNames = getInputPkgs();
