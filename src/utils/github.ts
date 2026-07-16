@@ -14,12 +14,12 @@ export default function useGithub(token: string) {
   }
 
   async function getPullRequestFiles(pr_number: number) {
-    const { data } = await octokit.rest.pulls.listFiles({
+    return octokit.paginate(octokit.rest.pulls.listFiles, {
       owner,
       repo,
       pull_number: pr_number,
+      per_page: 100,
     })
-    return data
   }
   async function getCommentList(pr_number: number) {
     const { data } = await octokit.rest.issues.listComments({
@@ -62,13 +62,14 @@ export default function useGithub(token: string) {
     })
     return data.users.map(item => item.login)
   }
-  async function createRelease(tag_name: string, name: string, body: string) {
+  async function createRelease(tag_name: string, name: string, body: string, target_commitish?: string) {
     await octokit.rest.repos.createRelease({
       owner,
       repo,
       tag_name,
       name,
       body,
+      target_commitish,
     })
   }
 

@@ -26,6 +26,10 @@ export default function useGit(token: string) {
     await exec('git', ['fetch', 'origin', `pull/${pr_number}/head:pr-${pr_number}`])
     await exec('git', ['checkout', `pr-${pr_number}`])
   }
+  async function checkoutCommit(sha: string) {
+    await exec('git', ['fetch', 'origin', sha])
+    await exec('git', ['checkout', '--detach', sha])
+  }
   async function gitCommit(message: string) {
     await exec(`git commit -am "${message}" --no-verify`, [])
   }
@@ -52,6 +56,7 @@ export default function useGit(token: string) {
 
   return {
     checkoutPr,
+    checkoutCommit,
     cloneRepo,
     createBranch,
     gitCommit,

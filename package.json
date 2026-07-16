@@ -30,11 +30,11 @@
     "@actions/core": "^3.0.1",
     "@actions/exec": "^3.0.0",
     "@actions/github": "^9.1.1",
-    "@manypkg/get-packages": "^3.1.0",
     "camelcase": "^9.0.0",
     "marked": "^18.0.5",
     "tencentcloud-sdk-nodejs-hunyuan": "^4.1.188",
-    "tinyglobby": "^0.2.17"
+    "tinyglobby": "^0.2.17",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.1.0",

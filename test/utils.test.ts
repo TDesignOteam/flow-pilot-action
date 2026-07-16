@@ -2,7 +2,7 @@ import type { Tokens } from 'marked'
 import type { PullRequestData } from '../src/types'
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { merged_pull_request_files, merged_pull_request_files2, merged_pull_request_files3, pull_request_data, pull_request_files } from '../fixtures/pull_request_data'
+import { flutter_pull_request_files, merged_pull_request_files, merged_pull_request_files2, merged_pull_request_files3, pull_request_data, pull_request_files } from '../fixtures/pull_request_data'
 import {
   extractChangelog,
   extractReleaseLog,
@@ -28,11 +28,11 @@ describe('utils', () => {
   it('getPackages', () => {
     const packages = getPackages('fixtures/repo1')
     expect(packages.length).toBe(3)
-    expect(packages[0].packageJson.name).toBe('pkg-a')
+    expect(packages[0].name).toBe('pkg-a')
     expect(packages[0].relativeDir).toBe('packages/pkg-a')
-    expect(packages[1].packageJson.name).toBe('pkg-b')
+    expect(packages[1].name).toBe('pkg-b')
     expect(packages[1].relativeDir).toBe('packages/pkg-b')
-    expect(packages[2].packageJson.name).toBe('pkg-c')
+    expect(packages[2].name).toBe('pkg-c')
     expect(packages[2].relativeDir).toBe('packages/pkg-c')
   })
   describe('isExtractPRLog', () => {
@@ -76,7 +76,7 @@ describe('utils', () => {
       expect(packages[0].relativeDir).toBe('packages/pkg-a')
       expect(packages[1].relativeDir).toBe('packages/pkg-b')
       const body = readFileSync('fixtures/pull_request_body/pr_body1.md', 'utf8').replaceAll('\n', '\r\n')
-      const log = extractChangelog(body, packages.map(pkg => pkg.packageJson.name))
+      const log = extractChangelog(body, packages.map(pkg => pkg.name))
       expect(log).toMatchSnapshot()
     })
 
@@ -87,14 +87,14 @@ describe('utils', () => {
       expect(packages[1].relativeDir).toBe('packages/pkg-b')
       expect(packages[2].relativeDir).toBe('packages/pkg-c')
       const body = readFileSync('fixtures/pull_request_body/pr_body1.md', 'utf8').replaceAll('\n', '\r\n')
-      const log = extractChangelog(body, packages.map(pkg => pkg.packageJson.name))
+      const log = extractChangelog(body, packages.map(pkg => pkg.name))
       expect(log).toMatchSnapshot()
     })
 
     it('all 日志应用到所有包', () => {
       const packages = getPackages('fixtures/repo2')
       const body = readFileSync('fixtures/pull_request_body/pr_body4.md', 'utf8')
-      const log = extractChangelog(body, packages.map(pkg => pkg.packageJson.name))
+      const log = extractChangelog(body, packages.map(pkg => pkg.name))
       expect(log).toMatchSnapshot()
     })
 
@@ -102,7 +102,7 @@ describe('utils', () => {
     //   const packages = getPackages('fixtures/repo1')
 
     //   const body = readFileSync('fixtures/pull_request_body/pr_body2.md', 'utf8').replaceAll('\n', '\r\n')
-    //   const log = extractChangelog(body, packages.map(pkg => pkg.packageJson.name))
+    //   const log = extractChangelog(body, packages.map(pkg => pkg.name))
     //   expect(log).toBe(null)
     // })
   })
@@ -110,7 +110,7 @@ describe('utils', () => {
     it('stashPackageChangelog1', () => {
       const packages = getPackages('fixtures/repo2')
       const body = readFileSync('fixtures/pull_request_body/pr_body1.md', 'utf8').replaceAll('\n', '\r\n')
-      const log = extractChangelog(body, packages.map(pkg => pkg.packageJson.name))
+      const log = extractChangelog(body, packages.map(pkg => pkg.name))
       stashPackageChangelog(pull_request_data, packages, log)
 
       packages.forEach((pkg) => {
@@ -121,7 +121,7 @@ describe('utils', () => {
     it('stashPackageChangelog2', () => {
       const packages = getPackages('fixtures/repo2')
       const body = readFileSync('fixtures/pull_request_body/pr_body3.md', 'utf8').replaceAll('\n', '\r\n')
-      const log = extractChangelog(body, packages.map(pkg => pkg.packageJson.name))
+      const log = extractChangelog(body, packages.map(pkg => pkg.name))
       pull_request_data.number = 7
       stashPackageChangelog(pull_request_data, packages, log)
 
@@ -142,11 +142,66 @@ describe('utils', () => {
     expect(paths[0].dir).toBe('fixtures/repo1/packages/pkg-a')
     expect(paths[0].name).toBe('pkg-a')
     expect(paths[0].version).toBe('1.0.1')
+    expect(paths[0].type).toBe('node')
     expect(paths[0].tag).toBe('latest')
     expect(paths[1].dir).toBe('fixtures/repo1/packages/pkg-c')
     expect(paths[1].version).toBe('1.0.1')
     expect(paths[1].name).toBe('pkg-c')
     expect(paths[1].tag).toBe('latest')
+  })
+
+  it('getFlutterPullRequestReleaseDirs', () => {
+    const paths = getPullRequestReleaseDirs(flutter_pull_request_files)
+    expect(paths).toMatchObject([
+      {
+        dir: 'fixtures/repo3/packages/flutter-a',
+        name: 'flutter_a',
+        version: '1.0.0',
+        type: 'flutter',
+        private: false,
+        tag: 'latest',
+      },
+      {
+        dir: 'fixtures/repo3/packages/flutter-private',
+        name: 'flutter_private',
+        version: '1.0.0',
+        type: 'flutter',
+        private: true,
+        tag: 'latest',
+      },
+    ])
+  })
+
+  it('filters release manifests to discovered packages', () => {
+    const packages = getPackages('fixtures/repo3').filter(pkg => pkg.name === 'flutter_a')
+    const paths = getPullRequestReleaseDirs(flutter_pull_request_files, packages)
+
+    expect(paths).toHaveLength(1)
+    expect(paths[0].name).toBe('flutter_a')
+  })
+
+  it('fails when a release manifest patch is unavailable', () => {
+    const file = { ...flutter_pull_request_files[0], patch: undefined }
+
+    expect(() => getPullRequestReleaseDirs([file])).toThrow(/patch for .*pubspec\.yaml.* is unavailable/)
+  })
+
+  it('fails when the checked-out manifest version does not match the diff', () => {
+    const file = {
+      ...flutter_pull_request_files[0],
+      patch: flutter_pull_request_files[0].patch?.replace('+version: "1.0.0"', '+version: "2.0.0"'),
+    }
+
+    expect(() => getPullRequestReleaseDirs([file])).toThrow(/has version "1\.0\.0", expected "2\.0\.0"/)
+  })
+
+  it('ignores nested pubspec dependency version changes', () => {
+    const file = {
+      ...flutter_pull_request_files[0],
+      patch: '@@ -5,4 +5,4 @@\n dependencies:\n   hosted_package:\n-    version: 1.0.0\n+    version: 2.0.0',
+    }
+
+    expect(getPullRequestReleaseDirs([file])).toEqual([])
   })
 
   it('getMergedPullRequestReleaseDirs', () => {
@@ -161,13 +216,19 @@ describe('utils', () => {
   })
 
   it('getStashChangelog', () => {
-    const changelog = getStashChangelog('./fixtures/repo2/packages/pkg-a')
+    const changelog = getStashChangelog('./fixtures/repo2/packages/pkg-a', 'node')
 
     expect(changelog).toMatchSnapshot()
   })
 
+  it('getFlutterStashChangelog', () => {
+    const changelog = getStashChangelog('./fixtures/repo3/packages/flutter-a', 'flutter')
+
+    expect(changelog).toEqual({ pkg: 'flutter_a', version: '1.0.0', changelogs: [] })
+  })
+
   it('renderChangelogMarkdown', () => {
-    const changelog = getStashChangelog('./fixtures/repo2/packages/pkg-a')
+    const changelog = getStashChangelog('./fixtures/repo2/packages/pkg-a', 'node')
     const md = renderChangelogMarkdown(changelog.changelogs)
     expect(md).toMatchSnapshot()
   })

@@ -1,8 +1,9 @@
 import type { PullRequestData } from '../types'
+import { cwd } from 'node:process'
 import * as core from '@actions/core'
-import { exec } from '@actions/exec'
 import * as github from '@actions/github'
-import { checkReleaseBranch, getPullRequestNumber, getPullRequestReleaseDirs } from '../utils'
+import { checkReleaseBranch, getConfiguredPackages, getPullRequestNumber, getPullRequestReleaseDirs, publishRelease } from '../utils'
+import useGit from '../utils/git'
 import useGithub from '../utils/github'
 
 export async function pull_request_target(token: string) {
@@ -10,7 +11,7 @@ export async function pull_request_target(token: string) {
     return false
   }
   const prNumber = getPullRequestNumber()
-  const { getPullRequestData, getPullRequestFiles } = useGithub(token)
+  const { createRelease, getPullRequestData, getPullRequestFiles } = useGithub(token)
 
   const prData = await getPullRequestData(prNumber) as PullRequestData
   const isRelease = checkReleaseBranch(prData)
@@ -18,9 +19,12 @@ export async function pull_request_target(token: string) {
     return false
   }
   if (github.context.payload.action === 'closed' && github.context.payload.pull_request?.merged) {
+    if (!prData.merge_commit_sha)
+      throw new Error('The merged pull request does not have a merge commit SHA')
+    await useGit(token).checkoutCommit(prData.merge_commit_sha)
     const changeFiles = await getPullRequestFiles(prNumber)
     core.info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
-    const releaseDirs = await getPullRequestReleaseDirs(changeFiles)
+    const releaseDirs = await getPullRequestReleaseDirs(changeFiles, getConfiguredPackages(cwd()))
     core.info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
     if (!releaseDirs.length) {
       core.info('没有更新发布版本')
@@ -29,14 +33,22 @@ export async function pull_request_target(token: string) {
     for (const release of releaseDirs) {
       if (release.private) {
         core.info(`${release.name} is private package, skip publish`)
-        return
+      }
+      else {
+        await publishRelease(release)
       }
 
-      await exec('pnpm', ['publish', '--no-git-checks', '--filter', `${release.name}`, '--tag', release.tag])
-      // if (release.changelog && release.tag === 'latest') {
-      //   const title = `${release.name}@${release.version}`
-      //   await createRelease(title, title, release.changelog)
-      // }
+      if (release.changelog && release.tag === 'latest') {
+        const title = `${release.name}@${release.version}`
+        try {
+          core.info(`Creating release for ${release.name}: ${title}`)
+          await createRelease(title, title, release.changelog, prData.merge_commit_sha)
+          core.info(`${release.name} release created: ${title}`)
+        }
+        catch (err) {
+          core.info(`Failed to create release for ${release.name}: ${err}`)
+        }
+      }
     }
   }
 }
