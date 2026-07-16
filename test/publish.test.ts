@@ -26,9 +26,9 @@ describe('publishRelease', () => {
     expect(exec).toHaveBeenCalledWith('pnpm', ['publish', '--no-git-checks', '--filter', 'example', '--tag', 'latest'])
   })
 
-  it('publishes Flutter packages from their package directory', async () => {
+  it('does not publish Flutter packages directly', async () => {
     await publishRelease({ ...release, type: 'flutter' })
 
-    expect(exec).toHaveBeenCalledWith('flutter', ['pub', 'publish', '--force'], { cwd: 'packages/example' })
+    expect(exec).not.toHaveBeenCalled()
   })
 })

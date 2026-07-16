@@ -104,15 +104,17 @@ export async function pull_request(token: string) {
         return
       }
       for (const release of releaseDirs) {
+        const title = `${release.name}@${release.version}`
+        const shouldCreateRelease = release.type === 'flutter' || Boolean(release.changelog && release.tag === 'latest')
+
         if (release.private) {
           info(`${release.name} is private package, skip publish`)
         }
-        else {
+        else if (release.type === 'node') {
           await publishRelease(release)
         }
 
-        if (release.changelog && release.tag === 'latest') {
-          const title = `${release.name}@${release.version}`
+        if (shouldCreateRelease) {
           try {
             info(`Creating release for ${release.name}: ${title}`)
             await createRelease(title, title, release.changelog, pullRequestData.merge_commit_sha)

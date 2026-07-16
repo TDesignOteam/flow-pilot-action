@@ -72,6 +72,5 @@ export default function useGithub(token: string) {
       target_commitish,
     })
   }
-
   return { getPullRequestData, getPullRequestFiles, addPullRequestLabels, addComment, updateComment, getCommentList, getRequestedReviewers, createRelease }
 }

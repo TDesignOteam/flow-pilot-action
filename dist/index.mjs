@@ -31388,11 +31388,7 @@ async function confirmReleaseLog(prNumber, log, token) {
 //#endregion
 //#region src/utils/publish.ts
 function publishRelease(release) {
-	if (release.type === "flutter") return exec("flutter", [
-		"pub",
-		"publish",
-		"--force"
-	], { cwd: release.dir });
+	if (release.type === "flutter") return Promise.resolve(0);
 	return exec("pnpm", [
 		"publish",
 		"--no-git-checks",
@@ -82689,17 +82685,16 @@ async function pull_request(token) {
 				return;
 			}
 			for (const release of releaseDirs) {
+				const title = `${release.name}@${release.version}`;
+				const shouldCreateRelease = release.type === "flutter" || Boolean(release.changelog && release.tag === "latest");
 				if (release.private) info(`${release.name} is private package, skip publish`);
-				else await publishRelease(release);
-				if (release.changelog && release.tag === "latest") {
-					const title = `${release.name}@${release.version}`;
-					try {
-						info(`Creating release for ${release.name}: ${title}`);
-						await createRelease(title, title, release.changelog, pullRequestData.merge_commit_sha);
-						info(`${release.name} release created: ${title}`);
-					} catch (err) {
-						info(`Failed to create release for ${release.name}: ${err}`);
-					}
+				else if (release.type === "node") await publishRelease(release);
+				if (shouldCreateRelease) try {
+					info(`Creating release for ${release.name}: ${title}`);
+					await createRelease(title, title, release.changelog, pullRequestData.merge_commit_sha);
+					info(`${release.name} release created: ${title}`);
+				} catch (err) {
+					info(`Failed to create release for ${release.name}: ${err}`);
 				}
 			}
 		}
@@ -82747,17 +82742,16 @@ async function pull_request_target(token) {
 			return;
 		}
 		for (const release of releaseDirs) {
+			const title = `${release.name}@${release.version}`;
+			const shouldCreateRelease = release.type === "flutter" || Boolean(release.changelog && release.tag === "latest");
 			if (release.private) info(`${release.name} is private package, skip publish`);
-			else await publishRelease(release);
-			if (release.changelog && release.tag === "latest") {
-				const title = `${release.name}@${release.version}`;
-				try {
-					info(`Creating release for ${release.name}: ${title}`);
-					await createRelease(title, title, release.changelog, prData.merge_commit_sha);
-					info(`${release.name} release created: ${title}`);
-				} catch (err) {
-					info(`Failed to create release for ${release.name}: ${err}`);
-				}
+			else if (release.type === "node") await publishRelease(release);
+			if (shouldCreateRelease) try {
+				info(`Creating release for ${release.name}: ${title}`);
+				await createRelease(title, title, release.changelog, prData.merge_commit_sha);
+				info(`${release.name} release created: ${title}`);
+			} catch (err) {
+				info(`Failed to create release for ${release.name}: ${err}`);
 			}
 		}
 	}

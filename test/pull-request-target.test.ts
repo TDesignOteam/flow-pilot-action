@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   createRelease: vi.fn(),
   getPullRequestData: vi.fn(),
   getPullRequestFiles: vi.fn(),
+  getPullRequestReleaseDirs: vi.fn(),
   publishRelease: vi.fn(),
 }))
 
@@ -20,15 +21,7 @@ vi.mock('../src/utils', () => ({
   checkReleaseBranch: () => true,
   getConfiguredPackages: () => [],
   getPullRequestNumber: () => 1,
-  getPullRequestReleaseDirs: () => [{
-    dir: 'packages/private-package',
-    name: 'private-package',
-    version: '1.0.0',
-    type: 'flutter',
-    private: true,
-    tag: 'latest',
-    changelog: 'release notes',
-  }],
+  getPullRequestReleaseDirs: mocks.getPullRequestReleaseDirs,
   publishRelease: mocks.publishRelease,
 }))
 vi.mock('../src/utils/git', () => ({
@@ -50,6 +43,15 @@ describe('pull_request_target', () => {
       merge_commit_sha: 'merge-sha',
     })
     mocks.getPullRequestFiles.mockResolvedValue([])
+    mocks.getPullRequestReleaseDirs.mockReturnValue([{
+      dir: 'packages/private-package',
+      name: 'private-package',
+      version: '1.0.0',
+      type: 'flutter',
+      private: true,
+      tag: 'latest',
+      changelog: 'release notes',
+    }])
   })
 
   it('creates a tag for a private package without publishing it to a registry', async () => {
@@ -61,6 +63,28 @@ describe('pull_request_target', () => {
       'private-package@1.0.0',
       'private-package@1.0.0',
       'release notes',
+      'merge-sha',
+    )
+  })
+
+  it('creates a release for a public Flutter prerelease without publishing it directly', async () => {
+    mocks.getPullRequestReleaseDirs.mockReturnValue([{
+      dir: 'packages/public-package',
+      name: 'public-package',
+      version: '2.0.0-beta.1',
+      type: 'flutter',
+      private: false,
+      tag: 'beta',
+      changelog: '',
+    }])
+
+    await pull_request_target('token')
+
+    expect(mocks.publishRelease).not.toHaveBeenCalled()
+    expect(mocks.createRelease).toHaveBeenCalledWith(
+      'public-package@2.0.0-beta.1',
+      'public-package@2.0.0-beta.1',
+      '',
       'merge-sha',
     )
   })

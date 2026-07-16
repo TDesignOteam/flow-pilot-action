@@ -31,15 +31,17 @@ export async function pull_request_target(token: string) {
       return
     }
     for (const release of releaseDirs) {
+      const title = `${release.name}@${release.version}`
+      const shouldCreateRelease = release.type === 'flutter' || Boolean(release.changelog && release.tag === 'latest')
+
       if (release.private) {
         core.info(`${release.name} is private package, skip publish`)
       }
-      else {
+      else if (release.type === 'node') {
         await publishRelease(release)
       }
 
-      if (release.changelog && release.tag === 'latest') {
-        const title = `${release.name}@${release.version}`
+      if (shouldCreateRelease) {
         try {
           core.info(`Creating release for ${release.name}: ${title}`)
           await createRelease(title, title, release.changelog, prData.merge_commit_sha)
