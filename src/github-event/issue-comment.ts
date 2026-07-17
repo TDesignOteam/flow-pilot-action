@@ -13,24 +13,62 @@ export async function issue_comment(token: string) {
   if (github.context.eventName !== 'issue_comment') {
     return false
   }
-  if (github.context.payload.action !== 'edited') {
+  if (!github.context.payload.issue?.pull_request) {
     return false
   }
 
-  if (github.context.payload.changes?.body === github.context.payload.comment?.body) {
+  const action = github.context.payload.action
+  const confirmLog = github.context.payload.comment?.body || ''
+  const isChangelogCommand = action === 'created' && confirmLog.trim() === '/changelog'
+  if (action !== 'edited' && !isChangelogCommand) {
+    return false
+  }
+
+  if (action === 'edited' && github.context.payload.changes?.body === github.context.payload.comment?.body) {
     return false
   }
   const whitelist = await getPrCommentWhitelist()
   if (!whitelist.includes(github.context.actor)) {
     return false
   }
-  const confirmLog = github.context.payload.comment?.body || ''
 
   const prNumber = getPullRequestNumber()
+
+  if (isChangelogCommand) {
+    const { getPullRequestData } = useGithub(token)
+    const prData = await getPullRequestData(prNumber) as PullRequestData
+    return confirmPullRequestChangelog(prNumber, prData, token)
+  }
 
   await confirmChangelog(prNumber, confirmLog, token)
 
   await confirmReleaseLog(prNumber, confirmLog, token)
+}
+
+export async function confirmPullRequestChangelog(prNumber: number, prData: PullRequestData, token: string) {
+  if (prData.head.ref.startsWith('release/')) {
+    return false
+  }
+
+  let logs = ''
+  const prLog = extractChangelog(prData.body || '', getInputPkgs())
+  core.info(`pr_log: ${JSON.stringify(prLog, null, 2)}`)
+  Object.keys(prLog).forEach((pkgName) => {
+    if (!prLog[pkgName].length) {
+      return
+    }
+    logs += `#### ${pkgName}\n`
+    prLog[pkgName].forEach((log) => {
+      logs += `- ${log}\n`
+    })
+  })
+  if (!logs) {
+    return false
+  }
+
+  const body = `### 📝 更新日志\n\n${logs}\n\n`
+  await confirmChangelog(prNumber, body, token)
+  return true
 }
 
 export async function confirmChangelog(prNumber: number, log: string, token: string) {

@@ -31064,6 +31064,7 @@ function renderChangelog(heading, changelogs) {
 }
 function getPullRequestNumber() {
 	if (["pull_request", "pull_request_target"].includes(context.eventName)) return Number(context.payload.number);
+	if (context.eventName === "pull_request_review") return Number(context.payload.pull_request?.number);
 	if (context.eventName === "issue_comment" && context.payload.issue?.pull_request) return Number(context.payload.issue.number);
 	return 0;
 }
@@ -31269,13 +31270,36 @@ function useGithub(token) {
 //#region src/github-event/issue-comment.ts
 async function issue_comment(token) {
 	if (context.eventName !== "issue_comment") return false;
-	if (context.payload.action !== "edited") return false;
-	if (context.payload.changes?.body === context.payload.comment?.body) return false;
-	if (!(await getPrCommentWhitelist()).includes(context.actor)) return false;
+	if (!context.payload.issue?.pull_request) return false;
+	const action = context.payload.action;
 	const confirmLog = context.payload.comment?.body || "";
+	const isChangelogCommand = action === "created" && confirmLog.trim() === "/changelog";
+	if (action !== "edited" && !isChangelogCommand) return false;
+	if (action === "edited" && context.payload.changes?.body === context.payload.comment?.body) return false;
+	if (!(await getPrCommentWhitelist()).includes(context.actor)) return false;
 	const prNumber = getPullRequestNumber();
+	if (isChangelogCommand) {
+		const { getPullRequestData } = useGithub(token);
+		return confirmPullRequestChangelog(prNumber, await getPullRequestData(prNumber), token);
+	}
 	await confirmChangelog(prNumber, confirmLog, token);
 	await confirmReleaseLog(prNumber, confirmLog, token);
+}
+async function confirmPullRequestChangelog(prNumber, prData, token) {
+	if (prData.head.ref.startsWith("release/")) return false;
+	let logs = "";
+	const prLog = extractChangelog(prData.body || "", getInputPkgs());
+	info(`pr_log: ${JSON.stringify(prLog, null, 2)}`);
+	Object.keys(prLog).forEach((pkgName) => {
+		if (!prLog[pkgName].length) return;
+		logs += `#### ${pkgName}\n`;
+		prLog[pkgName].forEach((log) => {
+			logs += `- ${log}\n`;
+		});
+	});
+	if (!logs) return false;
+	await confirmChangelog(prNumber, `### 📝 更新日志\n\n${logs}\n\n`, token);
+	return true;
 }
 async function confirmChangelog(prNumber, log, token) {
 	if (!log.startsWith("### 📝 更新日志")) return false;
@@ -82709,18 +82733,7 @@ async function pull_request_review(token) {
 	if (!(await getPrCommentWhitelist()).includes(context.actor)) return false;
 	const prNumber = getPullRequestNumber();
 	const pullRequestData = context.payload.pull_request;
-	if (pullRequestData.head.ref.startsWith("release/")) return false;
-	let logs = "";
-	const prLog = extractChangelog(pullRequestData.body || "", getInputPkgs());
-	info(`pr_log: ${JSON.stringify(prLog, null, 2)}`);
-	Object.keys(prLog).forEach((pkgName) => {
-		if (!prLog[pkgName].length) return;
-		logs += `#### ${pkgName}\n`;
-		prLog[pkgName].forEach((log) => {
-			logs += `- ${log}\n`;
-		});
-	});
-	if (logs) await confirmChangelog(prNumber, `### 📝 更新日志\n\n${logs}\n\n`, token);
+	return confirmPullRequestChangelog(prNumber, pullRequestData, token);
 }
 //#endregion
 //#region src/github-event/pull-request-target.ts
