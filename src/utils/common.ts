@@ -429,6 +429,9 @@ export function getPullRequestNumber() {
   if (['pull_request', 'pull_request_target'].includes(github.context.eventName)) {
     return Number(github.context.payload.number)
   }
+  if (github.context.eventName === 'pull_request_review') {
+    return Number(github.context.payload.pull_request?.number)
+  }
   if (github.context.eventName === 'issue_comment' && github.context.payload.issue?.pull_request) {
     return Number(github.context.payload.issue.number)
   }
