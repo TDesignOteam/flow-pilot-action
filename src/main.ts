@@ -3,7 +3,6 @@ import * as github from '@actions/github'
 import { issue_comment } from './github-event'
 import { pull_request } from './github-event/pull-request'
 import { pull_request_review } from './github-event/pull-request-review'
-import { pull_request_target } from './github-event/pull-request-target'
 import { workflow_run } from './github-event/workflow-run'
 
 export async function run() {
@@ -18,8 +17,6 @@ export async function run() {
   await issue_comment(token)
 
   await pull_request(token)
-
-  await pull_request_target(token)
 
   await pull_request_review(token)
 

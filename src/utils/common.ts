@@ -426,7 +426,7 @@ function renderChangelog(heading: string, changelogs: Record<string, string[]>) 
 }
 
 export function getPullRequestNumber() {
-  if (['pull_request', 'pull_request_target'].includes(github.context.eventName)) {
+  if (github.context.eventName === 'pull_request') {
     return Number(github.context.payload.number)
   }
   if (github.context.eventName === 'pull_request_review') {

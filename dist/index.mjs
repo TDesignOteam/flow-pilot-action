@@ -31063,7 +31063,7 @@ function renderChangelog(heading, changelogs) {
 	return content;
 }
 function getPullRequestNumber() {
-	if (["pull_request", "pull_request_target"].includes(context.eventName)) return Number(context.payload.number);
+	if (context.eventName === "pull_request") return Number(context.payload.number);
 	if (context.eventName === "pull_request_review") return Number(context.payload.pull_request?.number);
 	if (context.eventName === "issue_comment" && context.payload.issue?.pull_request) return Number(context.payload.issue.number);
 	return 0;
@@ -31078,9 +31078,6 @@ function getConfiguredPackages(path) {
 	const packageNames = getInputPkgs();
 	const packages = getPackages(path);
 	return packageNames.length ? packages.filter((pkg) => packageNames.includes(pkg.name)) : packages;
-}
-function checkReleaseBranch(prData) {
-	return prData.head.ref.startsWith("release/");
 }
 function checkIsForkPr(prData) {
 	return prData.head.user.login !== context.repo.owner;
@@ -82736,40 +82733,6 @@ async function pull_request_review(token) {
 	return confirmPullRequestChangelog(prNumber, pullRequestData, token);
 }
 //#endregion
-//#region src/github-event/pull-request-target.ts
-async function pull_request_target(token) {
-	if (context.eventName !== "pull_request_target") return false;
-	const prNumber = getPullRequestNumber();
-	const { createRelease, getPullRequestData, getPullRequestFiles } = useGithub(token);
-	const prData = await getPullRequestData(prNumber);
-	if (!checkReleaseBranch(prData)) return false;
-	if (context.payload.action === "closed" && context.payload.pull_request?.merged) {
-		if (!prData.merge_commit_sha) throw new Error("The merged pull request does not have a merge commit SHA");
-		await useGit(token).checkoutCommit(prData.merge_commit_sha);
-		const changeFiles = await getPullRequestFiles(prNumber);
-		info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
-		const releaseDirs = await getPullRequestReleaseDirs(changeFiles, getConfiguredPackages(cwd()));
-		info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
-		if (!releaseDirs.length) {
-			info("没有更新发布版本");
-			return;
-		}
-		for (const release of releaseDirs) {
-			const title = `${release.name}@${release.version}`;
-			const shouldCreateRelease = release.type === "flutter" || Boolean(release.changelog && release.tag === "latest");
-			if (release.private) info(`${release.name} is private package, skip publish`);
-			else if (release.type === "node") await publishRelease(release);
-			if (shouldCreateRelease) try {
-				info(`Creating release for ${release.name}: ${title}`);
-				await createRelease(title, title, release.changelog, prData.merge_commit_sha);
-				info(`${release.name} release created: ${title}`);
-			} catch (err) {
-				info(`Failed to create release for ${release.name}: ${err}`);
-			}
-		}
-	}
-}
-//#endregion
 //#region src/github-event/workflow-run.ts
 async function workflow_run(token) {
 	if (context.eventName !== "workflow_run") return false;
@@ -82820,7 +82783,6 @@ async function run() {
 	info(`action: ${context.payload.action}`);
 	await issue_comment(token);
 	await pull_request(token);
-	await pull_request_target(token);
 	await pull_request_review(token);
 	await workflow_run(token);
 }
