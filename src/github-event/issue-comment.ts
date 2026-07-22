@@ -124,7 +124,7 @@ export async function confirmChangelog(prNumber: number, log: string, token: str
     await gitPush(changelogBranch)
     if (!openChangelogPr) {
       const pullRequest = await createPullRequest(
-        `chore: 补充 #${prNumber} 的 Changelog`,
+        `chore: add changelog for #${prNumber}`,
         changelogBranch,
         prData.base.ref,
         `补充已合并 PR #${prNumber} 的 Changelog。`,

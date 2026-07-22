@@ -31363,7 +31363,7 @@ async function confirmChangelog(prNumber, log, token) {
 	]);
 	if (isMerged) {
 		await gitPush(changelogBranch);
-		if (!openChangelogPr) info(`Created changelog pull request: ${(await createPullRequest(`chore: 补充 #${prNumber} 的 Changelog`, changelogBranch, prData.base.ref, `补充已合并 PR #${prNumber} 的 Changelog。`)).html_url}`);
+		if (!openChangelogPr) info(`Created changelog pull request: ${(await createPullRequest(`chore: add changelog for #${prNumber}`, changelogBranch, prData.base.ref, `补充已合并 PR #${prNumber} 的 Changelog。`)).html_url}`);
 	} else if (isForkPr) await exec("git", [
 		"push",
 		prData.head.user.login,
