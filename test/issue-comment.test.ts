@@ -167,7 +167,7 @@ describe('issue_comment', () => {
     expect(mocks.createBranch).toHaveBeenCalledWith('changelog/pr-42')
     expect(mocks.gitPush).toHaveBeenCalledWith('changelog/pr-42')
     expect(mocks.createPullRequest).toHaveBeenCalledWith(
-      'chore: 补充 #42 的 Changelog',
+      'chore: add changelog for #42',
       'changelog/pr-42',
       'develop',
       '补充已合并 PR #42 的 Changelog。',
