@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   checkoutBranch: vi.fn(),
   checkoutPr: vi.fn(),
   cloneRepo: vi.fn(),
+  createBranch: vi.fn(),
+  createPullRequest: vi.fn(),
   context: {
     actor: 'maintainer',
     eventName: 'issue_comment',
@@ -27,7 +29,9 @@ const mocks = vi.hoisted(() => ({
   exec: vi.fn(),
   extractChangelog: vi.fn(),
   getPrCommentWhitelist: vi.fn(),
+  getOpenPullRequestByHead: vi.fn(),
   getPullRequestData: vi.fn(),
+  gitPush: vi.fn(),
   isNeedCommit: vi.fn(),
   stashPackageChangelog: vi.fn(),
 }))
@@ -52,15 +56,22 @@ vi.mock('../src/utils/git', () => ({
     checkoutBranch: mocks.checkoutBranch,
     checkoutPr: mocks.checkoutPr,
     cloneRepo: mocks.cloneRepo,
+    createBranch: mocks.createBranch,
+    gitPush: mocks.gitPush,
     isNeedCommit: mocks.isNeedCommit,
   }),
 }))
 vi.mock('../src/utils/github', () => ({
-  default: () => ({ getPullRequestData: mocks.getPullRequestData }),
+  default: () => ({
+    createPullRequest: mocks.createPullRequest,
+    getOpenPullRequestByHead: mocks.getOpenPullRequestByHead,
+    getPullRequestData: mocks.getPullRequestData,
+  }),
 }))
 
 const prData = {
   body: '### 📝 更新日志\n\n#### pkg-a\n- feat(Button): add loading state',
+  base: { ref: 'develop' },
   head: {
     ref: 'feat/loading',
     repo: { clone_url: 'https://github.com/owner/repo.git' },
@@ -83,6 +94,8 @@ describe('issue_comment', () => {
     mocks.getPullRequestData.mockResolvedValue(prData)
     mocks.extractChangelog.mockReturnValue({ 'pkg-a': ['feat(Button): add loading state'] })
     mocks.isNeedCommit.mockResolvedValue(false)
+    mocks.getOpenPullRequestByHead.mockResolvedValue(undefined)
+    mocks.createPullRequest.mockResolvedValue({ html_url: 'https://github.com/owner/repo/pull/43' })
   })
 
   it('submits the PR body changelog when /changelog is created', async () => {
@@ -141,6 +154,37 @@ describe('issue_comment', () => {
 
     expect(mocks.extractChangelog).not.toHaveBeenCalled()
     expect(mocks.cloneRepo).not.toHaveBeenCalled()
+  })
+
+  it('creates a changelog pull request when the original PR is already merged', async () => {
+    mocks.getPullRequestData.mockResolvedValue({ ...prData, merged: true })
+    mocks.isNeedCommit.mockResolvedValue(true)
+
+    await expect(issue_comment('token')).resolves.toBe(true)
+
+    expect(mocks.getOpenPullRequestByHead).toHaveBeenCalledWith('changelog/pr-42')
+    expect(mocks.checkoutBranch).toHaveBeenCalledWith('develop')
+    expect(mocks.createBranch).toHaveBeenCalledWith('changelog/pr-42')
+    expect(mocks.gitPush).toHaveBeenCalledWith('changelog/pr-42')
+    expect(mocks.createPullRequest).toHaveBeenCalledWith(
+      'chore: 补充 #42 的 Changelog',
+      'changelog/pr-42',
+      'develop',
+      '补充已合并 PR #42 的 Changelog。',
+    )
+  })
+
+  it('updates an existing changelog pull request for a merged PR', async () => {
+    mocks.getPullRequestData.mockResolvedValue({ ...prData, merged: true })
+    mocks.getOpenPullRequestByHead.mockResolvedValue({ number: 43 })
+    mocks.isNeedCommit.mockResolvedValue(true)
+
+    await expect(issue_comment('token')).resolves.toBe(true)
+
+    expect(mocks.checkoutBranch).toHaveBeenCalledWith('changelog/pr-42')
+    expect(mocks.createBranch).not.toHaveBeenCalled()
+    expect(mocks.gitPush).toHaveBeenCalledWith('changelog/pr-42')
+    expect(mocks.createPullRequest).not.toHaveBeenCalled()
   })
 
   it('keeps processing edited changelog confirmations', async () => {

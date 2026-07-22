@@ -79,13 +79,25 @@ export async function confirmChangelog(prNumber: number, log: string, token: str
 
   core.info(`stash_changelog: ${JSON.stringify(changelog, null, 2)}`)
 
-  const { getPullRequestData } = useGithub(token)
+  const { createPullRequest, getOpenPullRequestByHead, getPullRequestData } = useGithub(token)
   const prData = await getPullRequestData(prNumber) as PullRequestData
 
-  const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = useGit(token)
+  const { cloneRepo, addRemote, checkoutPr, checkoutBranch, createBranch, gitPush, isNeedCommit } = useGit(token)
+  const isMerged = prData.merged === true
+  const changelogBranch = `changelog/pr-${prNumber}`
+  const openChangelogPr = isMerged ? await getOpenPullRequestByHead(changelogBranch) : undefined
   await cloneRepo()
   const isForkPr = checkIsForkPr(prData)
-  if (isForkPr) {
+  if (isMerged) {
+    if (openChangelogPr) {
+      await checkoutBranch(changelogBranch)
+    }
+    else {
+      await checkoutBranch(prData.base.ref)
+      await createBranch(changelogBranch)
+    }
+  }
+  else if (isForkPr) {
     await addRemote(prData.head.user.login, prData.head?.repo?.clone_url || '')
     await checkoutPr(prNumber)
     await exec('git', [
@@ -108,7 +120,19 @@ export async function confirmChangelog(prNumber: number, log: string, token: str
     return true
   }
   await exec('git', ['commit', '-m', 'chore: stash changelog [ci skip]'])
-  if (isForkPr) {
+  if (isMerged) {
+    await gitPush(changelogBranch)
+    if (!openChangelogPr) {
+      const pullRequest = await createPullRequest(
+        `chore: 补充 #${prNumber} 的 Changelog`,
+        changelogBranch,
+        prData.base.ref,
+        `补充已合并 PR #${prNumber} 的 Changelog。`,
+      )
+      core.info(`Created changelog pull request: ${pullRequest.html_url}`)
+    }
+  }
+  else if (isForkPr) {
     await exec('git', ['push', prData.head.user.login, `HEAD:${prData.head.ref}`])
   }
   else {
