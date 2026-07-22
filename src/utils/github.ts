@@ -21,6 +21,26 @@ export default function useGithub(token: string) {
       per_page: 100,
     })
   }
+  async function getOpenPullRequestByHead(head: string) {
+    const { data } = await octokit.rest.pulls.list({
+      owner,
+      repo,
+      head: `${owner}:${head}`,
+      state: 'open',
+    })
+    return data[0]
+  }
+  async function createPullRequest(title: string, head: string, base: string, body: string) {
+    const { data } = await octokit.rest.pulls.create({
+      owner,
+      repo,
+      title,
+      head,
+      base,
+      body,
+    })
+    return data
+  }
   async function getCommentList(pr_number: number) {
     const { data } = await octokit.rest.issues.listComments({
       owner,
@@ -72,5 +92,5 @@ export default function useGithub(token: string) {
       target_commitish,
     })
   }
-  return { getPullRequestData, getPullRequestFiles, addPullRequestLabels, addComment, updateComment, getCommentList, getRequestedReviewers, createRelease }
+  return { getPullRequestData, getPullRequestFiles, getOpenPullRequestByHead, createPullRequest, addPullRequestLabels, addComment, updateComment, getCommentList, getRequestedReviewers, createRelease }
 }

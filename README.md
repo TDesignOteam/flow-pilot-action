@@ -215,7 +215,7 @@ type(scope): message
 普通 PR 打开后，FlowPilot 通过 `changelog` output 提供一条带提示行的待确认评论。可以通过以下任一方式确认日志：
 
 1. 编辑待确认评论，检查日志内容并删除第一行提示，使评论以 `### 📝 更新日志` 开头。
-2. 由白名单成员在 PR 下创建内容为 `/changelog` 的评论。指令允许首尾空白，但不能包含其他内容。
+2. 由白名单成员在 PR 下创建内容为 `/changelog` 的评论。指令允许首尾空白，但不能包含其他内容；PR 已合并时会从目标分支创建补日志 PR。
 3. 由白名单成员提交状态为 `approved` 的 PR Review。
 
 通过 `/changelog` 或 Review 确认时，FlowPilot 从最新 PR 描述提取日志；编辑待确认评论时，以修改后的评论内容为准。随后 FlowPilot 向 PR 分支提交：
@@ -225,6 +225,8 @@ type(scope): message
 ```
 
 暂存文件包含 PR 编号、贡献者、日志内容和 PR 链接，提交信息为 `chore: stash changelog [ci skip]`。重复确认同一 PR 会更新对应文件，不会创建多份日志。
+
+如果原 PR 已合并，FlowPilot 不再向原 head 分支推送，而是从原 PR 的 base 分支创建 `changelog/pr-<PR number>` 分支并提交补日志 PR。重复执行 `/changelog` 时，如果该补日志 PR 仍处于打开状态，则更新现有分支，不会重复创建 PR。该流程要求 token 具有 Contents 写权限和 Pull requests 写权限。
 
 ### `/changelog` 指令限制
 
@@ -337,7 +339,7 @@ FlowPilot 会递归查找 `package.json` 和 `pubspec.yaml`，包发现本身不
 | `pull_request: opened` | 非 fork 的 `release/*` PR | 生成 release Changelog 确认评论 |
 | `pull_request: closed` | 已合并的 `release/*` PR | 发布 Node 包并创建符合条件的 GitHub Release/tag |
 | `pull_request_review: submitted` | approved、白名单成员、普通 PR | 从 PR 描述确认并暂存日志 |
-| `issue_comment: created` | PR 评论为 `/changelog`、白名单成员 | 从 PR 描述确认并暂存日志 |
+| `issue_comment: created` | PR 评论为 `/changelog`、白名单成员 | 从 PR 描述确认并暂存日志；原 PR 已合并时创建补日志 PR |
 | `issue_comment: edited` | 白名单成员 | 确认普通 PR 或 release Changelog 评论 |
 | `workflow_run: completed` | 来源为成功的 `pull_request_review` workflow | 使用 `pr_number` 确认日志的兼容入口 |
 

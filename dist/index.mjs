@@ -31202,6 +31202,26 @@ function useGithub(token) {
 			per_page: 100
 		});
 	}
+	async function getOpenPullRequestByHead(head) {
+		const { data } = await octokit.rest.pulls.list({
+			owner,
+			repo,
+			head: `${owner}:${head}`,
+			state: "open"
+		});
+		return data[0];
+	}
+	async function createPullRequest(title, head, base, body) {
+		const { data } = await octokit.rest.pulls.create({
+			owner,
+			repo,
+			title,
+			head,
+			base,
+			body
+		});
+		return data;
+	}
 	async function getCommentList(pr_number) {
 		const { data } = await octokit.rest.issues.listComments({
 			owner,
@@ -31255,6 +31275,8 @@ function useGithub(token) {
 	return {
 		getPullRequestData,
 		getPullRequestFiles,
+		getOpenPullRequestByHead,
+		createPullRequest,
 		addPullRequestLabels,
 		addComment,
 		updateComment,
@@ -31302,12 +31324,20 @@ async function confirmChangelog(prNumber, log, token) {
 	if (!log.startsWith("### 📝 更新日志")) return false;
 	const changelog = extractChangelog(log || "", getInputPkgs());
 	info(`stash_changelog: ${JSON.stringify(changelog, null, 2)}`);
-	const { getPullRequestData } = useGithub(token);
+	const { createPullRequest, getOpenPullRequestByHead, getPullRequestData } = useGithub(token);
 	const prData = await getPullRequestData(prNumber);
-	const { cloneRepo, addRemote, checkoutPr, checkoutBranch, isNeedCommit } = useGit(token);
+	const { cloneRepo, addRemote, checkoutPr, checkoutBranch, createBranch, gitPush, isNeedCommit } = useGit(token);
+	const isMerged = prData.merged === true;
+	const changelogBranch = `changelog/pr-${prNumber}`;
+	const openChangelogPr = isMerged ? await getOpenPullRequestByHead(changelogBranch) : void 0;
 	await cloneRepo();
 	const isForkPr = checkIsForkPr(prData);
-	if (isForkPr) {
+	if (isMerged) if (openChangelogPr) await checkoutBranch(changelogBranch);
+	else {
+		await checkoutBranch(prData.base.ref);
+		await createBranch(changelogBranch);
+	}
+	else if (isForkPr) {
 		await addRemote(prData.head.user.login, prData.head?.repo?.clone_url || "");
 		await checkoutPr(prNumber);
 		await exec("git", [
@@ -31331,7 +31361,10 @@ async function confirmChangelog(prNumber, log, token) {
 		"-m",
 		"chore: stash changelog [ci skip]"
 	]);
-	if (isForkPr) await exec("git", [
+	if (isMerged) {
+		await gitPush(changelogBranch);
+		if (!openChangelogPr) info(`Created changelog pull request: ${(await createPullRequest(`chore: 补充 #${prNumber} 的 Changelog`, changelogBranch, prData.base.ref, `补充已合并 PR #${prNumber} 的 Changelog。`)).html_url}`);
+	} else if (isForkPr) await exec("git", [
 		"push",
 		prData.head.user.login,
 		`HEAD:${prData.head.ref}`
