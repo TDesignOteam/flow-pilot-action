@@ -132,6 +132,16 @@ export function extractReleaseLog(markdown: string) {
   return { pkgName, changelog: changelog.join('') }
 }
 
+/**
+ * 提取合并后的 release 日志（多条日志通过 --- 分隔）
+ */
+export function extractReleaseLogs(markdown: string) {
+  // 先统一换行符再分割
+  const normalized = markdown.replace(RN_TO_LF_REG, '\n')
+  const sections = normalized.split('\n\n---\n\n')
+  return sections.map(section => extractReleaseLog(section)).filter(item => item.pkgName)
+}
+
 export function stashPackageChangelog(prData: PullRequestData, packages: Package[], prChangelog: PackagesChangelog) {
   packages.forEach((pkg) => {
     const changelogData = prChangelog[pkg.name]

@@ -6,6 +6,7 @@ import { flutter_pull_request_files, merged_pull_request_files, merged_pull_requ
 import {
   extractChangelog,
   extractReleaseLog,
+  extractReleaseLogs,
   getInputPkgs,
   getPackages,
   getPullRequestReleaseDirs,
@@ -249,5 +250,20 @@ describe('utils', () => {
     const body = readFileSync('fixtures/release_comment/confirm.md', 'utf8').replaceAll('\n', '\r\n')
     const releaseLog = extractReleaseLog(body)
     expect(releaseLog).toMatchSnapshot()
+  })
+
+  it('extractReleaseLogs (merged)', () => {
+    const body = readFileSync('fixtures/release_comment/confirm-merged.md', 'utf8').replaceAll('\n', '\r\n')
+    const releaseLogs = extractReleaseLogs(body)
+    expect(releaseLogs).toMatchSnapshot()
+    expect(releaseLogs).toHaveLength(3)
+    expect(releaseLogs.map(l => l.pkgName)).toEqual(['pkg-a', 'pkg-b', 'pkg-c'])
+  })
+
+  it('extractReleaseLogs (single - backward compat)', () => {
+    const body = readFileSync('fixtures/release_comment/confirm.md', 'utf8').replaceAll('\n', '\r\n')
+    const releaseLogs = extractReleaseLogs(body)
+    expect(releaseLogs).toHaveLength(1)
+    expect(releaseLogs[0].pkgName).toBe('pkg-a')
   })
 })
