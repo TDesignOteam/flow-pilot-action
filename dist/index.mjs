@@ -30738,6 +30738,12 @@ function parseManifest(manifestPath) {
 		throw new Error(`Failed to parse package manifest "${manifestPath}": ${message}`);
 	}
 }
+function getNodeDependencies(manifest) {
+	return [...new Set(["dependencies", "devDependencies"].flatMap((field) => {
+		const dependencies = manifest[field];
+		return dependencies && typeof dependencies === "object" && !Array.isArray(dependencies) ? Object.keys(dependencies) : [];
+	}))];
+}
 function getPackages(path) {
 	const rootDir = resolve$1(path);
 	const manifestPaths = globSync(MANIFEST_PATTERN, {
@@ -30765,6 +30771,7 @@ function getPackages(path) {
 			version: typeof manifest.version === "string" ? manifest.version : void 0,
 			type,
 			private: type === "node" ? manifest.private === true : manifest.publish_to === "none",
+			dependencies: type === "node" ? getNodeDependencies(manifest) : [],
 			dir,
 			relativeDir
 		};
@@ -31441,6 +31448,44 @@ async function confirmReleaseLog(prNumber, log, token) {
 }
 //#endregion
 //#region src/utils/publish.ts
+function sortReleasePackages(releases, packages) {
+	const releaseIndexes = /* @__PURE__ */ new Map();
+	releases.forEach((release, index) => {
+		if (releaseIndexes.has(release.name)) throw new Error(`Duplicate release package name: ${release.name}`);
+		releaseIndexes.set(release.name, index);
+	});
+	const packageDependencies = new Map(packages.map((pkg) => [pkg.name, pkg.dependencies]));
+	const indegrees = new Map(releases.map((release) => [release.name, 0]));
+	const dependents = /* @__PURE__ */ new Map();
+	releases.forEach((release) => {
+		packageDependencies.get(release.name)?.forEach((dependency) => {
+			if (!releaseIndexes.has(dependency)) return;
+			indegrees.set(release.name, (indegrees.get(release.name) || 0) + 1);
+			dependents.set(dependency, [...dependents.get(dependency) || [], release]);
+		});
+	});
+	const ready = releases.filter((release) => indegrees.get(release.name) === 0);
+	const sorted = [];
+	const enqueue = (release) => {
+		const index = ready.findIndex((item) => releaseIndexes.get(item.name) > releaseIndexes.get(release.name));
+		if (index === -1) ready.push(release);
+		else ready.splice(index, 0, release);
+	};
+	while (ready.length) {
+		const release = ready.shift();
+		sorted.push(release);
+		dependents.get(release.name)?.forEach((dependent) => {
+			const indegree = (indegrees.get(dependent.name) || 0) - 1;
+			indegrees.set(dependent.name, indegree);
+			if (indegree === 0) enqueue(dependent);
+		});
+	}
+	if (sorted.length !== releases.length) {
+		const circularPackages = releases.filter((release) => indegrees.get(release.name) > 0).map((release) => release.name);
+		throw new Error(`Circular package dependencies detected: ${circularPackages.join(", ")}`);
+	}
+	return sorted;
+}
 function publishRelease(release) {
 	if (release.type === "flutter") return Promise.resolve(0);
 	return exec("pnpm", [
@@ -82732,7 +82777,8 @@ async function pull_request(token) {
 			await useGit(token).checkoutCommit(pullRequestData.merge_commit_sha);
 			const changeFiles = await getPullRequestFiles(prNumber);
 			info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
-			const releaseDirs = await getPullRequestReleaseDirs(changeFiles, getConfiguredPackages(cwd()));
+			const packages = getConfiguredPackages(cwd());
+			const releaseDirs = sortReleasePackages(getPullRequestReleaseDirs(changeFiles, packages), packages);
 			info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
 			if (!releaseDirs.length) {
 				info("没有更新发布版本");
