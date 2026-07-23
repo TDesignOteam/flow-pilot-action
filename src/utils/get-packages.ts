@@ -9,6 +9,7 @@ export interface Package {
   version?: string
   type: PackageType
   private: boolean
+  dependencies: string[]
   dir: string
   relativeDir: string
 }
@@ -36,6 +37,15 @@ function parseManifest(manifestPath: string) {
     const message = error instanceof Error ? error.message : String(error)
     throw new Error(`Failed to parse package manifest "${manifestPath}": ${message}`)
   }
+}
+
+function getNodeDependencies(manifest: Record<string, unknown>) {
+  return [...new Set(['dependencies', 'devDependencies'].flatMap((field) => {
+    const dependencies = manifest[field]
+    return dependencies && typeof dependencies === 'object' && !Array.isArray(dependencies)
+      ? Object.keys(dependencies)
+      : []
+  }))]
 }
 
 export function getPackages(path: string): Package[] {
@@ -79,6 +89,7 @@ export function getPackages(path: string): Package[] {
       version: typeof manifest.version === 'string' ? manifest.version : undefined,
       type,
       private: type === 'node' ? manifest.private === true : manifest.publish_to === 'none',
+      dependencies: type === 'node' ? getNodeDependencies(manifest) : [],
       dir,
       relativeDir,
     }

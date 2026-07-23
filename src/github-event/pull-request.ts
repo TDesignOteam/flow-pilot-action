@@ -2,7 +2,7 @@ import type { PullRequestData } from '../types'
 import { cwd } from 'node:process'
 import { getInput, info, setOutput } from '@actions/core'
 import * as github from '@actions/github'
-import { extractChangelog, getConfiguredPackages, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, publishRelease, renderChangelogMarkdown } from '../utils'
+import { extractChangelog, getConfiguredPackages, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, publishRelease, renderChangelogMarkdown, sortReleasePackages } from '../utils'
 import useGit from '../utils/git'
 import useGithub from '../utils/github'
 import { translateText } from '../utils/translate'
@@ -97,7 +97,8 @@ export async function pull_request(token: string) {
       await useGit(token).checkoutCommit(pullRequestData.merge_commit_sha)
       const changeFiles = await getPullRequestFiles(prNumber)
       info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
-      const releaseDirs = await getPullRequestReleaseDirs(changeFiles, getConfiguredPackages(cwd()))
+      const packages = getConfiguredPackages(cwd())
+      const releaseDirs = sortReleasePackages(getPullRequestReleaseDirs(changeFiles, packages), packages)
       info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
       if (!releaseDirs.length) {
         info('没有更新发布版本')

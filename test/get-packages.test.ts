@@ -33,6 +33,18 @@ describe('getPackages', () => {
     expect(packages[0].dir).toBe(resolve('fixtures/repo3/packages/flutter-a'))
   })
 
+  it('reads Node runtime and development dependencies', () => {
+    const dir = createTempDir()
+    writeFileSync(join(dir, 'package.json'), JSON.stringify({
+      name: 'example',
+      dependencies: { runtime: 'workspace:^', shared: '^1.0.0' },
+      devDependencies: { development: '^1.0.0', shared: '^1.0.0' },
+      peerDependencies: { peer: '^1.0.0' },
+    }))
+
+    expect(getPackages(dir)[0].dependencies).toEqual(['runtime', 'shared', 'development'])
+  })
+
   it('keeps a Flutter root package when it contains an example app', () => {
     const dir = createTempDir()
     mkdirSync(join(dir, 'example'), { recursive: true })
