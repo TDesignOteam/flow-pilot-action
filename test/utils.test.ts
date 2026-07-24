@@ -277,6 +277,24 @@ describe('utils', () => {
     ])
   })
 
+  it('extractReleaseLogs rejects a nested package heading', () => {
+    const body = '# 🎉 发布 pkg-a\n## 🌈 1.0.0\n\n- feature a\n\n## 🎉 发布 pkg-b\n## 🌈 2.0.0\n\n- feature b'
+
+    expect(() => extractReleaseLogs(body)).toThrow('must be level 1')
+  })
+
+  it('extractReleaseLogs rejects mixed languages', () => {
+    const body = '# 🎉 发布 pkg-a\n## 🌈 1.0.0\n\n- feature a\n\n# 🎉 Release pkg-b\n## 🌈 2.0.0\n\n- feature b'
+
+    expect(() => extractReleaseLogs(body, '🎉 发布')).toThrow('mixed languages')
+  })
+
+  it('extractReleaseLogs rejects a missing package name', () => {
+    const body = '# 🎉 发布 pkg-a\n## 🌈 1.0.0\n\n- feature a\n\n# 🎉 发布\n## 🌈 2.0.0\n\n- feature b'
+
+    expect(() => extractReleaseLogs(body, '🎉 发布')).toThrow('missing a package name')
+  })
+
   it('buildReleaseComments merges sections within the limit', () => {
     expect(buildReleaseComments('head\n', ['section-a', 'section-b'], 40)).toEqual([
       'head\nsection-a\n\n---\n\nsection-b',

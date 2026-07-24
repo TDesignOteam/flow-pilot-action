@@ -96,6 +96,7 @@ const prData = {
 describe('issue_comment', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.exec.mockResolvedValue(0)
     mocks.context.actor = 'maintainer'
     mocks.context.eventName = 'issue_comment'
     mocks.context.payload = {
@@ -242,7 +243,7 @@ describe('issue_comment', () => {
     expect(mocks.exec).toHaveBeenCalledWith('git', ['commit', '-m', 'chore: update pkg-a CHANGELOG.md'])
     expect(mocks.exec).toHaveBeenCalledWith('git', ['add', '-A', '--', 'packages/pkg-b'])
     expect(mocks.exec).toHaveBeenCalledWith('git', ['commit', '-m', 'chore: update pkg-b CHANGELOG.md'])
-    expect(mocks.exec).toHaveBeenCalledWith('git', ['push', 'origin', 'feat/loading'])
+    expect(mocks.exec).toHaveBeenCalledWith('git', ['push', 'origin', 'feat/loading'], { ignoreReturnCode: true })
   })
 
   it('confirms single release log (backward compat)', async () => {
@@ -271,7 +272,7 @@ describe('issue_comment', () => {
     expect(mocks.exec).toHaveBeenCalledWith('git', ['add', '-A', '--', 'packages/pkg-a'])
     expect(mocks.exec).toHaveBeenCalledWith('git', ['commit', '-m', 'chore: update pkg-a CHANGELOG.md'])
     expect(mocks.exec).not.toHaveBeenCalledWith('git', ['commit', '-m', 'chore: update pkg-b CHANGELOG.md'])
-    expect(mocks.exec).toHaveBeenCalledWith('git', ['push', 'origin', 'feat/loading'])
+    expect(mocks.exec).toHaveBeenCalledWith('git', ['push', 'origin', 'feat/loading'], { ignoreReturnCode: true })
   })
 
   it('rejects duplicate package release logs', async () => {
@@ -289,5 +290,56 @@ describe('issue_comment', () => {
 
     await expect(issue_comment('token')).rejects.toThrow('duplicate package names')
     expect(mocks.cloneRepo).not.toHaveBeenCalled()
+  })
+
+  it('rejects unknown packages before changing files', async () => {
+    const { extractReleaseLogs, getPullRequestReleaseDirs } = await import('../src/utils/common')
+    vi.mocked(extractReleaseLogs).mockReturnValue([
+      { pkgName: 'pkg-unknown', changelog: '## 🌈 1.0.0\n\n- feature\n\n' },
+    ])
+    vi.mocked(getPullRequestReleaseDirs).mockReturnValue([
+      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
+    ])
+    mocks.context.payload = {
+      action: 'edited',
+      changes: { body: { from: 'draft body' } },
+      comment: { body: '# 🎉 发布 pkg-unknown\n\n## 🌈 1.0.0\n\n- feature' },
+      issue: { number: 42, pull_request: {} },
+    }
+
+    await expect(issue_comment('token')).rejects.toThrow('unknown packages: pkg-unknown')
+    expect(mocks.exec).not.toHaveBeenCalledWith('git', expect.arrayContaining(['add']))
+  })
+
+  it('rebases and retries a rejected push', async () => {
+    const { extractReleaseLogs, getPullRequestReleaseDirs } = await import('../src/utils/common')
+    vi.mocked(extractReleaseLogs).mockReturnValue([
+      { pkgName: 'pkg-a', changelog: '## 🌈 1.0.0\n\n- feature\n\n' },
+    ])
+    vi.mocked(getPullRequestReleaseDirs).mockReturnValue([
+      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
+    ])
+    let pushAttempts = 0
+    mocks.exec.mockImplementation(async (_command, args) => {
+      if (args?.[0] === 'push') {
+        pushAttempts++
+        return pushAttempts === 1 ? 1 : 0
+      }
+      return 0
+    })
+    mocks.isNeedCommit.mockResolvedValue(true)
+    mocks.context.payload = {
+      action: 'edited',
+      changes: { body: { from: 'draft body' } },
+      comment: { body: '# 🎉 发布 pkg-a\n\n## 🌈 1.0.0\n\n- feature' },
+      issue: { number: 42, pull_request: {} },
+    }
+
+    await issue_comment('token')
+
+    expect(mocks.exec).toHaveBeenCalledTimes(7)
+    expect(mocks.exec).toHaveBeenNthCalledWith(4, 'git', ['pull', '--rebase', 'origin', 'feat/loading'])
+    expect(mocks.exec).toHaveBeenNthCalledWith(6, 'git', ['pull', '--rebase', 'origin', 'feat/loading'])
+    expect(pushAttempts).toBe(2)
   })
 })

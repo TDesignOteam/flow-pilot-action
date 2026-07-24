@@ -9,6 +9,8 @@ import { checkIsForkPr, extractChangelog, extractReleaseLogs, getConfiguredPacka
 import useGit from '../utils/git'
 import useGithub from '../utils/github'
 
+const PUSH_MAX_ATTEMPTS = 3
+
 export async function issue_comment(token: string) {
   if (github.context.eventName !== 'issue_comment') {
     return false
@@ -148,12 +150,16 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
   }
   let changelogFileName = 'CHANGELOG.md'
 
-  if (log.startsWith('# 🎉 Release')) {
+  const releaseHeading = log.startsWith('# 🎉 Release') ? '🎉 Release' : '🎉 发布'
+  if (releaseHeading === '🎉 Release') {
     changelogFileName = 'CHANGELOG.en-US.md'
   }
 
-  const releaseLogs = extractReleaseLogs(log)
+  const releaseLogs = extractReleaseLogs(log, releaseHeading)
   core.info(`releaseLogs: ${JSON.stringify(releaseLogs, null, 2)}`)
+  if (!releaseLogs.length) {
+    throw new Error('Release log does not contain any valid package sections')
+  }
   const changelogMap = new Map(releaseLogs.map(item => [item.pkgName, item.changelog]))
   if (changelogMap.size !== releaseLogs.length) {
     throw new Error('Release log contains duplicate package names')
@@ -169,6 +175,16 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
   core.info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
   const releaseDirs = await getPullRequestReleaseDirs(changeFiles, getConfiguredPackages(cwd()))
   core.info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
+  const releaseNames = new Set(releaseDirs.map(release => release.name))
+  const unknownPackages = releaseLogs.filter(item => !releaseNames.has(item.pkgName)).map(item => item.pkgName)
+  if (unknownPackages.length) {
+    throw new Error(`Release log contains unknown packages: ${unknownPackages.join(', ')}`)
+  }
+  const emptyPackages = releaseLogs.filter(item => !item.changelog.trim()).map(item => item.pkgName)
+  if (emptyPackages.length) {
+    throw new Error(`Release log is empty for packages: ${emptyPackages.join(', ')}`)
+  }
+
   for (const release of releaseDirs) {
     const changelog = changelogMap.get(release.name)
     if (!changelog) {
@@ -206,6 +222,17 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
     }
   }
 
-  await exec('git', ['pull'])
-  await exec('git', ['push', 'origin', prData.head.ref])
+  await pushReleaseBranch(prData.head.ref)
+}
+
+async function pushReleaseBranch(branch: string) {
+  for (let attempt = 1; attempt <= PUSH_MAX_ATTEMPTS; attempt++) {
+    await exec('git', ['pull', '--rebase', 'origin', branch])
+    const exitCode = await exec('git', ['push', 'origin', branch], { ignoreReturnCode: true })
+    if (exitCode === 0) {
+      return
+    }
+    core.info(`Push attempt ${attempt} failed, rebasing and retrying`)
+  }
+  throw new Error(`Failed to push ${branch} after ${PUSH_MAX_ATTEMPTS} attempts`)
 }

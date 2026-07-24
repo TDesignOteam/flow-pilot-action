@@ -19,6 +19,7 @@ const RN_TO_LF_REG = /\r\n/g
 const COMMON_PR_REG = /\[common#\d+\]/
 const CONTRIBUTOR_WITH_SPACE_REG = /@.*\s$/
 const GITHUB_COMMENT_MAX_LENGTH = 65536
+type ReleaseHeading = '🎉 Release' | '🎉 发布'
 
 export function pascalCase(str: string) {
   if (str.toLowerCase() === 'qrcode') {
@@ -109,17 +110,34 @@ export function extractReleaseLog(markdown: string) {
 /**
  * 提取单条或合并后的 release 日志
  */
-export function extractReleaseLogs(markdown: string) {
+export function extractReleaseLogs(markdown: string, expectedHeading?: ReleaseHeading) {
   const releaseLogs: Array<{ pkgName: string, changelog: string }> = []
   let currentLog: { pkgName: string, changelog: string } | undefined
 
   parseMarkdown(markdown.replace(RN_TO_LF_REG, '\n')).forEach((token) => {
-    if (token.type === 'heading' && token.depth === 1) {
-      const pkgName = token.text.startsWith('🎉 Release')
-        ? token.text.replace('🎉 Release', '').trim()
+    if (token.type === 'heading') {
+      const heading: ReleaseHeading | undefined = token.text.startsWith('🎉 Release')
+        ? '🎉 Release'
         : token.text.startsWith('🎉 发布')
-          ? token.text.replace('🎉 发布', '').trim()
-          : ''
+          ? '🎉 发布'
+          : undefined
+      if (heading && token.depth !== 1) {
+        throw new Error(`Release package heading must be level 1: ${token.raw.trim()}`)
+      }
+      if (heading && expectedHeading && heading !== expectedHeading) {
+        throw new Error('Release log contains mixed languages')
+      }
+      if (token.depth !== 1) {
+        if (currentLog) {
+          currentLog.changelog += `${token.raw.trimEnd()}\n\n`
+        }
+        return
+      }
+
+      const pkgName = heading ? token.text.replace(heading, '').trim() : ''
+      if (heading && !pkgName) {
+        throw new Error('Release package heading is missing a package name')
+      }
       currentLog = pkgName ? { pkgName, changelog: '' } : undefined
       if (currentLog) {
         releaseLogs.push(currentLog)
@@ -127,7 +145,7 @@ export function extractReleaseLogs(markdown: string) {
       return
     }
 
-    if (currentLog && ((token.type === 'heading' && token.depth > 1) || token.type === 'list')) {
+    if (currentLog && token.type === 'list') {
       currentLog.changelog += `${token.raw.trimEnd()}\n\n`
     }
   })

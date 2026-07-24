@@ -30919,12 +30919,20 @@ function extractChangelog(markdown, pkgNames) {
 /**
 * 提取单条或合并后的 release 日志
 */
-function extractReleaseLogs(markdown) {
+function extractReleaseLogs(markdown, expectedHeading) {
 	const releaseLogs = [];
 	let currentLog;
 	parseMarkdown(markdown.replace(RN_TO_LF_REG, "\n")).forEach((token) => {
-		if (token.type === "heading" && token.depth === 1) {
-			const pkgName = token.text.startsWith("🎉 Release") ? token.text.replace("🎉 Release", "").trim() : token.text.startsWith("🎉 发布") ? token.text.replace("🎉 发布", "").trim() : "";
+		if (token.type === "heading") {
+			const heading = token.text.startsWith("🎉 Release") ? "🎉 Release" : token.text.startsWith("🎉 发布") ? "🎉 发布" : void 0;
+			if (heading && token.depth !== 1) throw new Error(`Release package heading must be level 1: ${token.raw.trim()}`);
+			if (heading && expectedHeading && heading !== expectedHeading) throw new Error("Release log contains mixed languages");
+			if (token.depth !== 1) {
+				if (currentLog) currentLog.changelog += `${token.raw.trimEnd()}\n\n`;
+				return;
+			}
+			const pkgName = heading ? token.text.replace(heading, "").trim() : "";
+			if (heading && !pkgName) throw new Error("Release package heading is missing a package name");
 			currentLog = pkgName ? {
 				pkgName,
 				changelog: ""
@@ -30932,7 +30940,7 @@ function extractReleaseLogs(markdown) {
 			if (currentLog) releaseLogs.push(currentLog);
 			return;
 		}
-		if (currentLog && (token.type === "heading" && token.depth > 1 || token.type === "list")) currentLog.changelog += `${token.raw.trimEnd()}\n\n`;
+		if (currentLog && token.type === "list") currentLog.changelog += `${token.raw.trimEnd()}\n\n`;
 	});
 	return releaseLogs;
 }
@@ -31395,6 +31403,7 @@ function useGithub(token) {
 }
 //#endregion
 //#region src/github-event/issue-comment.ts
+const PUSH_MAX_ATTEMPTS = 3;
 async function issue_comment(token) {
 	if (context.eventName !== "issue_comment") return false;
 	if (!context.payload.issue?.pull_request) return false;
@@ -31488,9 +31497,11 @@ async function confirmReleaseLog(prNumber, log, token) {
 	info(`isReleaseHead: ${isReleaseHead}`);
 	if (!isReleaseHead) return false;
 	let changelogFileName = "CHANGELOG.md";
-	if (log.startsWith("# 🎉 Release")) changelogFileName = "CHANGELOG.en-US.md";
-	const releaseLogs = extractReleaseLogs(log);
+	const releaseHeading = log.startsWith("# 🎉 Release") ? "🎉 Release" : "🎉 发布";
+	if (releaseHeading === "🎉 Release") changelogFileName = "CHANGELOG.en-US.md";
+	const releaseLogs = extractReleaseLogs(log, releaseHeading);
 	info(`releaseLogs: ${JSON.stringify(releaseLogs, null, 2)}`);
+	if (!releaseLogs.length) throw new Error("Release log does not contain any valid package sections");
 	const changelogMap = new Map(releaseLogs.map((item) => [item.pkgName, item.changelog]));
 	if (changelogMap.size !== releaseLogs.length) throw new Error("Release log contains duplicate package names");
 	const { getPullRequestData, getPullRequestFiles } = useGithub(token);
@@ -31503,6 +31514,11 @@ async function confirmReleaseLog(prNumber, log, token) {
 	info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
 	const releaseDirs = await getPullRequestReleaseDirs(changeFiles, getConfiguredPackages(cwd()));
 	info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
+	const releaseNames = new Set(releaseDirs.map((release) => release.name));
+	const unknownPackages = releaseLogs.filter((item) => !releaseNames.has(item.pkgName)).map((item) => item.pkgName);
+	if (unknownPackages.length) throw new Error(`Release log contains unknown packages: ${unknownPackages.join(", ")}`);
+	const emptyPackages = releaseLogs.filter((item) => !item.changelog.trim()).map((item) => item.pkgName);
+	if (emptyPackages.length) throw new Error(`Release log is empty for packages: ${emptyPackages.join(", ")}`);
 	for (const release of releaseDirs) {
 		const changelog = changelogMap.get(release.name);
 		if (!changelog) continue;
@@ -31543,12 +31559,24 @@ async function confirmReleaseLog(prNumber, log, token) {
 			`chore: update ${release.name} ${changelogFileName}`
 		]);
 	}
-	await exec("git", ["pull"]);
-	await exec("git", [
-		"push",
-		"origin",
-		prData.head.ref
-	]);
+	await pushReleaseBranch(prData.head.ref);
+}
+async function pushReleaseBranch(branch) {
+	for (let attempt = 1; attempt <= PUSH_MAX_ATTEMPTS; attempt++) {
+		await exec("git", [
+			"pull",
+			"--rebase",
+			"origin",
+			branch
+		]);
+		if (await exec("git", [
+			"push",
+			"origin",
+			branch
+		], { ignoreReturnCode: true }) === 0) return;
+		info(`Push attempt ${attempt} failed, rebasing and retrying`);
+	}
+	throw new Error(`Failed to push ${branch} after ${PUSH_MAX_ATTEMPTS} attempts`);
 }
 //#endregion
 //#region src/utils/publish.ts
