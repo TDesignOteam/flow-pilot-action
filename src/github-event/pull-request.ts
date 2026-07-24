@@ -2,7 +2,7 @@ import type { PullRequestData } from '../types'
 import { cwd } from 'node:process'
 import { getInput, info, setOutput } from '@actions/core'
 import * as github from '@actions/github'
-import { buildReleaseComments, extractChangelog, getConfiguredPackages, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, publishRelease, renderChangelogMarkdown, sortReleasePackages } from '../utils'
+import { buildReleaseComments, extractChangelog, getConfiguredPackages, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, getTagChangelog, isSingleMode, publishRelease, renderChangelogMarkdown, sortReleasePackages } from '../utils'
 import useGit from '../utils/git'
 import useGithub from '../utils/github'
 import { translateText } from '../utils/translate'
@@ -47,13 +47,15 @@ export async function pull_request(token: string) {
       await checkoutBranch(pullRequestData.head.ref)
       const changeFiles = await getPullRequestFiles(prNumber)
       info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
-      const releaseDirs = await getPullRequestReleaseDirs(changeFiles, getConfiguredPackages(cwd()))
+      const configuredPackages = getConfiguredPackages(cwd())
+      const releaseDirs = await getPullRequestReleaseDirs(changeFiles, configuredPackages)
       info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
       setOutput('changelog', '')
       if (!releaseDirs.length) {
         info('没有更新发布版本')
         return
       }
+      const useTagChangelog = isSingleMode()
       const zhComments: string[] = []
       const enComments: string[] = []
       const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n'
@@ -64,12 +66,19 @@ export async function pull_request(token: string) {
 
       for (const release of releaseDirs) {
         if (release.tag === 'latest') {
-          const changelogs = getStashChangelog(release.dir, release.type)
-          info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
-          const md = renderChangelogMarkdown(changelogs.changelogs)
+          let md: string
+          if (useTagChangelog) {
+            const fromTag = getInput('from-tag', { trimWhitespace: true }) || release.version
+            const toRef = getInput('to-tag', { trimWhitespace: true }) || pullRequestData.base.ref
+            md = await getTagChangelog(token, [release.name], fromTag, toRef)
+          }
+          else {
+            const changelogs = getStashChangelog(release.dir, release.type)
+            md = renderChangelogMarkdown(changelogs.changelogs)
+          }
           info(`markdownChangelogs: ${md}`)
           // 中文日志
-          const zhBody = `# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`
+          const zhBody = `# 🎉 发布 ${release.name}\n## 🌈 ${release.version} \`${year}-${month}-${day}\` \n\n${md}`
           zhComments.push(zhBody)
 
           const secretId = getInput('translate-secret-id', { trimWhitespace: true })
@@ -79,7 +88,7 @@ export async function pull_request(token: string) {
             try {
               const text = await translateText(secretId, secretKey, md)
               info(`en_md: ${text}`)
-              const enBody = `# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${text}`
+              const enBody = `# 🎉 Release ${release.name}\n## 🌈 ${release.version} \`${year}-${month}-${day}\` \n\n${text}`
               enComments.push(enBody)
             }
             catch (err) {
@@ -118,7 +127,9 @@ export async function pull_request(token: string) {
         return
       }
       for (const release of releaseDirs) {
-        const title = `${release.name}@${release.version}`
+        // 单仓开启 tag-changelog 时,release tag 直接使用纯版本号(与 from-tag 解析保持一致)
+        const usePlainTag = isSingleMode()
+        const title = usePlainTag ? release.version : `${release.name}@${release.version}`
         const shouldCreateRelease = release.type === 'flutter' || Boolean(release.changelog && release.tag === 'latest')
 
         if (release.private) {

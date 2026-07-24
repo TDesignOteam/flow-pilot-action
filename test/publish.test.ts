@@ -10,6 +10,7 @@ const release: ReleasePackage = {
   dir: 'packages/example',
   name: 'example',
   version: '1.0.0',
+  oldVersion: '0.0.0',
   type: 'node',
   private: false,
   tag: 'latest',

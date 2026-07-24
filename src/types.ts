@@ -9,6 +9,7 @@ export interface ReleasePackage {
   dir: string
   name: string
   version: string
+  oldVersion: string
   type: PackageType
   private: boolean
   tag: string

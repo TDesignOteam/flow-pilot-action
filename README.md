@@ -161,6 +161,11 @@ jobs:
 | `pr_number` | `workflow_run` 必需 | `workflow_run` 无法从事件直接获得 PR 编号时使用，其他事件不需要。 |
 | `translate-secret-id` | 否 | 腾讯混元翻译 SecretId；与 `translate-secret-key` 同时配置后生成英文 release 日志评论。 |
 | `translate-secret-key` | 否 | 腾讯混元翻译 SecretKey。 |
+| `mode` | 否 | 仓库模式：`single`(单仓) 或 `monorepo`(monorepo)。默认 `monorepo`。`single` 模式下不依赖 `.changelog/*.md` 暂存文件,直接从 tag 区间已合并 PR 的 body 生成发布日志,且使用纯版本号 git tag(如 `1.2.3`)。 |
+| `package-json-path` | 否 | `single` 模式下指定 `package.json` 的相对路径,默认读取仓库根目录的 `package.json`。仅 `single` 模式生效。 |
+| `changelog-path` | 否 | `single` 模式下指定 `CHANGELOG.md` 的相对路径,默认在包目录下读写 `CHANGELOG.md` / `CHANGELOG.en-US.md`。仅 `single` 模式生效。 |
+| `from-tag` | 否 | 覆盖日志区间起始 tag。默认取上个发布版本号(单仓为纯版本号,如 `1.2.3`)。 |
+| `to-tag` | 否 | 覆盖日志区间结束 ref。默认取 release PR 的 base 分支。 |
 
 | Output | 说明 |
 | --- | --- |
@@ -273,6 +278,29 @@ release PR 打开时，FlowPilot 读取各包的 `.changelog/*.md`，按类型�
 | `perf`、`refactor` | 📈 Performance |
 | `docs`、`doc` | 📝 Documentation |
 | 其他类型 | 🚧 Others |
+
+## 基于 tag 的发布日志(单仓)
+
+单仓场景下,各 PR 的更新日志直接写在 PR 描述的 `### 📝 更新日志` 下(扁平列表,无 `#### package` 分段):
+
+```md
+### 📝 更新日志
+
+- fix(aa): aa
+```
+
+设置 `mode: single` 后,release PR 打开时 FlowPilot 会:
+
+1. 取上个发布版本号(或 `from-tag`)作为区间起点,release PR 的 base 分支(或 `to-tag`)作为终点。
+2. 通过 GitHub compare API 获取区间内的 merge commit,并关联出对应的已合并 PR 编号(去重)。
+3. 逐个拉取 PR body,复用与普通 PR 相同的跳过规则(Bot / `skip-changelog` 标签 / release 分支 / 手动勾选),从 `### 📝 更新日志` 抓取日志。
+4. 拼接贡献者与 PR 链接,按类型分组渲染,生成与暂存模式完全一致的 `# 🎉 发布` / `# 🎉 Release` 确认评论;下游确认与 Release 创建流程不变。
+
+单仓模式下,release PR 合并后的 GitHub tag 也会使用纯版本号(如 `1.2.3`)而非 `${name}@${version}`,与区间起点保持一致。
+
+可通过 `package-json-path` 指定非根目录的 `package.json`,通过 `changelog-path` 指定自定义的 `CHANGELOG.md` 读写位置。
+
+注意:`compareCommitsWithBasehead` 在超大区间存在 commits 截断,超大版本跨度下建议显式传入 `from-tag` / `to-tag` 缩小区间。
 
 ## Release 流程
 

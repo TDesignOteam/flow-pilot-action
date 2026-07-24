@@ -10,9 +10,30 @@ import { marked } from 'marked'
 import { globSync } from 'tinyglobby'
 import { parse } from 'yaml'
 import { CHANGELOG_REG, NEW_VERSION_REG, OLD_VERSION_REG, SKIP_CHANGELOG_REG } from '../consts'
-import { getPackages } from './get-packages'
+import { getPackages, getSinglePackage } from './get-packages'
+import useGithub from './github'
 
-export { getPackages }
+export { getPackages, getSinglePackage }
+
+export function getMode(): 'single' | 'monorepo' {
+  return core.getInput('mode', { trimWhitespace: true }) === 'single' ? 'single' : 'monorepo'
+}
+
+export function isSingleMode(): boolean {
+  return getMode() === 'single'
+}
+
+export function getChangelogFilePath(release: ReleasePackage, lang: 'zh' | 'en'): string {
+  const customPath = core.getInput('changelog-path', { trimWhitespace: true })
+  if (customPath) {
+    if (lang === 'en') {
+      return customPath.replace(/\.md$/, '.en-US.md')
+    }
+    return customPath
+  }
+  const fileName = lang === 'en' ? 'CHANGELOG.en-US.md' : 'CHANGELOG.md'
+  return `${release.dir}/${fileName}`
+}
 
 const USE_PASCAL_CASE_REG = /^Use(?=[A-Z])/
 const RN_TO_LF_REG = /\r\n/g
@@ -347,7 +368,7 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles, packages?: 
   }).map((file) => {
     const type = getManifestType(file.filename) as PackageType
     const packageData = readPackageManifest(file.filename, type)
-    const version = getChangedVersions(file.patch || '', type).newVersion as string
+    const { newVersion: version, oldVersion } = getChangedVersions(file.patch || '', type)
     if (typeof packageData.name !== 'string')
       throw new Error(`Package manifest "${file.filename}" is missing a valid "name" field`)
     if (typeof packageData.version !== 'string' && typeof packageData.version !== 'number')
@@ -371,6 +392,7 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles, packages?: 
       name: packageData.name,
       private: type === 'node' ? packageData.private === true : packageData.publish_to === 'none',
       version,
+      oldVersion: oldVersion as string,
       type,
       tag,
       changelog,
@@ -448,6 +470,86 @@ export function renderChangelogMarkdown(changelogs: string[]) {
   ].filter(n => n).join('\n')
 }
 
+/**
+ * 从 PR body 提取「基于 tag 区间」的发布日志(单仓扁平格式):
+ * 直接贴在 `### 📝 更新日志` 标题下的列表(无 `#### package` 分段),
+ * 以及 `#### all` / `#### <pkgName>` 分段。返回纯日志条目(不含 `- ` 前缀)。
+ */
+function extractTagChangelogLogs(markdown: string, pkgNames: string[]): string[] {
+  const md = parseMarkdown(markdown)
+  const changelogHeading = getChangelogHeading()
+  const pkgDepth = changelogHeading.depth + 1
+  let collectLogs = false
+  let pkgName = ''
+  const logs: string[] = []
+
+  md.forEach((token) => {
+    if (token.type === changelogHeading.type && token.depth === changelogHeading.depth) {
+      collectLogs = token.text === changelogHeading.text
+      pkgName = ''
+      return
+    }
+    if (!collectLogs) {
+      return
+    }
+    if (token.type === 'heading') {
+      if (token.depth === pkgDepth) {
+        pkgName = token.text
+      }
+      else {
+        // 离开更新日志区块
+        collectLogs = false
+      }
+      return
+    }
+    if (token.type === 'list') {
+      const items = token.items as Tokens.ListItem[]
+      if (pkgName === 'all' || pkgNames.includes(pkgName) || pkgName === '') {
+        const targetCount = pkgName === 'all' ? pkgNames.length : 1
+        items.forEach((item) => {
+          if (item.type === 'list_item' && item.tokens.length) {
+            const text = (item.tokens[0] as Tokens.Text).text
+            for (let i = 0; i < targetCount; i++) {
+              logs.push(text)
+            }
+          }
+        })
+      }
+    }
+  })
+  return logs
+}
+
+/**
+ * 基于两个 tag(或 ref)之间已合并 PR 的 body 生成发布日志(单仓)。
+ * fromRef 默认为上个发布版本号(纯版本号 tag),toRef 默认为 base 分支。
+ */
+export async function getTagChangelog(token: string, pkgNames: string[], fromRef: string, toRef: string): Promise<string> {
+  const { getMergedPrNumbersBetweenRefs, getPullRequestData } = useGithub(token)
+  const prNumbers = await getMergedPrNumbersBetweenRefs(fromRef, toRef)
+  const logs: string[] = []
+
+  for (const prNumber of prNumbers) {
+    try {
+      const prData = await getPullRequestData(prNumber)
+      if (!isExtractPRLog(prData)) {
+        continue
+      }
+      const prLogs = extractTagChangelogLogs(prData.body || '', pkgNames)
+      prLogs.forEach((log) => {
+        const contributor = prData.user.login === 'tdesign-bot' || CONTRIBUTOR_WITH_SPACE_REG.test(log) ? '' : ` @${prData.user.login}`
+        const prLink = COMMON_PR_REG.test(log) ? '' : ` ([#${prNumber}](${prData.html_url}))`
+        logs.push(`- ${log}${contributor}${prLink}`)
+      })
+    }
+    catch (error) {
+      core.info(`getTagChangelog: 跳过 PR #${prNumber}: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
+  return renderChangelogMarkdown(logs)
+}
+
 function renderChangelog(heading: string, changelogs: Record<string, string[]>) {
   let content = ''
   const keys = Object.keys(changelogs).sort()
@@ -517,6 +619,10 @@ export function getInputPkgs() {
 }
 
 export function getConfiguredPackages(path: string) {
+  if (isSingleMode()) {
+    const manifestPath = core.getInput('package-json-path', { trimWhitespace: true }) || resolve(path, 'package.json')
+    return [getSinglePackage(path, manifestPath)]
+  }
   const packageNames = getInputPkgs()
   const packages = getPackages(path)
   return packageNames.length ? packages.filter(pkg => packageNames.includes(pkg.name)) : packages

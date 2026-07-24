@@ -224,8 +224,8 @@ describe('issue_comment', () => {
     ])
 
     vi.mocked(getPullRequestReleaseDirs).mockReturnValue([
-      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.1', type: 'node', tag: 'latest', changelog: '' },
-      { dir: 'packages/pkg-b', name: 'pkg-b', private: false, version: '2.0.0', type: 'node', tag: 'latest', changelog: '' },
+      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.1', oldVersion: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
+      { dir: 'packages/pkg-b', name: 'pkg-b', private: false, version: '2.0.0', oldVersion: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
     ])
 
     mocks.context.payload = {
@@ -254,8 +254,8 @@ describe('issue_comment', () => {
     ])
 
     vi.mocked(getPullRequestReleaseDirs).mockReturnValue([
-      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.1', type: 'node', tag: 'latest', changelog: '' },
-      { dir: 'packages/pkg-b', name: 'pkg-b', private: false, version: '2.0.0', type: 'node', tag: 'latest', changelog: '' },
+      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.1', oldVersion: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
+      { dir: 'packages/pkg-b', name: 'pkg-b', private: false, version: '2.0.0', oldVersion: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
     ])
 
     mocks.context.payload = {
@@ -298,7 +298,7 @@ describe('issue_comment', () => {
       { pkgName: 'pkg-unknown', changelog: '## 🌈 1.0.0\n\n- feature\n\n' },
     ])
     vi.mocked(getPullRequestReleaseDirs).mockReturnValue([
-      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
+      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.0', oldVersion: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
     ])
     mocks.context.payload = {
       action: 'edited',
@@ -317,7 +317,7 @@ describe('issue_comment', () => {
       { pkgName: 'pkg-a', changelog: '## 🌈 1.0.0\n\n- feature\n\n' },
     ])
     vi.mocked(getPullRequestReleaseDirs).mockReturnValue([
-      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
+      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.0', oldVersion: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
     ])
     let pushAttempts = 0
     mocks.exec.mockImplementation(async (_command, args) => {
