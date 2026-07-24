@@ -154,8 +154,10 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
 
   const releaseLogs = extractReleaseLogs(log)
   core.info(`releaseLogs: ${JSON.stringify(releaseLogs, null, 2)}`)
-  // 构建 pkgName -> changelog 映射
   const changelogMap = new Map(releaseLogs.map(item => [item.pkgName, item.changelog]))
+  if (changelogMap.size !== releaseLogs.length) {
+    throw new Error('Release log contains duplicate package names')
+  }
 
   const { getPullRequestData, getPullRequestFiles } = useGithub(token)
   const prData = await getPullRequestData(prNumber) as PullRequestData
@@ -196,9 +198,7 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
     }
     writeFileSync(`${release.dir}/${changelogFileName}`, newData, 'utf8')
 
-    // 每个 package 单独 commit
-    await exec('git', ['add', `${release.dir}/${changelogFileName}`])
-    await exec('git', ['add', `${release.dir}/.changelog/`])
+    await exec('git', ['add', '-A', '--', release.dir])
     await exec('git', ['status'])
     if (await isNeedCommit()) {
       const commitMsg = `chore: update ${release.name} ${changelogFileName}`

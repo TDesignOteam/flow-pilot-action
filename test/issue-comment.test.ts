@@ -238,14 +238,10 @@ describe('issue_comment', () => {
 
     await issue_comment('token')
 
-    // 每个 package 应单独 commit
-    expect(mocks.exec).toHaveBeenCalledWith('git', ['add', 'packages/pkg-a/CHANGELOG.md'])
-    expect(mocks.exec).toHaveBeenCalledWith('git', ['add', 'packages/pkg-a/.changelog/'])
+    expect(mocks.exec).toHaveBeenCalledWith('git', ['add', '-A', '--', 'packages/pkg-a'])
     expect(mocks.exec).toHaveBeenCalledWith('git', ['commit', '-m', 'chore: update pkg-a CHANGELOG.md'])
-    expect(mocks.exec).toHaveBeenCalledWith('git', ['add', 'packages/pkg-b/CHANGELOG.md'])
-    expect(mocks.exec).toHaveBeenCalledWith('git', ['add', 'packages/pkg-b/.changelog/'])
+    expect(mocks.exec).toHaveBeenCalledWith('git', ['add', '-A', '--', 'packages/pkg-b'])
     expect(mocks.exec).toHaveBeenCalledWith('git', ['commit', '-m', 'chore: update pkg-b CHANGELOG.md'])
-    // 统一 push
     expect(mocks.exec).toHaveBeenCalledWith('git', ['push', 'origin', 'feat/loading'])
   })
 
@@ -272,10 +268,26 @@ describe('issue_comment', () => {
 
     await issue_comment('token')
 
-    // 只有 pkg-a 会 commit，pkg-b 不在 changelog map 中应跳过
-    expect(mocks.exec).toHaveBeenCalledWith('git', ['add', 'packages/pkg-a/CHANGELOG.md'])
+    expect(mocks.exec).toHaveBeenCalledWith('git', ['add', '-A', '--', 'packages/pkg-a'])
     expect(mocks.exec).toHaveBeenCalledWith('git', ['commit', '-m', 'chore: update pkg-a CHANGELOG.md'])
     expect(mocks.exec).not.toHaveBeenCalledWith('git', ['commit', '-m', 'chore: update pkg-b CHANGELOG.md'])
     expect(mocks.exec).toHaveBeenCalledWith('git', ['push', 'origin', 'feat/loading'])
+  })
+
+  it('rejects duplicate package release logs', async () => {
+    const { extractReleaseLogs } = await import('../src/utils/common')
+    vi.mocked(extractReleaseLogs).mockReturnValue([
+      { pkgName: 'pkg-a', changelog: 'first log' },
+      { pkgName: 'pkg-a', changelog: 'second log' },
+    ])
+    mocks.context.payload = {
+      action: 'edited',
+      changes: { body: { from: 'draft body' } },
+      comment: { body: '# 🎉 发布 pkg-a\n\n# 🎉 发布 pkg-a' },
+      issue: { number: 42, pull_request: {} },
+    }
+
+    await expect(issue_comment('token')).rejects.toThrow('duplicate package names')
+    expect(mocks.cloneRepo).not.toHaveBeenCalled()
   })
 })

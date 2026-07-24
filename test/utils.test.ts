@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { flutter_pull_request_files, merged_pull_request_files, merged_pull_request_files2, merged_pull_request_files3, pull_request_data, pull_request_files } from '../fixtures/pull_request_data'
 import {
+  buildReleaseComments,
   extractChangelog,
   extractReleaseLog,
   extractReleaseLogs,
@@ -265,5 +266,31 @@ describe('utils', () => {
     const releaseLogs = extractReleaseLogs(body)
     expect(releaseLogs).toHaveLength(1)
     expect(releaseLogs[0].pkgName).toBe('pkg-a')
+  })
+
+  it('extractReleaseLogs tolerates edited separators', () => {
+    const body = '# 🎉 发布 pkg-a\n## 🌈 1.0.0\n\n- feature a\n---\n# 🎉 发布 pkg-b\n## 🌈 2.0.0\n\n- feature b'
+
+    expect(extractReleaseLogs(body)).toEqual([
+      { pkgName: 'pkg-a', changelog: '## 🌈 1.0.0\n\n- feature a\n\n' },
+      { pkgName: 'pkg-b', changelog: '## 🌈 2.0.0\n\n- feature b\n\n' },
+    ])
+  })
+
+  it('buildReleaseComments merges sections within the limit', () => {
+    expect(buildReleaseComments('head\n', ['section-a', 'section-b'], 40)).toEqual([
+      'head\nsection-a\n\n---\n\nsection-b',
+    ])
+  })
+
+  it('buildReleaseComments splits comments at section boundaries', () => {
+    expect(buildReleaseComments('head\n', ['section-a', 'section-b'], 20)).toEqual([
+      'head\nsection-a',
+      'head\nsection-b',
+    ])
+  })
+
+  it('buildReleaseComments rejects an oversized package section', () => {
+    expect(() => buildReleaseComments('head\n', ['section-a'], 10)).toThrow('exceeds the GitHub comment length limit')
   })
 })

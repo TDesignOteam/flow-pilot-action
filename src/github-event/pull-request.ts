@@ -2,7 +2,7 @@ import type { PullRequestData } from '../types'
 import { cwd } from 'node:process'
 import { getInput, info, setOutput } from '@actions/core'
 import * as github from '@actions/github'
-import { extractChangelog, getConfiguredPackages, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, publishRelease, renderChangelogMarkdown, sortReleasePackages } from '../utils'
+import { buildReleaseComments, extractChangelog, getConfiguredPackages, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, publishRelease, renderChangelogMarkdown, sortReleasePackages } from '../utils'
 import useGit from '../utils/git'
 import useGithub from '../utils/github'
 import { translateText } from '../utils/translate'
@@ -89,11 +89,11 @@ export async function pull_request(token: string) {
         }
       }
 
-      if (zhComments.length) {
-        await addComment(prNumber, `${logHead}${zhComments.join('\n\n---\n\n')}`)
+      for (const comment of buildReleaseComments(logHead, zhComments)) {
+        await addComment(prNumber, comment)
       }
-      if (enComments.length) {
-        await addComment(prNumber, `${logHead.replace('CHANGELOG.md', 'CHANGELOG.en-US.md')}${enComments.join('\n\n---\n\n')}`)
+      for (const comment of buildReleaseComments(logHead.replace('CHANGELOG.md', 'CHANGELOG.en-US.md'), enComments)) {
+        await addComment(prNumber, comment)
       }
     }
   }
