@@ -5,7 +5,7 @@ import * as core from '@actions/core'
 import { exec } from '@actions/exec'
 import * as github from '@actions/github'
 import { globSync } from 'tinyglobby'
-import { checkIsForkPr, extractChangelog, extractReleaseLog, getConfiguredPackages, getInputPkgs, getPrCommentWhitelist, getPullRequestNumber, getPullRequestReleaseDirs, stashPackageChangelog } from '../utils/common'
+import { checkIsForkPr, extractChangelog, extractReleaseLogs, getConfiguredPackages, getInputPkgs, getPrCommentWhitelist, getPullRequestNumber, getPullRequestReleaseDirs, stashPackageChangelog } from '../utils/common'
 import useGit from '../utils/git'
 import useGithub from '../utils/github'
 
@@ -152,10 +152,12 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
     changelogFileName = 'CHANGELOG.en-US.md'
   }
 
-  const { pkgName, changelog } = extractReleaseLog(log)
-
-  core.info(`pkgName: ${pkgName}`)
-  core.info(`changelog: ${changelog}`)
+  const releaseLogs = extractReleaseLogs(log)
+  core.info(`releaseLogs: ${JSON.stringify(releaseLogs, null, 2)}`)
+  const changelogMap = new Map(releaseLogs.map(item => [item.pkgName, item.changelog]))
+  if (changelogMap.size !== releaseLogs.length) {
+    throw new Error('Release log contains duplicate package names')
+  }
 
   const { getPullRequestData, getPullRequestFiles } = useGithub(token)
   const prData = await getPullRequestData(prNumber) as PullRequestData
@@ -168,7 +170,8 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
   const releaseDirs = await getPullRequestReleaseDirs(changeFiles, getConfiguredPackages(cwd()))
   core.info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
   for (const release of releaseDirs) {
-    if (release.name !== pkgName) {
+    const changelog = changelogMap.get(release.name)
+    if (!changelog) {
       continue
     }
     const files = globSync(`${release.dir}/.changelog/*.md`)
@@ -194,16 +197,15 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
       newData = pkgChangelog.slice(0, index) + changelog + pkgChangelog.slice(index)
     }
     writeFileSync(`${release.dir}/${changelogFileName}`, newData, 'utf8')
+
+    await exec('git', ['add', '-A', '--', release.dir])
+    await exec('git', ['status'])
+    if (await isNeedCommit()) {
+      const commitMsg = `chore: update ${release.name} ${changelogFileName}`
+      await exec('git', ['commit', '-m', commitMsg])
+    }
   }
 
-  await exec('git', ['add', '**/*.md'])
-  await exec('git', ['status'])
-  if (!await isNeedCommit()) {
-    core.info('无需提交')
-    return true
-  }
-  const commitMsg = `chore: update ${pkgName} ${changelogFileName}`
-  await exec('git', ['commit', '-m', commitMsg])
   await exec('git', ['pull'])
   await exec('git', ['push', 'origin', prData.head.ref])
 }

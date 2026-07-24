@@ -2,7 +2,7 @@ import type { PullRequestData } from '../types'
 import { cwd } from 'node:process'
 import { getInput, info, setOutput } from '@actions/core'
 import * as github from '@actions/github'
-import { extractChangelog, getConfiguredPackages, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, publishRelease, renderChangelogMarkdown, sortReleasePackages } from '../utils'
+import { buildReleaseComments, extractChangelog, getConfiguredPackages, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, publishRelease, renderChangelogMarkdown, sortReleasePackages } from '../utils'
 import useGit from '../utils/git'
 import useGithub from '../utils/github'
 import { translateText } from '../utils/translate'
@@ -54,19 +54,24 @@ export async function pull_request(token: string) {
         info('没有更新发布版本')
         return
       }
+      const zhComments: string[] = []
+      const enComments: string[] = []
+      const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n'
+      const currentDate = new Date()
+      const year = currentDate.getFullYear()
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0')
+      const day = String(currentDate.getDate()).padStart(2, '0')
+
       for (const release of releaseDirs) {
         if (release.tag === 'latest') {
           const changelogs = getStashChangelog(release.dir, release.type)
           info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
           const md = renderChangelogMarkdown(changelogs.changelogs)
           info(`markdownChangelogs: ${md}`)
-          const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n'
-          const currentDate = new Date()
-          const year = currentDate.getFullYear()
-          const month = String(currentDate.getMonth() + 1).padStart(2, '0')
-          const day = String(currentDate.getDate()).padStart(2, '0')
           // 中文日志
-          await addComment(prNumber, `${logHead}# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`)
+          const zhBody = `# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`
+          zhComments.push(zhBody)
+
           const secretId = getInput('translate-secret-id', { trimWhitespace: true })
           const secretKey = getInput('translate-secret-key', { trimWhitespace: true })
           if (secretId && secretKey && md) {
@@ -74,13 +79,21 @@ export async function pull_request(token: string) {
             try {
               const text = await translateText(secretId, secretKey, md)
               info(`en_md: ${text}`)
-              await addComment(prNumber, `${logHead.replace('CHANGELOG.md', 'CHANGELOG.en-US.md')}# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${text}`)
+              const enBody = `# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${text}`
+              enComments.push(enBody)
             }
             catch (err) {
               info(`翻译失败，${err}`)
             }
           }
         }
+      }
+
+      for (const comment of buildReleaseComments(logHead, zhComments)) {
+        await addComment(prNumber, comment)
+      }
+      for (const comment of buildReleaseComments(logHead.replace('CHANGELOG.md', 'CHANGELOG.en-US.md'), enComments)) {
+        await addComment(prNumber, comment)
       }
     }
   }

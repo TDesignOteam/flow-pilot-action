@@ -18,6 +18,7 @@ const USE_PASCAL_CASE_REG = /^Use(?=[A-Z])/
 const RN_TO_LF_REG = /\r\n/g
 const COMMON_PR_REG = /\[common#\d+\]/
 const CONTRIBUTOR_WITH_SPACE_REG = /@.*\s$/
+const GITHUB_COMMENT_MAX_LENGTH = 65536
 
 export function pascalCase(str: string) {
   if (str.toLowerCase() === 'qrcode') {
@@ -102,34 +103,63 @@ export function extractChangelog(markdown: string, pkgNames: string[]) {
  * 提取 release 日志
  */
 export function extractReleaseLog(markdown: string) {
-  const md = parseMarkdown(markdown.replace(RN_TO_LF_REG, '\n'))
-  let collectLogs = false
-  let pkgName = ''
-  const changelog: string[] = []
-  md.forEach((token) => {
+  return extractReleaseLogs(markdown)[0] || { pkgName: '', changelog: '' }
+}
+
+/**
+ * 提取单条或合并后的 release 日志
+ */
+export function extractReleaseLogs(markdown: string) {
+  const releaseLogs: Array<{ pkgName: string, changelog: string }> = []
+  let currentLog: { pkgName: string, changelog: string } | undefined
+
+  parseMarkdown(markdown.replace(RN_TO_LF_REG, '\n')).forEach((token) => {
     if (token.type === 'heading' && token.depth === 1) {
-      if (token.text.startsWith('🎉 Release')) {
-        pkgName = token.text.replace('🎉 Release', '').trim()
-        collectLogs = true
+      const pkgName = token.text.startsWith('🎉 Release')
+        ? token.text.replace('🎉 Release', '').trim()
+        : token.text.startsWith('🎉 发布')
+          ? token.text.replace('🎉 发布', '').trim()
+          : ''
+      currentLog = pkgName ? { pkgName, changelog: '' } : undefined
+      if (currentLog) {
+        releaseLogs.push(currentLog)
       }
-      else if (token.text.startsWith('🎉 发布')) {
-        pkgName = token.text.replace('🎉 发布', '').trim()
-        collectLogs = true
-      }
-      else {
-        collectLogs = false
-      }
+      return
     }
-    if (collectLogs) {
-      if (token.type === 'heading' && token.depth > 1) {
-        changelog.push(`${token.raw.trimEnd()}\n\n`)
-      }
-      if (token.type === 'list') {
-        changelog.push(`${token.raw.trimEnd()}\n\n`)
-      }
+
+    if (currentLog && ((token.type === 'heading' && token.depth > 1) || token.type === 'list')) {
+      currentLog.changelog += `${token.raw.trimEnd()}\n\n`
     }
   })
-  return { pkgName, changelog: changelog.join('') }
+
+  return releaseLogs
+}
+
+export function buildReleaseComments(logHead: string, sections: string[], maxLength = GITHUB_COMMENT_MAX_LENGTH) {
+  const separator = '\n\n---\n\n'
+  const comments: string[] = []
+  let body = logHead
+
+  sections.forEach((section) => {
+    const addition = body === logHead ? section : `${separator}${section}`
+    if (body.length + addition.length <= maxLength) {
+      body += addition
+      return
+    }
+    if (body === logHead) {
+      throw new Error('A release changelog section exceeds the GitHub comment length limit')
+    }
+    comments.push(body)
+    body = `${logHead}${section}`
+    if (body.length > maxLength) {
+      throw new Error('A release changelog section exceeds the GitHub comment length limit')
+    }
+  })
+
+  if (body !== logHead) {
+    comments.push(body)
+  }
+  return comments
 }
 
 export function stashPackageChangelog(prData: PullRequestData, packages: Package[], prChangelog: PackagesChangelog) {
