@@ -33,13 +33,14 @@ describe('getMergedPrNumbersBetweenRefs', () => {
       },
     })
     octokit.rest.repos.listPullRequestsAssociatedWithCommit
-      .mockResolvedValueOnce({ data: [{ number: 10 }] })
-      .mockResolvedValueOnce({ data: [{ number: 10 }, { number: 11 }] })
+      .mockResolvedValueOnce({ data: [{ number: 9, merged_at: '2026-01-01' }, { number: 99, merged_at: null }] })
+      .mockResolvedValueOnce({ data: [{ number: 10, merged_at: '2026-01-01' }] })
+      .mockResolvedValueOnce({ data: [{ number: 10, merged_at: '2026-01-01' }, { number: 11, merged_at: '2026-01-01' }] })
 
     const { getMergedPrNumbersBetweenRefs } = useGithub('token')
     const prs = await getMergedPrNumbersBetweenRefs('1.0.0', 'main')
 
-    expect(prs.sort((a, b) => a - b)).toEqual([10, 11])
+    expect(prs.sort((a, b) => a - b)).toEqual([9, 10, 11])
   })
 
   it('tolerates listPullRequestsAssociatedWithCommit failure per commit', async () => {
@@ -53,7 +54,7 @@ describe('getMergedPrNumbersBetweenRefs', () => {
     })
     octokit.rest.repos.listPullRequestsAssociatedWithCommit
       .mockRejectedValueOnce(new Error('timeout'))
-      .mockResolvedValueOnce({ data: [{ number: 11 }] })
+      .mockResolvedValueOnce({ data: [{ number: 11, merged_at: '2026-01-01' }] })
 
     const { getMergedPrNumbersBetweenRefs } = useGithub('token')
     const prs = await getMergedPrNumbersBetweenRefs('1.0.0', 'main')

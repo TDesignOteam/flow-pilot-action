@@ -1,6 +1,6 @@
 import type { PullRequestData } from '../types'
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
-import { basename } from 'node:path'
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+import { basename, dirname } from 'node:path'
 import { cwd } from 'node:process'
 import * as core from '@actions/core'
 import { exec } from '@actions/exec'
@@ -194,6 +194,7 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
       core.info(`delete file: ${file}`)
     })
     if (!existsSync(changelogFilePath)) {
+      mkdirSync(dirname(changelogFilePath), { recursive: true })
       writeFileSync(changelogFilePath, '', 'utf8')
     }
     else {

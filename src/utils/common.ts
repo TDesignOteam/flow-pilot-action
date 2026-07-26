@@ -23,11 +23,15 @@ export function isSingleMode(): boolean {
   return getMode() === 'single'
 }
 
+function getEnglishChangelogPath(path: string): string {
+  return path.endsWith('.md') ? path.replace(/\.md$/, '.en-US.md') : `${path}.en-US.md`
+}
+
 export function getChangelogFilePath(release: ReleasePackage, lang: 'zh' | 'en'): string {
   const customPath = core.getInput('changelog-path', { trimWhitespace: true })
   if (customPath) {
     if (lang === 'en') {
-      return customPath.replace(/\.md$/, '.en-US.md')
+      return getEnglishChangelogPath(customPath)
     }
     return customPath
   }
@@ -294,9 +298,18 @@ function readPackageManifest(path: string, type: PackageType): Record<string, un
 export function getPullRequestReleaseDirs(prFiles: PullRequestFiles, packages?: Package[]): ReleasePackage[] {
   const zhChangelogs: Record<string, string> = {}
   const enChangelogs: Record<string, string> = {}
+  const customChangelogPath = isSingleMode() ? core.getInput('changelog-path', { trimWhitespace: true }).replace(/^\.\//, '') : ''
+  const customEnChangelogPath = customChangelogPath
+    ? getEnglishChangelogPath(customChangelogPath)
+    : ''
+  const singleChangelogKey = '__single__'
 
   return prFiles.filter((file) => {
-    if (file.filename.includes('CHANGELOG.md') && file.patch) {
+    const changelogKey = customChangelogPath ? singleChangelogKey : dirname(file.filename)
+    const isZhChangelog = customChangelogPath ? file.filename === customChangelogPath : file.filename.includes('CHANGELOG.md')
+    const isEnChangelog = customEnChangelogPath ? file.filename === customEnChangelogPath : file.filename.includes('CHANGELOG.en-US.md')
+
+    if (isZhChangelog && file.patch) {
       const logs: string[] = []
       let isSkip = false
       let hasNewReleaseLog = false
@@ -315,10 +328,10 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles, packages?: 
           logs.push(log.trimEnd())
         }
       })
-      zhChangelogs[dirname(file.filename)] = logs.join('\n')
+      zhChangelogs[changelogKey] = logs.join('\n')
     }
 
-    if (file.filename.includes('CHANGELOG.en-US.md') && file.patch) {
+    if (isEnChangelog && file.patch) {
       const logs: string[] = []
       let isSkip = false
       let hasNewReleaseLog = false
@@ -337,7 +350,7 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles, packages?: 
           logs.push(log.trimEnd())
         }
       })
-      enChangelogs[dirname(file.filename)] = logs.slice(1).join('\n')
+      enChangelogs[changelogKey] = logs.slice(1).join('\n')
     }
 
     if (file.status !== 'modified') {
@@ -383,9 +396,10 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles, packages?: 
     if (version.includes('alpha')) {
       tag = 'alpha'
     }
-    let changelog = zhChangelogs[dirname(file.filename)] || ''
-    if (changelog && enChangelogs[dirname(file.filename)]) {
-      changelog = [...changelog, '\n---\n', enChangelogs[dirname(file.filename)]].join('')
+    const changelogKey = customChangelogPath ? singleChangelogKey : dirname(file.filename)
+    let changelog = zhChangelogs[changelogKey] || ''
+    if (changelog && enChangelogs[changelogKey]) {
+      changelog = [...changelog, '\n---\n', enChangelogs[changelogKey]].join('')
     }
     return {
       dir: dirname(file.filename),

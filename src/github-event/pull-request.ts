@@ -68,7 +68,7 @@ export async function pull_request(token: string) {
         if (release.tag === 'latest') {
           let md: string
           if (useTagChangelog) {
-            const fromTag = getInput('from-tag', { trimWhitespace: true }) || release.version
+            const fromTag = getInput('from-tag', { trimWhitespace: true }) || release.oldVersion
             const toRef = getInput('to-tag', { trimWhitespace: true }) || pullRequestData.base.ref
             md = await getTagChangelog(token, [release.name], fromTag, toRef)
           }
@@ -127,10 +127,9 @@ export async function pull_request(token: string) {
         return
       }
       for (const release of releaseDirs) {
-        // 单仓开启 tag-changelog 时,release tag 直接使用纯版本号(与 from-tag 解析保持一致)
         const usePlainTag = isSingleMode()
         const title = usePlainTag ? release.version : `${release.name}@${release.version}`
-        const shouldCreateRelease = release.type === 'flutter' || Boolean(release.changelog && release.tag === 'latest')
+        const shouldCreateRelease = usePlainTag || release.type === 'flutter' || Boolean(release.changelog && release.tag === 'latest')
 
         if (release.private) {
           info(`${release.name} is private package, skip publish`)
@@ -142,7 +141,7 @@ export async function pull_request(token: string) {
         if (shouldCreateRelease) {
           try {
             info(`Creating release for ${release.name}: ${title}`)
-            await createRelease(title, title, release.changelog, pullRequestData.merge_commit_sha)
+            await createRelease(title, title, release.changelog, pullRequestData.merge_commit_sha, usePlainTag && release.tag !== 'latest')
             info(`${release.name} release created: ${title}`)
           }
           catch (err) {

@@ -83,7 +83,7 @@ export default function useGithub(token: string) {
     })
     return data.users.map(item => item.login)
   }
-  async function createRelease(tag_name: string, name: string, body: string, target_commitish?: string) {
+  async function createRelease(tag_name: string, name: string, body: string, target_commitish?: string, prerelease = false) {
     await octokit.rest.repos.createRelease({
       owner,
       repo,
@@ -91,11 +91,12 @@ export default function useGithub(token: string) {
       name,
       body,
       target_commitish,
+      prerelease,
     })
   }
   /**
    * 获取 base..head 之间已合并 PR 的编号列表(去重)。
-   * 通过 compare API 取 merge commit,再关联其 PR 编号;单 PR 失败容错跳过。
+   * 通过 compare API 取区间提交,再关联其已合并 PR 编号;单个提交失败时容错跳过。
    */
   async function getMergedPrNumbersBetweenRefs(base: string, head: string) {
     const { data } = await octokit.rest.repos.compareCommitsWithBasehead({
@@ -103,9 +104,8 @@ export default function useGithub(token: string) {
       repo,
       basehead: `${base}...${head}`,
     })
-    const mergeCommits = (data.commits || []).filter(commit => (commit.parents?.length ?? 0) >= 2)
     const prNumbers = new Set<number>()
-    for (const commit of mergeCommits) {
+    for (const commit of data.commits || []) {
       try {
         const { data: prs } = await octokit.rest.repos.listPullRequestsAssociatedWithCommit({
           owner,
@@ -113,7 +113,7 @@ export default function useGithub(token: string) {
           commit_sha: commit.sha,
         })
         prs.forEach((pr) => {
-          if (pr.number)
+          if (pr.number && pr.merged_at)
             prNumbers.add(pr.number)
         })
       }

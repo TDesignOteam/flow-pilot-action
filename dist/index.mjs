@@ -12,10 +12,10 @@ import { StringDecoder } from "string_decoder";
 import * as child from "child_process";
 import { setTimeout as setTimeout$1 } from "timers";
 import { existsSync as existsSync$1, mkdirSync, readFileSync as readFileSync$1, unlinkSync, writeFileSync } from "node:fs";
+import { basename as basename$1, dirname as dirname$1, relative as relative$1, resolve as resolve$1, sep as sep$1 } from "node:path";
 import { cwd } from "node:process";
 import { fileURLToPath } from "url";
 import { createRequire as createRequire$1 } from "module";
-import { basename as basename$1, dirname as dirname$1, relative as relative$1, resolve as resolve$1, sep as sep$1 } from "node:path";
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -30865,6 +30865,23 @@ function getPackages(path) {
 		};
 	}).sort((a, b) => a.relativeDir.localeCompare(b.relativeDir) || a.type.localeCompare(b.type));
 }
+function getSinglePackage(rootDir, manifestPath) {
+	const absolutePath = resolve$1(rootDir, manifestPath);
+	const manifest = parseManifest(absolutePath);
+	if (!manifest || typeof manifest !== "object" || !("name" in manifest) || typeof manifest.name !== "string" || !manifest.name.trim()) throw new Error(`Package manifest "${absolutePath}" is missing a valid "name" field`);
+	const dir = dirname$1(absolutePath);
+	const relativeDir = relative$1(rootDir, dir).split(sep$1).join("/") || ".";
+	const type = basename$1(absolutePath) === "package.json" ? "node" : "flutter";
+	return {
+		name: manifest.name,
+		version: typeof manifest.version === "string" ? manifest.version : void 0,
+		type,
+		private: type === "node" ? manifest.private === true : manifest.publish_to === "none",
+		dependencies: type === "node" ? getNodeDependencies(manifest) : [],
+		dir,
+		relativeDir
+	};
+}
 //#endregion
 //#region src/utils/github.ts
 function useGithub(token) {
@@ -30946,19 +30963,20 @@ function useGithub(token) {
 		});
 		return data.users.map((item) => item.login);
 	}
-	async function createRelease(tag_name, name, body, target_commitish) {
+	async function createRelease(tag_name, name, body, target_commitish, prerelease = false) {
 		await octokit.rest.repos.createRelease({
 			owner,
 			repo,
 			tag_name,
 			name,
 			body,
-			target_commitish
+			target_commitish,
+			prerelease
 		});
 	}
 	/**
 	* 获取 base..head 之间已合并 PR 的编号列表(去重)。
-	* 通过 compare API 取 merge commit,再关联其 PR 编号;单 PR 失败容错跳过。
+	* 通过 compare API 取区间提交,再关联其已合并 PR 编号;单个提交失败时容错跳过。
 	*/
 	async function getMergedPrNumbersBetweenRefs(base, head) {
 		const { data } = await octokit.rest.repos.compareCommitsWithBasehead({
@@ -30966,16 +30984,15 @@ function useGithub(token) {
 			repo,
 			basehead: `${base}...${head}`
 		});
-		const mergeCommits = (data.commits || []).filter((commit) => (commit.parents?.length ?? 0) >= 2);
 		const prNumbers = /* @__PURE__ */ new Set();
-		for (const commit of mergeCommits) try {
+		for (const commit of data.commits || []) try {
 			const { data: prs } = await octokit.rest.repos.listPullRequestsAssociatedWithCommit({
 				owner,
 				repo,
 				commit_sha: commit.sha
 			});
 			prs.forEach((pr) => {
-				if (pr.number) prNumbers.add(pr.number);
+				if (pr.number && pr.merged_at) prNumbers.add(pr.number);
 			});
 		} catch (error) {
 			info(`getMergedPrNumbersBetweenRefs: 跳过 commit ${commit.sha}:${error instanceof Error ? error.message : String(error)}`);
@@ -30998,6 +31015,24 @@ function useGithub(token) {
 }
 //#endregion
 //#region src/utils/common.ts
+function getMode() {
+	return getInput("mode", { trimWhitespace: true }) === "single" ? "single" : "monorepo";
+}
+function isSingleMode() {
+	return getMode() === "single";
+}
+function getEnglishChangelogPath(path) {
+	return path.endsWith(".md") ? path.replace(/\.md$/, ".en-US.md") : `${path}.en-US.md`;
+}
+function getChangelogFilePath(release, lang) {
+	const customPath = getInput("changelog-path", { trimWhitespace: true });
+	if (customPath) {
+		if (lang === "en") return getEnglishChangelogPath(customPath);
+		return customPath;
+	}
+	const fileName = lang === "en" ? "CHANGELOG.en-US.md" : "CHANGELOG.md";
+	return `${release.dir}/${fileName}`;
+}
 const USE_PASCAL_CASE_REG = /^Use(?=[A-Z])/;
 const RN_TO_LF_REG = /\r\n/g;
 const COMMON_PR_REG = /\[common#\d+\]/;
@@ -31155,8 +31190,14 @@ function readPackageManifest(path, type) {
 function getPullRequestReleaseDirs(prFiles, packages) {
 	const zhChangelogs = {};
 	const enChangelogs = {};
+	const customChangelogPath = isSingleMode() ? getInput("changelog-path", { trimWhitespace: true }).replace(/^\.\//, "") : "";
+	const customEnChangelogPath = customChangelogPath ? getEnglishChangelogPath(customChangelogPath) : "";
+	const singleChangelogKey = "__single__";
 	return prFiles.filter((file) => {
-		if (file.filename.includes("CHANGELOG.md") && file.patch) {
+		const changelogKey = customChangelogPath ? singleChangelogKey : dirname$1(file.filename);
+		const isZhChangelog = customChangelogPath ? file.filename === customChangelogPath : file.filename.includes("CHANGELOG.md");
+		const isEnChangelog = customEnChangelogPath ? file.filename === customEnChangelogPath : file.filename.includes("CHANGELOG.en-US.md");
+		if (isZhChangelog && file.patch) {
 			const logs = [];
 			let isSkip = false;
 			let hasNewReleaseLog = false;
@@ -31172,9 +31213,9 @@ function getPullRequestReleaseDirs(prFiles, packages) {
 					logs.push(log.trimEnd());
 				}
 			});
-			zhChangelogs[dirname$1(file.filename)] = logs.join("\n");
+			zhChangelogs[changelogKey] = logs.join("\n");
 		}
-		if (file.filename.includes("CHANGELOG.en-US.md") && file.patch) {
+		if (isEnChangelog && file.patch) {
 			const logs = [];
 			let isSkip = false;
 			let hasNewReleaseLog = false;
@@ -31190,7 +31231,7 @@ function getPullRequestReleaseDirs(prFiles, packages) {
 					logs.push(log.trimEnd());
 				}
 			});
-			enChangelogs[dirname$1(file.filename)] = logs.slice(1).join("\n");
+			enChangelogs[changelogKey] = logs.slice(1).join("\n");
 		}
 		if (file.status !== "modified") return false;
 		const type = getManifestType(file.filename);
@@ -31212,11 +31253,12 @@ function getPullRequestReleaseDirs(prFiles, packages) {
 		let tag = "latest";
 		if (version.includes("beta")) tag = "beta";
 		if (version.includes("alpha")) tag = "alpha";
-		let changelog = zhChangelogs[dirname$1(file.filename)] || "";
-		if (changelog && enChangelogs[dirname$1(file.filename)]) changelog = [
+		const changelogKey = customChangelogPath ? singleChangelogKey : dirname$1(file.filename);
+		let changelog = zhChangelogs[changelogKey] || "";
+		if (changelog && enChangelogs[changelogKey]) changelog = [
 			...changelog,
 			"\n---\n",
-			enChangelogs[dirname$1(file.filename)]
+			enChangelogs[changelogKey]
 		].join("");
 		return {
 			dir: dirname$1(file.filename),
@@ -31383,6 +31425,7 @@ function getInputPkgs() {
 	return getMultilineInput("packages", { trimWhitespace: true }).flatMap((line) => line.split(",")).map((pkg) => pkg.trim()).filter(Boolean);
 }
 function getConfiguredPackages(path) {
+	if (isSingleMode()) return [getSinglePackage(path, getInput("package-json-path", { trimWhitespace: true }) || resolve$1(path, "package.json"))];
 	const packageNames = getInputPkgs();
 	const packages = getPackages(path);
 	return packageNames.length ? packages.filter((pkg) => packageNames.includes(pkg.name)) : packages;
@@ -31584,9 +31627,7 @@ async function confirmReleaseLog(prNumber, log, token) {
 	const isReleaseHead = log.startsWith("# 🎉 发布") || log.startsWith("# 🎉 Release");
 	info(`isReleaseHead: ${isReleaseHead}`);
 	if (!isReleaseHead) return false;
-	let changelogFileName = "CHANGELOG.md";
 	const releaseHeading = log.startsWith("# 🎉 Release") ? "🎉 Release" : "🎉 发布";
-	if (releaseHeading === "🎉 Release") changelogFileName = "CHANGELOG.en-US.md";
 	const releaseLogs = extractReleaseLogs(log, releaseHeading);
 	info(`releaseLogs: ${JSON.stringify(releaseLogs, null, 2)}`);
 	if (!releaseLogs.length) throw new Error("Release log does not contain any valid package sections");
@@ -31610,12 +31651,15 @@ async function confirmReleaseLog(prNumber, log, token) {
 	for (const release of releaseDirs) {
 		const changelog = changelogMap.get(release.name);
 		if (!changelog) continue;
+		const changelogFilePath = getChangelogFilePath(release, releaseHeading === "🎉 Release" ? "en" : "zh");
 		globSync(`${release.dir}/.changelog/*.md`).forEach((file) => {
 			unlinkSync(file);
 			info(`delete file: ${file}`);
 		});
-		if (!existsSync$1(`${release.dir}/${changelogFileName}`)) writeFileSync(`${release.dir}/${changelogFileName}`, "", "utf8");
-		else {
+		if (!existsSync$1(changelogFilePath)) {
+			mkdirSync(dirname$1(changelogFilePath), { recursive: true });
+			writeFileSync(changelogFilePath, "", "utf8");
+		} else {
 			await exec("git", [
 				"fetch",
 				"origin",
@@ -31625,26 +31669,31 @@ async function confirmReleaseLog(prNumber, log, token) {
 				"checkout",
 				`origin/${defaultBranch}`,
 				"--",
-				`${release.dir}/${changelogFileName}`
+				changelogFilePath
 			]);
 		}
-		const pkgChangelog = readFileSync$1(`${release.dir}/${changelogFileName}`, "utf8");
+		const pkgChangelog = readFileSync$1(changelogFilePath, "utf8");
 		const index = pkgChangelog.indexOf("## 🌈");
 		let newData = "";
 		if (index === -1) newData = pkgChangelog + changelog;
 		else newData = pkgChangelog.slice(0, index) + changelog + pkgChangelog.slice(index);
-		writeFileSync(`${release.dir}/${changelogFileName}`, newData, "utf8");
+		writeFileSync(changelogFilePath, newData, "utf8");
 		await exec("git", [
 			"add",
 			"-A",
 			"--",
 			release.dir
 		]);
+		await exec("git", [
+			"add",
+			"--",
+			changelogFilePath
+		]);
 		await exec("git", ["status"]);
 		if (await isNeedCommit()) await exec("git", [
 			"commit",
 			"-m",
-			`chore: update ${release.name} ${changelogFileName}`
+			`chore: update ${release.name} ${basename$1(changelogFilePath)}`
 		]);
 	}
 	await pushReleaseBranch(prData.head.ref);
@@ -82965,15 +83014,14 @@ async function pull_request(token) {
 			await checkoutBranch(pullRequestData.head.ref);
 			const changeFiles = await getPullRequestFiles(prNumber);
 			info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`);
-			const configuredPackages = getConfiguredPackages(cwd());
-			const releaseDirs = await getPullRequestReleaseDirs(changeFiles, configuredPackages);
+			const releaseDirs = await getPullRequestReleaseDirs(changeFiles, getConfiguredPackages(cwd()));
 			info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`);
 			setOutput("changelog", "");
 			if (!releaseDirs.length) {
 				info("没有更新发布版本");
 				return;
 			}
-			const useTagChangelog = getInput("tag-changelog") === "true" && configuredPackages.length === 1;
+			const useTagChangelog = isSingleMode();
 			const zhComments = [];
 			const enComments = [];
 			const logHead = "(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n";
@@ -83023,13 +83071,14 @@ async function pull_request(token) {
 				return;
 			}
 			for (const release of releaseDirs) {
-				const title = getInput("tag-changelog") === "true" && packages.length === 1 ? release.version : `${release.name}@${release.version}`;
-				const shouldCreateRelease = release.type === "flutter" || Boolean(release.changelog && release.tag === "latest");
+				const usePlainTag = isSingleMode();
+				const title = usePlainTag ? release.version : `${release.name}@${release.version}`;
+				const shouldCreateRelease = usePlainTag || release.type === "flutter" || Boolean(release.changelog && release.tag === "latest");
 				if (release.private) info(`${release.name} is private package, skip publish`);
 				else if (release.type === "node") await publishRelease(release);
 				if (shouldCreateRelease) try {
 					info(`Creating release for ${release.name}: ${title}`);
-					await createRelease(title, title, release.changelog, pullRequestData.merge_commit_sha);
+					await createRelease(title, title, release.changelog, pullRequestData.merge_commit_sha, usePlainTag && release.tag !== "latest");
 					info(`${release.name} release created: ${title}`);
 				} catch (err) {
 					info(`Failed to create release for ${release.name}: ${err}`);
