@@ -7,10 +7,12 @@ const mocks = vi.hoisted(() => ({
   getMergedPrNumbersBetweenRefs: vi.fn(),
   getPullRequestData: vi.fn(),
   info: vi.fn(),
+  warning: vi.fn(),
 }))
 
 vi.mock('@actions/core', () => ({
   info: mocks.info,
+  warning: mocks.warning,
 }))
 
 vi.mock('../../src/utils/github', () => ({
@@ -93,5 +95,7 @@ describe('getTagChangelog', () => {
 
     expect(md).toContain('- `Cc`: cc @alice ([#5]')
     expect(md).toContain('- `Dd`: dd @alice ([#5]')
+    expect(mocks.warning).toHaveBeenCalledWith(expect.stringContaining('跳过 PR #4'))
+    expect(mocks.warning).toHaveBeenCalledWith(expect.stringContaining('1 个 PR 查询失败'))
   })
 })

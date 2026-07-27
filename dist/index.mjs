@@ -30974,29 +30974,46 @@ function useGithub(token) {
 			prerelease
 		});
 	}
-	/**
-	* 获取 base..head 之间已合并 PR 的编号列表(去重)。
-	* 通过 compare API 取区间提交,再关联其已合并 PR 编号;单个提交失败时容错跳过。
-	*/
-	async function getMergedPrNumbersBetweenRefs(base, head) {
-		const { data } = await octokit.rest.repos.compareCommitsWithBasehead({
+	async function getCommitsBetweenRefs(base, head) {
+		if (!base) return (await octokit.paginate(octokit.rest.repos.listCommits, {
 			owner,
 			repo,
-			basehead: `${base}...${head}`
+			sha: head,
+			per_page: 100
+		})).reverse();
+		return octokit.paginate(octokit.rest.repos.compareCommitsWithBasehead, {
+			owner,
+			repo,
+			basehead: `${base}...${head}`,
+			per_page: 100
+		}, (response) => {
+			const data = response.data;
+			return Array.isArray(data) ? data : data.commits;
 		});
+	}
+	/**
+	* 获取 base..head 之间已合并 PR 的编号列表(去重)。
+	* base 为空时扫描 head 的全部历史。单个提交查询失败时告警并继续。
+	*/
+	async function getMergedPrNumbersBetweenRefs(base, head) {
+		const commits = await getCommitsBetweenRefs(base, head);
 		const prNumbers = /* @__PURE__ */ new Set();
-		for (const commit of data.commits || []) try {
-			const { data: prs } = await octokit.rest.repos.listPullRequestsAssociatedWithCommit({
+		let failedCommits = 0;
+		for (const commit of commits) try {
+			(await octokit.paginate(octokit.rest.repos.listPullRequestsAssociatedWithCommit, {
 				owner,
 				repo,
-				commit_sha: commit.sha
-			});
-			prs.forEach((pr) => {
+				commit_sha: commit.sha,
+				per_page: 100
+			})).forEach((pr) => {
 				if (pr.number && pr.merged_at) prNumbers.add(pr.number);
 			});
 		} catch (error) {
-			info(`getMergedPrNumbersBetweenRefs: 跳过 commit ${commit.sha}:${error instanceof Error ? error.message : String(error)}`);
+			failedCommits++;
+			warning(`getMergedPrNumbersBetweenRefs: 跳过 commit ${commit.sha}: ${error instanceof Error ? error.message : String(error)}`);
 		}
+		info(`getMergedPrNumbersBetweenRefs: 扫描 ${commits.length} 个 commit,关联 ${prNumbers.size} 个 PR`);
+		if (failedCommits) warning(`getMergedPrNumbersBetweenRefs: ${failedCommits} 个 commit 查询失败,发布日志可能不完整`);
 		return [...prNumbers];
 	}
 	return {
@@ -31374,12 +31391,13 @@ function extractTagChangelogLogs(markdown, pkgNames) {
 }
 /**
 * 基于两个 tag(或 ref)之间已合并 PR 的 body 生成发布日志(单仓)。
-* fromRef 默认为上个发布版本号(纯版本号 tag),toRef 默认为 base 分支。
+* fromRef 为空时扫描 toRef 的全部历史。
 */
 async function getTagChangelog(token, pkgNames, fromRef, toRef) {
 	const { getMergedPrNumbersBetweenRefs, getPullRequestData } = useGithub(token);
 	const prNumbers = await getMergedPrNumbersBetweenRefs(fromRef, toRef);
 	const logs = [];
+	let failedPullRequests = 0;
 	for (const prNumber of prNumbers) try {
 		const prData = await getPullRequestData(prNumber);
 		if (!isExtractPRLog(prData)) continue;
@@ -31389,8 +31407,11 @@ async function getTagChangelog(token, pkgNames, fromRef, toRef) {
 			logs.push(`- ${log}${contributor}${prLink}`);
 		});
 	} catch (error) {
-		info(`getTagChangelog: 跳过 PR #${prNumber}: ${error instanceof Error ? error.message : String(error)}`);
+		failedPullRequests++;
+		warning(`getTagChangelog: 跳过 PR #${prNumber}: ${error instanceof Error ? error.message : String(error)}`);
 	}
+	info(`getTagChangelog: 扫描 ${prNumbers.length} 个 PR,生成 ${logs.length} 条日志`);
+	if (failedPullRequests) warning(`getTagChangelog: ${failedPullRequests} 个 PR 查询失败,发布日志可能不完整`);
 	return renderChangelogMarkdown(logs);
 }
 function renderChangelog(heading, changelogs) {
@@ -31518,6 +31539,18 @@ function useGit(token) {
 		]);
 		await exec("git", ["fetch", origin]);
 	}
+	async function getLatestTag(ref, stableOnly = false) {
+		const args = [
+			"describe",
+			"--tags",
+			"--abbrev=0"
+		];
+		if (stableOnly) args.push("--exclude", "*alpha*", "--exclude", "*Alpha*", "--exclude", "*ALPHA*", "--exclude", "*beta*", "--exclude", "*Beta*", "--exclude", "*BETA*");
+		const describe = (target) => getExecOutput("git", [...args, target], { ignoreReturnCode: true });
+		let result = await describe(ref);
+		if (result.exitCode !== 0 && !ref.startsWith("origin/")) result = await describe(`origin/${ref}`);
+		return result.exitCode === 0 ? result.stdout.trim() || void 0 : void 0;
+	}
 	return {
 		checkoutPr,
 		checkoutCommit,
@@ -31529,7 +31562,8 @@ function useGit(token) {
 		updateSubmodule,
 		isNeedCommit,
 		checkoutBranch,
-		addRemote
+		addRemote,
+		getLatestTag
 	};
 }
 //#endregion
@@ -83009,7 +83043,7 @@ async function pull_request(token) {
 		if (isRelease && !isForkPr && context.payload.action === "opened") {
 			const prNumber = getPullRequestNumber();
 			const { addComment, getPullRequestFiles } = useGithub(token);
-			const { cloneRepo, checkoutBranch } = useGit(token);
+			const { cloneRepo, checkoutBranch, getLatestTag } = useGit(token);
 			await cloneRepo();
 			await checkoutBranch(pullRequestData.head.ref);
 			const changeFiles = await getPullRequestFiles(prNumber);
@@ -83029,11 +83063,14 @@ async function pull_request(token) {
 			const year = currentDate.getFullYear();
 			const month = String(currentDate.getMonth() + 1).padStart(2, "0");
 			const day = String(currentDate.getDate()).padStart(2, "0");
-			for (const release of releaseDirs) if (release.tag === "latest") {
+			for (const release of releaseDirs) if (release.tag === "latest" || useTagChangelog) {
 				let md;
 				if (useTagChangelog) {
-					const fromTag = getInput("from-tag", { trimWhitespace: true }) || release.oldVersion;
+					const configuredFromTag = getInput("from-tag", { trimWhitespace: true });
 					const toRef = getInput("to-tag", { trimWhitespace: true }) || pullRequestData.base.ref;
+					const fromTag = configuredFromTag || await getLatestTag(toRef, release.tag === "latest");
+					info(`tag changelog: strategy=${configuredFromTag ? "configured" : fromTag ? release.tag === "latest" ? "stable" : "prerelease" : "full-history"}, from=${fromTag || "<repository-start>"}, to=${toRef}`);
+					if (!fromTag) warning(`未找到历史 tag,将扫描 ${toRef} 的全部提交`);
 					md = await getTagChangelog(token, [release.name], fromTag, toRef);
 				} else md = renderChangelogMarkdown(getStashChangelog(release.dir, release.type).changelogs);
 				info(`markdownChangelogs: ${md}`);
@@ -83081,6 +83118,7 @@ async function pull_request(token) {
 					await createRelease(title, title, release.changelog, pullRequestData.merge_commit_sha, usePlainTag && release.tag !== "latest");
 					info(`${release.name} release created: ${title}`);
 				} catch (err) {
+					if (usePlainTag) throw err;
 					info(`Failed to create release for ${release.name}: ${err}`);
 				}
 			}

@@ -54,6 +54,31 @@ export default function useGit(token: string) {
     await exec('git', ['fetch', origin])
   }
 
+  async function getLatestTag(ref: string, stableOnly = false) {
+    const args = ['describe', '--tags', '--abbrev=0']
+    if (stableOnly) {
+      args.push(
+        '--exclude',
+        '*alpha*',
+        '--exclude',
+        '*Alpha*',
+        '--exclude',
+        '*ALPHA*',
+        '--exclude',
+        '*beta*',
+        '--exclude',
+        '*Beta*',
+        '--exclude',
+        '*BETA*',
+      )
+    }
+    const describe = (target: string) => getExecOutput('git', [...args, target], { ignoreReturnCode: true })
+    let result = await describe(ref)
+    if (result.exitCode !== 0 && !ref.startsWith('origin/'))
+      result = await describe(`origin/${ref}`)
+    return result.exitCode === 0 ? result.stdout.trim() || undefined : undefined
+  }
+
   return {
     checkoutPr,
     checkoutCommit,
@@ -66,5 +91,6 @@ export default function useGit(token: string) {
     isNeedCommit,
     checkoutBranch,
     addRemote,
+    getLatestTag,
   }
 }

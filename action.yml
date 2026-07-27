@@ -25,7 +25,7 @@ inputs:
     description: 单仓模式下指定 CHANGELOG.md 路径,默认在包目录下读写 CHANGELOG.md / CHANGELOG.en-US.md
     required: false
   from-tag:
-    description: 覆盖日志区间起始 tag(默认取上个发布版本号,单仓为纯版本号)
+    description: 覆盖日志区间起始 tag(默认选择目标 ref 可达的最近 tag;无 tag 时扫描全部历史)
     required: false
   to-tag:
     description: 覆盖日志区间结束 ref(默认取 release PR 的 base 分支)

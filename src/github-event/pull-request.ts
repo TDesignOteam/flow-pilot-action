@@ -1,6 +1,6 @@
 import type { PullRequestData } from '../types'
 import { cwd } from 'node:process'
-import { getInput, info, setOutput } from '@actions/core'
+import { getInput, info, setOutput, warning } from '@actions/core'
 import * as github from '@actions/github'
 import { buildReleaseComments, extractChangelog, getConfiguredPackages, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, getTagChangelog, isSingleMode, publishRelease, renderChangelogMarkdown, sortReleasePackages } from '../utils'
 import useGit from '../utils/git'
@@ -42,7 +42,7 @@ export async function pull_request(token: string) {
     if (isRelease && !isForkPr && github.context.payload.action === 'opened') {
       const prNumber = getPullRequestNumber()
       const { addComment, getPullRequestFiles } = useGithub(token)
-      const { cloneRepo, checkoutBranch } = useGit(token)
+      const { cloneRepo, checkoutBranch, getLatestTag } = useGit(token)
       await cloneRepo()
       await checkoutBranch(pullRequestData.head.ref)
       const changeFiles = await getPullRequestFiles(prNumber)
@@ -65,11 +65,16 @@ export async function pull_request(token: string) {
       const day = String(currentDate.getDate()).padStart(2, '0')
 
       for (const release of releaseDirs) {
-        if (release.tag === 'latest') {
+        if (release.tag === 'latest' || useTagChangelog) {
           let md: string
           if (useTagChangelog) {
-            const fromTag = getInput('from-tag', { trimWhitespace: true }) || release.oldVersion
+            const configuredFromTag = getInput('from-tag', { trimWhitespace: true })
             const toRef = getInput('to-tag', { trimWhitespace: true }) || pullRequestData.base.ref
+            const fromTag = configuredFromTag || await getLatestTag(toRef, release.tag === 'latest')
+            const strategy = configuredFromTag ? 'configured' : fromTag ? release.tag === 'latest' ? 'stable' : 'prerelease' : 'full-history'
+            info(`tag changelog: strategy=${strategy}, from=${fromTag || '<repository-start>'}, to=${toRef}`)
+            if (!fromTag)
+              warning(`未找到历史 tag,将扫描 ${toRef} 的全部提交`)
             md = await getTagChangelog(token, [release.name], fromTag, toRef)
           }
           else {
@@ -145,6 +150,8 @@ export async function pull_request(token: string) {
             info(`${release.name} release created: ${title}`)
           }
           catch (err) {
+            if (usePlainTag)
+              throw err
             info(`Failed to create release for ${release.name}: ${err}`)
           }
         }

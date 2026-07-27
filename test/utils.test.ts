@@ -9,6 +9,7 @@ import {
   extractReleaseLog,
   extractReleaseLogs,
   getChangelogFilePath,
+  getConfiguredPackages,
   getInputPkgs,
   getPackages,
   getPullRequestReleaseDirs,
@@ -199,6 +200,21 @@ describe('utils', () => {
     }
     finally {
       delete process.env['INPUT_CHANGELOG-PATH']
+    }
+  })
+
+  it('uses the configured manifest in single mode', () => {
+    process.env.INPUT_MODE = 'single'
+    process.env['INPUT_PACKAGE-JSON-PATH'] = 'packages/pkg-a/package.json'
+
+    try {
+      expect(getConfiguredPackages('fixtures/repo1')).toMatchObject([
+        { name: 'pkg-a', relativeDir: 'packages/pkg-a', type: 'node' },
+      ])
+    }
+    finally {
+      delete process.env.INPUT_MODE
+      delete process.env['INPUT_PACKAGE-JSON-PATH']
     }
   })
 

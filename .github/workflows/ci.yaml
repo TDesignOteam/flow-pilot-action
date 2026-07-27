@@ -64,3 +64,6 @@ jobs:
 
       - name: Run build
         run: pnpm run build
+
+      - name: Verify build output
+        run: git diff --exit-code -- dist/index.mjs

@@ -536,12 +536,13 @@ function extractTagChangelogLogs(markdown: string, pkgNames: string[]): string[]
 
 /**
  * 基于两个 tag(或 ref)之间已合并 PR 的 body 生成发布日志(单仓)。
- * fromRef 默认为上个发布版本号(纯版本号 tag),toRef 默认为 base 分支。
+ * fromRef 为空时扫描 toRef 的全部历史。
  */
-export async function getTagChangelog(token: string, pkgNames: string[], fromRef: string, toRef: string): Promise<string> {
+export async function getTagChangelog(token: string, pkgNames: string[], fromRef: string | undefined, toRef: string): Promise<string> {
   const { getMergedPrNumbersBetweenRefs, getPullRequestData } = useGithub(token)
   const prNumbers = await getMergedPrNumbersBetweenRefs(fromRef, toRef)
   const logs: string[] = []
+  let failedPullRequests = 0
 
   for (const prNumber of prNumbers) {
     try {
@@ -557,9 +558,14 @@ export async function getTagChangelog(token: string, pkgNames: string[], fromRef
       })
     }
     catch (error) {
-      core.info(`getTagChangelog: 跳过 PR #${prNumber}: ${error instanceof Error ? error.message : String(error)}`)
+      failedPullRequests++
+      core.warning(`getTagChangelog: 跳过 PR #${prNumber}: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
+
+  core.info(`getTagChangelog: 扫描 ${prNumbers.length} 个 PR,生成 ${logs.length} 条日志`)
+  if (failedPullRequests)
+    core.warning(`getTagChangelog: ${failedPullRequests} 个 PR 查询失败,发布日志可能不完整`)
 
   return renderChangelogMarkdown(logs)
 }
