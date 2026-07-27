@@ -296,6 +296,8 @@ release PR 打开时，FlowPilot 读取各包的 `.changelog/*.md`，按类型�
 3. 逐个拉取 PR body,复用与普通 PR 相同的跳过规则(Bot / `skip-changelog` 标签 / release 分支 / 手动勾选),从 `### 📝 更新日志` 抓取日志。
 4. 拼接贡献者与 PR 链接,按类型分组渲染,生成与暂存模式完全一致的 `# 🎉 发布` / `# 🎉 Release` 确认评论;下游确认与 Release 创建流程不变。
 
+PR body 没有有效的 `type(scope): message` 日志且未显式跳过时，FlowPilot 会使用 PR 标题作为回退。符合该格式的标题会保留类型与 scope；其他标题自动归入 `Others`。模板中未勾选的“不需要纳入 Changelog”选项不视为有效日志。
+
 单仓模式下,release PR 合并后的 GitHub tag 使用纯版本号(如 `1.2.3`)而非 `${name}@${version}`。alpha/beta 会创建 GitHub prerelease，并生成相对最近 tag 的增量日志；稳定版会汇总最近稳定 tag 之后的完整日志。
 
 可通过 `package-json-path` 指定非根目录的 `package.json`,通过 `changelog-path` 指定自定义的 `CHANGELOG.md` 读写位置。

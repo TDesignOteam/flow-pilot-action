@@ -534,6 +534,17 @@ function extractTagChangelogLogs(markdown: string, pkgNames: string[]): string[]
   return logs
 }
 
+function isRenderableChangelogLog(log: string): boolean {
+  return CHANGELOG_REG.test(`- ${log}`)
+}
+
+function getPullRequestTitleLog(title: string): string | undefined {
+  const normalizedTitle = title.trim()
+  if (!normalizedTitle)
+    return undefined
+  return isRenderableChangelogLog(normalizedTitle) ? normalizedTitle : `other: ${normalizedTitle}`
+}
+
 /**
  * 基于两个 tag(或 ref)之间已合并 PR 的 body 生成发布日志(单仓)。
  * fromRef 为空时扫描 toRef 的全部历史。
@@ -550,7 +561,14 @@ export async function getTagChangelog(token: string, pkgNames: string[], fromRef
       if (!isExtractPRLog(prData)) {
         continue
       }
-      const prLogs = extractTagChangelogLogs(prData.body || '', pkgNames)
+      const prLogs = extractTagChangelogLogs(prData.body || '', pkgNames).filter(isRenderableChangelogLog)
+      if (!prLogs.length) {
+        const titleLog = getPullRequestTitleLog(prData.title)
+        if (titleLog) {
+          prLogs.push(titleLog)
+          core.info(`getTagChangelog: PR #${prNumber} 未提供有效更新日志,使用 PR 标题`)
+        }
+      }
       prLogs.forEach((log) => {
         const contributor = prData.user.login === 'tdesign-bot' || CONTRIBUTOR_WITH_SPACE_REG.test(log) ? '' : ` @${prData.user.login}`
         const prLink = COMMON_PR_REG.test(log) ? '' : ` ([#${prNumber}](${prData.html_url}))`
