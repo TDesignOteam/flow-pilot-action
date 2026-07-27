@@ -12,10 +12,10 @@ import { StringDecoder } from "string_decoder";
 import * as child from "child_process";
 import { setTimeout as setTimeout$1 } from "timers";
 import { existsSync as existsSync$1, mkdirSync, readFileSync as readFileSync$1, unlinkSync, writeFileSync } from "node:fs";
+import { basename as basename$1, dirname as dirname$1, relative as relative$1, resolve as resolve$1, sep as sep$1 } from "node:path";
 import { cwd } from "node:process";
 import { fileURLToPath } from "url";
 import { createRequire as createRequire$1 } from "module";
-import { basename as basename$1, dirname as dirname$1, relative as relative$1, resolve as resolve$1, sep as sep$1 } from "node:path";
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -30865,8 +30865,191 @@ function getPackages(path) {
 		};
 	}).sort((a, b) => a.relativeDir.localeCompare(b.relativeDir) || a.type.localeCompare(b.type));
 }
+function getSinglePackage(rootDir, manifestPath) {
+	const absolutePath = resolve$1(rootDir, manifestPath);
+	const manifest = parseManifest(absolutePath);
+	if (!manifest || typeof manifest !== "object" || !("name" in manifest) || typeof manifest.name !== "string" || !manifest.name.trim()) throw new Error(`Package manifest "${absolutePath}" is missing a valid "name" field`);
+	const dir = dirname$1(absolutePath);
+	const relativeDir = relative$1(rootDir, dir).split(sep$1).join("/") || ".";
+	const type = basename$1(absolutePath) === "package.json" ? "node" : "flutter";
+	return {
+		name: manifest.name,
+		version: typeof manifest.version === "string" ? manifest.version : void 0,
+		type,
+		private: type === "node" ? manifest.private === true : manifest.publish_to === "none",
+		dependencies: type === "node" ? getNodeDependencies(manifest) : [],
+		dir,
+		relativeDir
+	};
+}
+//#endregion
+//#region src/utils/github.ts
+function useGithub(token) {
+	const octokit = getOctokit(token);
+	const { repo, owner } = context.repo;
+	async function getPullRequestData(pr_number) {
+		const { data } = await octokit.rest.pulls.get({
+			owner,
+			repo,
+			pull_number: pr_number
+		});
+		return data;
+	}
+	async function getPullRequestFiles(pr_number) {
+		return octokit.paginate(octokit.rest.pulls.listFiles, {
+			owner,
+			repo,
+			pull_number: pr_number,
+			per_page: 100
+		});
+	}
+	async function getOpenPullRequestByHead(head) {
+		const { data } = await octokit.rest.pulls.list({
+			owner,
+			repo,
+			head: `${owner}:${head}`,
+			state: "open"
+		});
+		return data[0];
+	}
+	async function createPullRequest(title, head, base, body) {
+		const { data } = await octokit.rest.pulls.create({
+			owner,
+			repo,
+			title,
+			head,
+			base,
+			body
+		});
+		return data;
+	}
+	async function getCommentList(pr_number) {
+		const { data } = await octokit.rest.issues.listComments({
+			owner,
+			repo,
+			issue_number: pr_number
+		});
+		return data;
+	}
+	async function addComment(pr_number, body) {
+		await octokit.rest.issues.createComment({
+			owner,
+			repo,
+			issue_number: pr_number,
+			body
+		});
+	}
+	async function updateComment(comment_id, body) {
+		await octokit.rest.issues.updateComment({
+			owner,
+			repo,
+			comment_id,
+			body
+		});
+	}
+	async function addPullRequestLabels(pr_number, labels) {
+		await octokit.rest.issues.addLabels({
+			owner,
+			repo,
+			issue_number: pr_number,
+			labels
+		});
+	}
+	async function getRequestedReviewers(pr_number) {
+		const { data } = await octokit.rest.pulls.listRequestedReviewers({
+			owner,
+			repo,
+			pull_number: pr_number
+		});
+		return data.users.map((item) => item.login);
+	}
+	async function createRelease(tag_name, name, body, target_commitish, prerelease = false) {
+		await octokit.rest.repos.createRelease({
+			owner,
+			repo,
+			tag_name,
+			name,
+			body,
+			target_commitish,
+			prerelease
+		});
+	}
+	async function getCommitsBetweenRefs(base, head) {
+		if (!base) return (await octokit.paginate(octokit.rest.repos.listCommits, {
+			owner,
+			repo,
+			sha: head,
+			per_page: 100
+		})).reverse();
+		return octokit.paginate(octokit.rest.repos.compareCommitsWithBasehead, {
+			owner,
+			repo,
+			basehead: `${base}...${head}`,
+			per_page: 100
+		}, (response) => {
+			const data = response.data;
+			return Array.isArray(data) ? data : data.commits;
+		});
+	}
+	/**
+	* 获取 base..head 之间已合并 PR 的编号列表(去重)。
+	* base 为空时扫描 head 的全部历史。单个提交查询失败时告警并继续。
+	*/
+	async function getMergedPrNumbersBetweenRefs(base, head) {
+		const commits = await getCommitsBetweenRefs(base, head);
+		const prNumbers = /* @__PURE__ */ new Set();
+		let failedCommits = 0;
+		for (const commit of commits) try {
+			(await octokit.paginate(octokit.rest.repos.listPullRequestsAssociatedWithCommit, {
+				owner,
+				repo,
+				commit_sha: commit.sha,
+				per_page: 100
+			})).forEach((pr) => {
+				if (pr.number && pr.merged_at) prNumbers.add(pr.number);
+			});
+		} catch (error) {
+			failedCommits++;
+			warning(`getMergedPrNumbersBetweenRefs: 跳过 commit ${commit.sha}: ${error instanceof Error ? error.message : String(error)}`);
+		}
+		info(`getMergedPrNumbersBetweenRefs: 扫描 ${commits.length} 个 commit,关联 ${prNumbers.size} 个 PR`);
+		if (failedCommits) warning(`getMergedPrNumbersBetweenRefs: ${failedCommits} 个 commit 查询失败,发布日志可能不完整`);
+		return [...prNumbers];
+	}
+	return {
+		getPullRequestData,
+		getPullRequestFiles,
+		getOpenPullRequestByHead,
+		createPullRequest,
+		addPullRequestLabels,
+		addComment,
+		updateComment,
+		getCommentList,
+		getRequestedReviewers,
+		createRelease,
+		getMergedPrNumbersBetweenRefs
+	};
+}
 //#endregion
 //#region src/utils/common.ts
+function getMode() {
+	return getInput("mode", { trimWhitespace: true }) === "single" ? "single" : "monorepo";
+}
+function isSingleMode() {
+	return getMode() === "single";
+}
+function getEnglishChangelogPath(path) {
+	return path.endsWith(".md") ? path.replace(/\.md$/, ".en-US.md") : `${path}.en-US.md`;
+}
+function getChangelogFilePath(release, lang) {
+	const customPath = getInput("changelog-path", { trimWhitespace: true });
+	if (customPath) {
+		if (lang === "en") return getEnglishChangelogPath(customPath);
+		return customPath;
+	}
+	const fileName = lang === "en" ? "CHANGELOG.en-US.md" : "CHANGELOG.md";
+	return `${release.dir}/${fileName}`;
+}
 const USE_PASCAL_CASE_REG = /^Use(?=[A-Z])/;
 const RN_TO_LF_REG = /\r\n/g;
 const COMMON_PR_REG = /\[common#\d+\]/;
@@ -31024,8 +31207,14 @@ function readPackageManifest(path, type) {
 function getPullRequestReleaseDirs(prFiles, packages) {
 	const zhChangelogs = {};
 	const enChangelogs = {};
+	const customChangelogPath = isSingleMode() ? getInput("changelog-path", { trimWhitespace: true }).replace(/^\.\//, "") : "";
+	const customEnChangelogPath = customChangelogPath ? getEnglishChangelogPath(customChangelogPath) : "";
+	const singleChangelogKey = "__single__";
 	return prFiles.filter((file) => {
-		if (file.filename.includes("CHANGELOG.md") && file.patch) {
+		const changelogKey = customChangelogPath ? singleChangelogKey : dirname$1(file.filename);
+		const isZhChangelog = customChangelogPath ? file.filename === customChangelogPath : file.filename.includes("CHANGELOG.md");
+		const isEnChangelog = customEnChangelogPath ? file.filename === customEnChangelogPath : file.filename.includes("CHANGELOG.en-US.md");
+		if (isZhChangelog && file.patch) {
 			const logs = [];
 			let isSkip = false;
 			let hasNewReleaseLog = false;
@@ -31041,9 +31230,9 @@ function getPullRequestReleaseDirs(prFiles, packages) {
 					logs.push(log.trimEnd());
 				}
 			});
-			zhChangelogs[dirname$1(file.filename)] = logs.join("\n");
+			zhChangelogs[changelogKey] = logs.join("\n");
 		}
-		if (file.filename.includes("CHANGELOG.en-US.md") && file.patch) {
+		if (isEnChangelog && file.patch) {
 			const logs = [];
 			let isSkip = false;
 			let hasNewReleaseLog = false;
@@ -31059,7 +31248,7 @@ function getPullRequestReleaseDirs(prFiles, packages) {
 					logs.push(log.trimEnd());
 				}
 			});
-			enChangelogs[dirname$1(file.filename)] = logs.slice(1).join("\n");
+			enChangelogs[changelogKey] = logs.slice(1).join("\n");
 		}
 		if (file.status !== "modified") return false;
 		const type = getManifestType(file.filename);
@@ -31074,24 +31263,26 @@ function getPullRequestReleaseDirs(prFiles, packages) {
 	}).map((file) => {
 		const type = getManifestType(file.filename);
 		const packageData = readPackageManifest(file.filename, type);
-		const version = getChangedVersions(file.patch || "", type).newVersion;
+		const { newVersion: version, oldVersion } = getChangedVersions(file.patch || "", type);
 		if (typeof packageData.name !== "string") throw new Error(`Package manifest "${file.filename}" is missing a valid "name" field`);
 		if (typeof packageData.version !== "string" && typeof packageData.version !== "number") throw new Error(`Package manifest "${file.filename}" is missing a valid "version" field`);
 		if (String(packageData.version) !== version) throw new Error(`Package manifest "${file.filename}" has version "${packageData.version}", expected "${version}" from the pull request diff`);
 		let tag = "latest";
 		if (version.includes("beta")) tag = "beta";
 		if (version.includes("alpha")) tag = "alpha";
-		let changelog = zhChangelogs[dirname$1(file.filename)] || "";
-		if (changelog && enChangelogs[dirname$1(file.filename)]) changelog = [
+		const changelogKey = customChangelogPath ? singleChangelogKey : dirname$1(file.filename);
+		let changelog = zhChangelogs[changelogKey] || "";
+		if (changelog && enChangelogs[changelogKey]) changelog = [
 			...changelog,
 			"\n---\n",
-			enChangelogs[dirname$1(file.filename)]
+			enChangelogs[changelogKey]
 		].join("");
 		return {
 			dir: dirname$1(file.filename),
 			name: packageData.name,
 			private: type === "node" ? packageData.private === true : packageData.publish_to === "none",
 			version,
+			oldVersion,
 			type,
 			tag,
 			changelog
@@ -31159,6 +31350,86 @@ function renderChangelogMarkdown(changelogs) {
 		renderChangelog("### 🚧 Others", otherList)
 	].filter((n) => n).join("\n");
 }
+/**
+* 从 PR body 提取「基于 tag 区间」的发布日志(单仓扁平格式):
+* 直接贴在 `### 📝 更新日志` 标题下的列表(无 `#### package` 分段),
+* 以及 `#### all` / `#### <pkgName>` 分段。返回纯日志条目(不含 `- ` 前缀)。
+*/
+function extractTagChangelogLogs(markdown, pkgNames) {
+	const md = parseMarkdown(markdown);
+	const changelogHeading = getChangelogHeading();
+	const pkgDepth = changelogHeading.depth + 1;
+	let collectLogs = false;
+	let pkgName = "";
+	const logs = [];
+	md.forEach((token) => {
+		if (token.type === changelogHeading.type && token.depth === changelogHeading.depth) {
+			collectLogs = token.text === changelogHeading.text;
+			pkgName = "";
+			return;
+		}
+		if (!collectLogs) return;
+		if (token.type === "heading") {
+			if (token.depth === pkgDepth) pkgName = token.text;
+			else collectLogs = false;
+			return;
+		}
+		if (token.type === "list") {
+			const items = token.items;
+			if (pkgName === "all" || pkgNames.includes(pkgName) || pkgName === "") {
+				const targetCount = pkgName === "all" ? pkgNames.length : 1;
+				items.forEach((item) => {
+					if (item.type === "list_item" && item.tokens.length) {
+						const text = item.tokens[0].text;
+						for (let i = 0; i < targetCount; i++) logs.push(text);
+					}
+				});
+			}
+		}
+	});
+	return logs;
+}
+function isRenderableChangelogLog(log) {
+	return CHANGELOG_REG.test(`- ${log}`);
+}
+function getPullRequestTitleLog(title) {
+	const normalizedTitle = title.trim();
+	if (!normalizedTitle) return void 0;
+	return isRenderableChangelogLog(normalizedTitle) ? normalizedTitle : `other: ${normalizedTitle}`;
+}
+/**
+* 基于两个 tag(或 ref)之间已合并 PR 的 body 生成发布日志(单仓)。
+* fromRef 为空时扫描 toRef 的全部历史。
+*/
+async function getTagChangelog(token, pkgNames, fromRef, toRef) {
+	const { getMergedPrNumbersBetweenRefs, getPullRequestData } = useGithub(token);
+	const prNumbers = await getMergedPrNumbersBetweenRefs(fromRef, toRef);
+	const logs = [];
+	let failedPullRequests = 0;
+	for (const prNumber of prNumbers) try {
+		const prData = await getPullRequestData(prNumber);
+		if (!isExtractPRLog(prData)) continue;
+		const prLogs = extractTagChangelogLogs(prData.body || "", pkgNames).filter(isRenderableChangelogLog);
+		if (!prLogs.length) {
+			const titleLog = getPullRequestTitleLog(prData.title);
+			if (titleLog) {
+				prLogs.push(titleLog);
+				info(`getTagChangelog: PR #${prNumber} 未提供有效更新日志,使用 PR 标题`);
+			}
+		}
+		prLogs.forEach((log) => {
+			const contributor = prData.user.login === "tdesign-bot" || CONTRIBUTOR_WITH_SPACE_REG.test(log) ? "" : ` @${prData.user.login}`;
+			const prLink = COMMON_PR_REG.test(log) ? "" : ` ([#${prNumber}](${prData.html_url}))`;
+			logs.push(`- ${log}${contributor}${prLink}`);
+		});
+	} catch (error) {
+		failedPullRequests++;
+		warning(`getTagChangelog: 跳过 PR #${prNumber}: ${error instanceof Error ? error.message : String(error)}`);
+	}
+	info(`getTagChangelog: 扫描 ${prNumbers.length} 个 PR,生成 ${logs.length} 条日志`);
+	if (failedPullRequests) warning(`getTagChangelog: ${failedPullRequests} 个 PR 查询失败,发布日志可能不完整`);
+	return renderChangelogMarkdown(logs);
+}
 function renderChangelog(heading, changelogs) {
 	let content = "";
 	const keys = Object.keys(changelogs).sort();
@@ -31191,6 +31462,7 @@ function getInputPkgs() {
 	return getMultilineInput("packages", { trimWhitespace: true }).flatMap((line) => line.split(",")).map((pkg) => pkg.trim()).filter(Boolean);
 }
 function getConfiguredPackages(path) {
+	if (isSingleMode()) return [getSinglePackage(path, getInput("package-json-path", { trimWhitespace: true }) || resolve$1(path, "package.json"))];
 	const packageNames = getInputPkgs();
 	const packages = getPackages(path);
 	return packageNames.length ? packages.filter((pkg) => packageNames.includes(pkg.name)) : packages;
@@ -31283,6 +31555,18 @@ function useGit(token) {
 		]);
 		await exec("git", ["fetch", origin]);
 	}
+	async function getLatestTag(ref, stableOnly = false) {
+		const args = [
+			"describe",
+			"--tags",
+			"--abbrev=0"
+		];
+		if (stableOnly) args.push("--exclude", "*alpha*", "--exclude", "*Alpha*", "--exclude", "*ALPHA*", "--exclude", "*beta*", "--exclude", "*Beta*", "--exclude", "*BETA*");
+		const describe = (target) => getExecOutput("git", [...args, target], { ignoreReturnCode: true });
+		let result = await describe(ref);
+		if (result.exitCode !== 0 && !ref.startsWith("origin/")) result = await describe(`origin/${ref}`);
+		return result.exitCode === 0 ? result.stdout.trim() || void 0 : void 0;
+	}
 	return {
 		checkoutPr,
 		checkoutCommit,
@@ -31294,111 +31578,8 @@ function useGit(token) {
 		updateSubmodule,
 		isNeedCommit,
 		checkoutBranch,
-		addRemote
-	};
-}
-//#endregion
-//#region src/utils/github.ts
-function useGithub(token) {
-	const octokit = getOctokit(token);
-	const { repo, owner } = context.repo;
-	async function getPullRequestData(pr_number) {
-		const { data } = await octokit.rest.pulls.get({
-			owner,
-			repo,
-			pull_number: pr_number
-		});
-		return data;
-	}
-	async function getPullRequestFiles(pr_number) {
-		return octokit.paginate(octokit.rest.pulls.listFiles, {
-			owner,
-			repo,
-			pull_number: pr_number,
-			per_page: 100
-		});
-	}
-	async function getOpenPullRequestByHead(head) {
-		const { data } = await octokit.rest.pulls.list({
-			owner,
-			repo,
-			head: `${owner}:${head}`,
-			state: "open"
-		});
-		return data[0];
-	}
-	async function createPullRequest(title, head, base, body) {
-		const { data } = await octokit.rest.pulls.create({
-			owner,
-			repo,
-			title,
-			head,
-			base,
-			body
-		});
-		return data;
-	}
-	async function getCommentList(pr_number) {
-		const { data } = await octokit.rest.issues.listComments({
-			owner,
-			repo,
-			issue_number: pr_number
-		});
-		return data;
-	}
-	async function addComment(pr_number, body) {
-		await octokit.rest.issues.createComment({
-			owner,
-			repo,
-			issue_number: pr_number,
-			body
-		});
-	}
-	async function updateComment(comment_id, body) {
-		await octokit.rest.issues.updateComment({
-			owner,
-			repo,
-			comment_id,
-			body
-		});
-	}
-	async function addPullRequestLabels(pr_number, labels) {
-		await octokit.rest.issues.addLabels({
-			owner,
-			repo,
-			issue_number: pr_number,
-			labels
-		});
-	}
-	async function getRequestedReviewers(pr_number) {
-		const { data } = await octokit.rest.pulls.listRequestedReviewers({
-			owner,
-			repo,
-			pull_number: pr_number
-		});
-		return data.users.map((item) => item.login);
-	}
-	async function createRelease(tag_name, name, body, target_commitish) {
-		await octokit.rest.repos.createRelease({
-			owner,
-			repo,
-			tag_name,
-			name,
-			body,
-			target_commitish
-		});
-	}
-	return {
-		getPullRequestData,
-		getPullRequestFiles,
-		getOpenPullRequestByHead,
-		createPullRequest,
-		addPullRequestLabels,
-		addComment,
-		updateComment,
-		getCommentList,
-		getRequestedReviewers,
-		createRelease
+		addRemote,
+		getLatestTag
 	};
 }
 //#endregion
@@ -31496,9 +31677,7 @@ async function confirmReleaseLog(prNumber, log, token) {
 	const isReleaseHead = log.startsWith("# 🎉 发布") || log.startsWith("# 🎉 Release");
 	info(`isReleaseHead: ${isReleaseHead}`);
 	if (!isReleaseHead) return false;
-	let changelogFileName = "CHANGELOG.md";
 	const releaseHeading = log.startsWith("# 🎉 Release") ? "🎉 Release" : "🎉 发布";
-	if (releaseHeading === "🎉 Release") changelogFileName = "CHANGELOG.en-US.md";
 	const releaseLogs = extractReleaseLogs(log, releaseHeading);
 	info(`releaseLogs: ${JSON.stringify(releaseLogs, null, 2)}`);
 	if (!releaseLogs.length) throw new Error("Release log does not contain any valid package sections");
@@ -31522,12 +31701,15 @@ async function confirmReleaseLog(prNumber, log, token) {
 	for (const release of releaseDirs) {
 		const changelog = changelogMap.get(release.name);
 		if (!changelog) continue;
+		const changelogFilePath = getChangelogFilePath(release, releaseHeading === "🎉 Release" ? "en" : "zh");
 		globSync(`${release.dir}/.changelog/*.md`).forEach((file) => {
 			unlinkSync(file);
 			info(`delete file: ${file}`);
 		});
-		if (!existsSync$1(`${release.dir}/${changelogFileName}`)) writeFileSync(`${release.dir}/${changelogFileName}`, "", "utf8");
-		else {
+		if (!existsSync$1(changelogFilePath)) {
+			mkdirSync(dirname$1(changelogFilePath), { recursive: true });
+			writeFileSync(changelogFilePath, "", "utf8");
+		} else {
 			await exec("git", [
 				"fetch",
 				"origin",
@@ -31537,26 +31719,31 @@ async function confirmReleaseLog(prNumber, log, token) {
 				"checkout",
 				`origin/${defaultBranch}`,
 				"--",
-				`${release.dir}/${changelogFileName}`
+				changelogFilePath
 			]);
 		}
-		const pkgChangelog = readFileSync$1(`${release.dir}/${changelogFileName}`, "utf8");
+		const pkgChangelog = readFileSync$1(changelogFilePath, "utf8");
 		const index = pkgChangelog.indexOf("## 🌈");
 		let newData = "";
 		if (index === -1) newData = pkgChangelog + changelog;
 		else newData = pkgChangelog.slice(0, index) + changelog + pkgChangelog.slice(index);
-		writeFileSync(`${release.dir}/${changelogFileName}`, newData, "utf8");
+		writeFileSync(changelogFilePath, newData, "utf8");
 		await exec("git", [
 			"add",
 			"-A",
 			"--",
 			release.dir
 		]);
+		await exec("git", [
+			"add",
+			"--",
+			changelogFilePath
+		]);
 		await exec("git", ["status"]);
 		if (await isNeedCommit()) await exec("git", [
 			"commit",
 			"-m",
-			`chore: update ${release.name} ${changelogFileName}`
+			`chore: update ${release.name} ${basename$1(changelogFilePath)}`
 		]);
 	}
 	await pushReleaseBranch(prData.head.ref);
@@ -82872,7 +83059,7 @@ async function pull_request(token) {
 		if (isRelease && !isForkPr && context.payload.action === "opened") {
 			const prNumber = getPullRequestNumber();
 			const { addComment, getPullRequestFiles } = useGithub(token);
-			const { cloneRepo, checkoutBranch } = useGit(token);
+			const { cloneRepo, checkoutBranch, getLatestTag } = useGit(token);
 			await cloneRepo();
 			await checkoutBranch(pullRequestData.head.ref);
 			const changeFiles = await getPullRequestFiles(prNumber);
@@ -82884,6 +83071,7 @@ async function pull_request(token) {
 				info("没有更新发布版本");
 				return;
 			}
+			const useTagChangelog = isSingleMode();
 			const zhComments = [];
 			const enComments = [];
 			const logHead = "(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n";
@@ -82891,19 +83079,25 @@ async function pull_request(token) {
 			const year = currentDate.getFullYear();
 			const month = String(currentDate.getMonth() + 1).padStart(2, "0");
 			const day = String(currentDate.getDate()).padStart(2, "0");
-			for (const release of releaseDirs) if (release.tag === "latest") {
-				const changelogs = getStashChangelog(release.dir, release.type);
-				info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`);
-				const md = renderChangelogMarkdown(changelogs.changelogs);
+			for (const release of releaseDirs) if (release.tag === "latest" || useTagChangelog) {
+				let md;
+				if (useTagChangelog) {
+					const configuredFromTag = getInput("from-tag", { trimWhitespace: true });
+					const toRef = getInput("to-tag", { trimWhitespace: true }) || pullRequestData.base.ref;
+					const fromTag = configuredFromTag || await getLatestTag(toRef, release.tag === "latest");
+					info(`tag changelog: strategy=${configuredFromTag ? "configured" : fromTag ? release.tag === "latest" ? "stable" : "prerelease" : "full-history"}, from=${fromTag || "<repository-start>"}, to=${toRef}`);
+					if (!fromTag) warning(`未找到历史 tag,将扫描 ${toRef} 的全部提交`);
+					md = await getTagChangelog(token, [release.name], fromTag, toRef);
+				} else md = renderChangelogMarkdown(getStashChangelog(release.dir, release.type).changelogs);
 				info(`markdownChangelogs: ${md}`);
-				const zhBody = `# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`;
+				const zhBody = `# 🎉 发布 ${release.name}\n## 🌈 ${release.version} \`${year}-${month}-${day}\` \n\n${md}`;
 				zhComments.push(zhBody);
 				const secretId = getInput("translate-secret-id", { trimWhitespace: true });
 				const secretKey = getInput("translate-secret-key", { trimWhitespace: true });
 				if (secretId && secretKey && md) try {
 					const text = await translateText(secretId, secretKey, md);
 					info(`en_md: ${text}`);
-					const enBody = `# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${text}`;
+					const enBody = `# 🎉 Release ${release.name}\n## 🌈 ${release.version} \`${year}-${month}-${day}\` \n\n${text}`;
 					enComments.push(enBody);
 				} catch (err) {
 					info(`翻译失败，${err}`);
@@ -82930,15 +83124,17 @@ async function pull_request(token) {
 				return;
 			}
 			for (const release of releaseDirs) {
-				const title = `${release.name}@${release.version}`;
-				const shouldCreateRelease = release.type === "flutter" || Boolean(release.changelog && release.tag === "latest");
+				const usePlainTag = isSingleMode();
+				const title = usePlainTag ? release.version : `${release.name}@${release.version}`;
+				const shouldCreateRelease = usePlainTag || release.type === "flutter" || Boolean(release.changelog && release.tag === "latest");
 				if (release.private) info(`${release.name} is private package, skip publish`);
 				else if (release.type === "node") await publishRelease(release);
 				if (shouldCreateRelease) try {
 					info(`Creating release for ${release.name}: ${title}`);
-					await createRelease(title, title, release.changelog, pullRequestData.merge_commit_sha);
+					await createRelease(title, title, release.changelog, pullRequestData.merge_commit_sha, usePlainTag && release.tag !== "latest");
 					info(`${release.name} release created: ${title}`);
 				} catch (err) {
+					if (usePlainTag) throw err;
 					info(`Failed to create release for ${release.name}: ${err}`);
 				}
 			}

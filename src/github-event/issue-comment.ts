@@ -1,11 +1,12 @@
 import type { PullRequestData } from '../types'
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+import { basename, dirname } from 'node:path'
 import { cwd } from 'node:process'
 import * as core from '@actions/core'
 import { exec } from '@actions/exec'
 import * as github from '@actions/github'
 import { globSync } from 'tinyglobby'
-import { checkIsForkPr, extractChangelog, extractReleaseLogs, getConfiguredPackages, getInputPkgs, getPrCommentWhitelist, getPullRequestNumber, getPullRequestReleaseDirs, stashPackageChangelog } from '../utils/common'
+import { checkIsForkPr, extractChangelog, extractReleaseLogs, getChangelogFilePath, getConfiguredPackages, getInputPkgs, getPrCommentWhitelist, getPullRequestNumber, getPullRequestReleaseDirs, stashPackageChangelog } from '../utils/common'
 import useGit from '../utils/git'
 import useGithub from '../utils/github'
 
@@ -148,12 +149,7 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
   if (!isReleaseHead) {
     return false
   }
-  let changelogFileName = 'CHANGELOG.md'
-
   const releaseHeading = log.startsWith('# 🎉 Release') ? '🎉 Release' : '🎉 发布'
-  if (releaseHeading === '🎉 Release') {
-    changelogFileName = 'CHANGELOG.en-US.md'
-  }
 
   const releaseLogs = extractReleaseLogs(log, releaseHeading)
   core.info(`releaseLogs: ${JSON.stringify(releaseLogs, null, 2)}`)
@@ -190,20 +186,23 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
     if (!changelog) {
       continue
     }
+    const changelogFilePath = getChangelogFilePath(release, releaseHeading === '🎉 Release' ? 'en' : 'zh')
+
     const files = globSync(`${release.dir}/.changelog/*.md`)
     files.forEach((file) => {
       unlinkSync(file)
       core.info(`delete file: ${file}`)
     })
-    if (!existsSync(`${release.dir}/${changelogFileName}`)) {
-      writeFileSync(`${release.dir}/${changelogFileName}`, '', 'utf8')
+    if (!existsSync(changelogFilePath)) {
+      mkdirSync(dirname(changelogFilePath), { recursive: true })
+      writeFileSync(changelogFilePath, '', 'utf8')
     }
     else {
       await exec('git', ['fetch', 'origin', defaultBranch])
-      await exec('git', ['checkout', `origin/${defaultBranch}`, '--', `${release.dir}/${changelogFileName}`])
+      await exec('git', ['checkout', `origin/${defaultBranch}`, '--', changelogFilePath])
     }
 
-    const pkgChangelog = readFileSync(`${release.dir}/${changelogFileName}`, 'utf8')
+    const pkgChangelog = readFileSync(changelogFilePath, 'utf8')
     const index = pkgChangelog.indexOf('## 🌈')
     let newData = ''
     if (index === -1) {
@@ -212,12 +211,13 @@ async function confirmReleaseLog(prNumber: number, log: string, token: string) {
     else {
       newData = pkgChangelog.slice(0, index) + changelog + pkgChangelog.slice(index)
     }
-    writeFileSync(`${release.dir}/${changelogFileName}`, newData, 'utf8')
+    writeFileSync(changelogFilePath, newData, 'utf8')
 
     await exec('git', ['add', '-A', '--', release.dir])
+    await exec('git', ['add', '--', changelogFilePath])
     await exec('git', ['status'])
     if (await isNeedCommit()) {
-      const commitMsg = `chore: update ${release.name} ${changelogFileName}`
+      const commitMsg = `chore: update ${release.name} ${basename(changelogFilePath)}`
       await exec('git', ['commit', '-m', commitMsg])
     }
   }

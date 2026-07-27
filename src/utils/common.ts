@@ -10,9 +10,34 @@ import { marked } from 'marked'
 import { globSync } from 'tinyglobby'
 import { parse } from 'yaml'
 import { CHANGELOG_REG, NEW_VERSION_REG, OLD_VERSION_REG, SKIP_CHANGELOG_REG } from '../consts'
-import { getPackages } from './get-packages'
+import { getPackages, getSinglePackage } from './get-packages'
+import useGithub from './github'
 
-export { getPackages }
+export { getPackages, getSinglePackage }
+
+export function getMode(): 'single' | 'monorepo' {
+  return core.getInput('mode', { trimWhitespace: true }) === 'single' ? 'single' : 'monorepo'
+}
+
+export function isSingleMode(): boolean {
+  return getMode() === 'single'
+}
+
+function getEnglishChangelogPath(path: string): string {
+  return path.endsWith('.md') ? path.replace(/\.md$/, '.en-US.md') : `${path}.en-US.md`
+}
+
+export function getChangelogFilePath(release: ReleasePackage, lang: 'zh' | 'en'): string {
+  const customPath = core.getInput('changelog-path', { trimWhitespace: true })
+  if (customPath) {
+    if (lang === 'en') {
+      return getEnglishChangelogPath(customPath)
+    }
+    return customPath
+  }
+  const fileName = lang === 'en' ? 'CHANGELOG.en-US.md' : 'CHANGELOG.md'
+  return `${release.dir}/${fileName}`
+}
 
 const USE_PASCAL_CASE_REG = /^Use(?=[A-Z])/
 const RN_TO_LF_REG = /\r\n/g
@@ -273,9 +298,18 @@ function readPackageManifest(path: string, type: PackageType): Record<string, un
 export function getPullRequestReleaseDirs(prFiles: PullRequestFiles, packages?: Package[]): ReleasePackage[] {
   const zhChangelogs: Record<string, string> = {}
   const enChangelogs: Record<string, string> = {}
+  const customChangelogPath = isSingleMode() ? core.getInput('changelog-path', { trimWhitespace: true }).replace(/^\.\//, '') : ''
+  const customEnChangelogPath = customChangelogPath
+    ? getEnglishChangelogPath(customChangelogPath)
+    : ''
+  const singleChangelogKey = '__single__'
 
   return prFiles.filter((file) => {
-    if (file.filename.includes('CHANGELOG.md') && file.patch) {
+    const changelogKey = customChangelogPath ? singleChangelogKey : dirname(file.filename)
+    const isZhChangelog = customChangelogPath ? file.filename === customChangelogPath : file.filename.includes('CHANGELOG.md')
+    const isEnChangelog = customEnChangelogPath ? file.filename === customEnChangelogPath : file.filename.includes('CHANGELOG.en-US.md')
+
+    if (isZhChangelog && file.patch) {
       const logs: string[] = []
       let isSkip = false
       let hasNewReleaseLog = false
@@ -294,10 +328,10 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles, packages?: 
           logs.push(log.trimEnd())
         }
       })
-      zhChangelogs[dirname(file.filename)] = logs.join('\n')
+      zhChangelogs[changelogKey] = logs.join('\n')
     }
 
-    if (file.filename.includes('CHANGELOG.en-US.md') && file.patch) {
+    if (isEnChangelog && file.patch) {
       const logs: string[] = []
       let isSkip = false
       let hasNewReleaseLog = false
@@ -316,7 +350,7 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles, packages?: 
           logs.push(log.trimEnd())
         }
       })
-      enChangelogs[dirname(file.filename)] = logs.slice(1).join('\n')
+      enChangelogs[changelogKey] = logs.slice(1).join('\n')
     }
 
     if (file.status !== 'modified') {
@@ -347,7 +381,7 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles, packages?: 
   }).map((file) => {
     const type = getManifestType(file.filename) as PackageType
     const packageData = readPackageManifest(file.filename, type)
-    const version = getChangedVersions(file.patch || '', type).newVersion as string
+    const { newVersion: version, oldVersion } = getChangedVersions(file.patch || '', type)
     if (typeof packageData.name !== 'string')
       throw new Error(`Package manifest "${file.filename}" is missing a valid "name" field`)
     if (typeof packageData.version !== 'string' && typeof packageData.version !== 'number')
@@ -362,15 +396,17 @@ export function getPullRequestReleaseDirs(prFiles: PullRequestFiles, packages?: 
     if (version.includes('alpha')) {
       tag = 'alpha'
     }
-    let changelog = zhChangelogs[dirname(file.filename)] || ''
-    if (changelog && enChangelogs[dirname(file.filename)]) {
-      changelog = [...changelog, '\n---\n', enChangelogs[dirname(file.filename)]].join('')
+    const changelogKey = customChangelogPath ? singleChangelogKey : dirname(file.filename)
+    let changelog = zhChangelogs[changelogKey] || ''
+    if (changelog && enChangelogs[changelogKey]) {
+      changelog = [...changelog, '\n---\n', enChangelogs[changelogKey]].join('')
     }
     return {
       dir: dirname(file.filename),
       name: packageData.name,
       private: type === 'node' ? packageData.private === true : packageData.publish_to === 'none',
       version,
+      oldVersion: oldVersion as string,
       type,
       tag,
       changelog,
@@ -448,6 +484,110 @@ export function renderChangelogMarkdown(changelogs: string[]) {
   ].filter(n => n).join('\n')
 }
 
+/**
+ * 从 PR body 提取「基于 tag 区间」的发布日志(单仓扁平格式):
+ * 直接贴在 `### 📝 更新日志` 标题下的列表(无 `#### package` 分段),
+ * 以及 `#### all` / `#### <pkgName>` 分段。返回纯日志条目(不含 `- ` 前缀)。
+ */
+function extractTagChangelogLogs(markdown: string, pkgNames: string[]): string[] {
+  const md = parseMarkdown(markdown)
+  const changelogHeading = getChangelogHeading()
+  const pkgDepth = changelogHeading.depth + 1
+  let collectLogs = false
+  let pkgName = ''
+  const logs: string[] = []
+
+  md.forEach((token) => {
+    if (token.type === changelogHeading.type && token.depth === changelogHeading.depth) {
+      collectLogs = token.text === changelogHeading.text
+      pkgName = ''
+      return
+    }
+    if (!collectLogs) {
+      return
+    }
+    if (token.type === 'heading') {
+      if (token.depth === pkgDepth) {
+        pkgName = token.text
+      }
+      else {
+        // 离开更新日志区块
+        collectLogs = false
+      }
+      return
+    }
+    if (token.type === 'list') {
+      const items = token.items as Tokens.ListItem[]
+      if (pkgName === 'all' || pkgNames.includes(pkgName) || pkgName === '') {
+        const targetCount = pkgName === 'all' ? pkgNames.length : 1
+        items.forEach((item) => {
+          if (item.type === 'list_item' && item.tokens.length) {
+            const text = (item.tokens[0] as Tokens.Text).text
+            for (let i = 0; i < targetCount; i++) {
+              logs.push(text)
+            }
+          }
+        })
+      }
+    }
+  })
+  return logs
+}
+
+function isRenderableChangelogLog(log: string): boolean {
+  return CHANGELOG_REG.test(`- ${log}`)
+}
+
+function getPullRequestTitleLog(title: string): string | undefined {
+  const normalizedTitle = title.trim()
+  if (!normalizedTitle)
+    return undefined
+  return isRenderableChangelogLog(normalizedTitle) ? normalizedTitle : `other: ${normalizedTitle}`
+}
+
+/**
+ * 基于两个 tag(或 ref)之间已合并 PR 的 body 生成发布日志(单仓)。
+ * fromRef 为空时扫描 toRef 的全部历史。
+ */
+export async function getTagChangelog(token: string, pkgNames: string[], fromRef: string | undefined, toRef: string): Promise<string> {
+  const { getMergedPrNumbersBetweenRefs, getPullRequestData } = useGithub(token)
+  const prNumbers = await getMergedPrNumbersBetweenRefs(fromRef, toRef)
+  const logs: string[] = []
+  let failedPullRequests = 0
+
+  for (const prNumber of prNumbers) {
+    try {
+      const prData = await getPullRequestData(prNumber)
+      if (!isExtractPRLog(prData)) {
+        continue
+      }
+      const prLogs = extractTagChangelogLogs(prData.body || '', pkgNames).filter(isRenderableChangelogLog)
+      if (!prLogs.length) {
+        const titleLog = getPullRequestTitleLog(prData.title)
+        if (titleLog) {
+          prLogs.push(titleLog)
+          core.info(`getTagChangelog: PR #${prNumber} 未提供有效更新日志,使用 PR 标题`)
+        }
+      }
+      prLogs.forEach((log) => {
+        const contributor = prData.user.login === 'tdesign-bot' || CONTRIBUTOR_WITH_SPACE_REG.test(log) ? '' : ` @${prData.user.login}`
+        const prLink = COMMON_PR_REG.test(log) ? '' : ` ([#${prNumber}](${prData.html_url}))`
+        logs.push(`- ${log}${contributor}${prLink}`)
+      })
+    }
+    catch (error) {
+      failedPullRequests++
+      core.warning(`getTagChangelog: 跳过 PR #${prNumber}: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
+  core.info(`getTagChangelog: 扫描 ${prNumbers.length} 个 PR,生成 ${logs.length} 条日志`)
+  if (failedPullRequests)
+    core.warning(`getTagChangelog: ${failedPullRequests} 个 PR 查询失败,发布日志可能不完整`)
+
+  return renderChangelogMarkdown(logs)
+}
+
 function renderChangelog(heading: string, changelogs: Record<string, string[]>) {
   let content = ''
   const keys = Object.keys(changelogs).sort()
@@ -517,6 +657,10 @@ export function getInputPkgs() {
 }
 
 export function getConfiguredPackages(path: string) {
+  if (isSingleMode()) {
+    const manifestPath = core.getInput('package-json-path', { trimWhitespace: true }) || resolve(path, 'package.json')
+    return [getSinglePackage(path, manifestPath)]
+  }
   const packageNames = getInputPkgs()
   const packages = getPackages(path)
   return packageNames.length ? packages.filter(pkg => packageNames.includes(pkg.name)) : packages

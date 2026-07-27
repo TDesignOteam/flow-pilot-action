@@ -1,5 +1,5 @@
 import type { Tokens } from 'marked'
-import type { PullRequestData } from '../src/types'
+import type { PullRequestData, ReleasePackage } from '../src/types'
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { flutter_pull_request_files, merged_pull_request_files, merged_pull_request_files2, merged_pull_request_files3, pull_request_data, pull_request_files } from '../fixtures/pull_request_data'
@@ -8,6 +8,8 @@ import {
   extractChangelog,
   extractReleaseLog,
   extractReleaseLogs,
+  getChangelogFilePath,
+  getConfiguredPackages,
   getInputPkgs,
   getPackages,
   getPullRequestReleaseDirs,
@@ -162,6 +164,58 @@ describe('utils', () => {
     expect(paths[1].version).toBe('1.0.1')
     expect(paths[1].name).toBe('pkg-c')
     expect(paths[1].tag).toBe('latest')
+  })
+
+  it('associates a configured changelog path with the single package release', () => {
+    process.env.INPUT_MODE = 'single'
+    process.env['INPUT_CHANGELOG-PATH'] = 'docs/RELEASES.md'
+
+    try {
+      const packages = getPackages('fixtures/repo1').filter(pkg => pkg.name === 'pkg-a')
+      const paths = getPullRequestReleaseDirs([
+        ...pull_request_files,
+        {
+          filename: 'docs/RELEASES.md',
+          status: 'modified',
+          patch: '@@ -0,0 +1,3 @@\n+## 🌈 1.0.1\n+\n+- feature',
+        } as any,
+      ], packages)
+
+      expect(paths).toHaveLength(1)
+      expect(paths[0].changelog).toContain('## 🌈 1.0.1')
+    }
+    finally {
+      delete process.env.INPUT_MODE
+      delete process.env['INPUT_CHANGELOG-PATH']
+    }
+  })
+
+  it('returns localized custom changelog paths', () => {
+    process.env['INPUT_CHANGELOG-PATH'] = 'docs/RELEASES.md'
+    const release = { dir: '.' } as ReleasePackage
+
+    try {
+      expect(getChangelogFilePath(release, 'zh')).toBe('docs/RELEASES.md')
+      expect(getChangelogFilePath(release, 'en')).toBe('docs/RELEASES.en-US.md')
+    }
+    finally {
+      delete process.env['INPUT_CHANGELOG-PATH']
+    }
+  })
+
+  it('uses the configured manifest in single mode', () => {
+    process.env.INPUT_MODE = 'single'
+    process.env['INPUT_PACKAGE-JSON-PATH'] = 'packages/pkg-a/package.json'
+
+    try {
+      expect(getConfiguredPackages('fixtures/repo1')).toMatchObject([
+        { name: 'pkg-a', relativeDir: 'packages/pkg-a', type: 'node' },
+      ])
+    }
+    finally {
+      delete process.env.INPUT_MODE
+      delete process.env['INPUT_PACKAGE-JSON-PATH']
+    }
   })
 
   it('getFlutterPullRequestReleaseDirs', () => {

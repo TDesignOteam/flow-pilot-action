@@ -4,6 +4,7 @@ import { issue_comment } from '../src/github-event/issue-comment'
 
 vi.mock('node:fs', () => ({
   existsSync: vi.fn().mockReturnValue(false),
+  mkdirSync: vi.fn(),
   writeFileSync: vi.fn(),
   readFileSync: vi.fn().mockReturnValue(''),
   unlinkSync: vi.fn(),
@@ -55,6 +56,7 @@ vi.mock('../src/utils/common', () => ({
   checkIsForkPr: () => false,
   extractChangelog: mocks.extractChangelog,
   extractReleaseLogs: vi.fn().mockReturnValue([]),
+  getChangelogFilePath: (release: { dir: string }, lang: 'zh' | 'en') => `${release.dir}/${lang === 'en' ? 'CHANGELOG.en-US.md' : 'CHANGELOG.md'}`,
   getConfiguredPackages: () => [],
   getInputPkgs: () => ['pkg-a'],
   getPrCommentWhitelist: mocks.getPrCommentWhitelist,
@@ -224,8 +226,8 @@ describe('issue_comment', () => {
     ])
 
     vi.mocked(getPullRequestReleaseDirs).mockReturnValue([
-      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.1', type: 'node', tag: 'latest', changelog: '' },
-      { dir: 'packages/pkg-b', name: 'pkg-b', private: false, version: '2.0.0', type: 'node', tag: 'latest', changelog: '' },
+      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.1', oldVersion: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
+      { dir: 'packages/pkg-b', name: 'pkg-b', private: false, version: '2.0.0', oldVersion: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
     ])
 
     mocks.context.payload = {
@@ -254,8 +256,8 @@ describe('issue_comment', () => {
     ])
 
     vi.mocked(getPullRequestReleaseDirs).mockReturnValue([
-      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.1', type: 'node', tag: 'latest', changelog: '' },
-      { dir: 'packages/pkg-b', name: 'pkg-b', private: false, version: '2.0.0', type: 'node', tag: 'latest', changelog: '' },
+      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.1', oldVersion: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
+      { dir: 'packages/pkg-b', name: 'pkg-b', private: false, version: '2.0.0', oldVersion: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
     ])
 
     mocks.context.payload = {
@@ -298,7 +300,7 @@ describe('issue_comment', () => {
       { pkgName: 'pkg-unknown', changelog: '## 🌈 1.0.0\n\n- feature\n\n' },
     ])
     vi.mocked(getPullRequestReleaseDirs).mockReturnValue([
-      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
+      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.0', oldVersion: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
     ])
     mocks.context.payload = {
       action: 'edited',
@@ -317,7 +319,7 @@ describe('issue_comment', () => {
       { pkgName: 'pkg-a', changelog: '## 🌈 1.0.0\n\n- feature\n\n' },
     ])
     vi.mocked(getPullRequestReleaseDirs).mockReturnValue([
-      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
+      { dir: 'packages/pkg-a', name: 'pkg-a', private: false, version: '1.0.0', oldVersion: '1.0.0', type: 'node', tag: 'latest', changelog: '' },
     ])
     let pushAttempts = 0
     mocks.exec.mockImplementation(async (_command, args) => {
@@ -337,9 +339,9 @@ describe('issue_comment', () => {
 
     await issue_comment('token')
 
-    expect(mocks.exec).toHaveBeenCalledTimes(7)
-    expect(mocks.exec).toHaveBeenNthCalledWith(4, 'git', ['pull', '--rebase', 'origin', 'feat/loading'])
-    expect(mocks.exec).toHaveBeenNthCalledWith(6, 'git', ['pull', '--rebase', 'origin', 'feat/loading'])
+    expect(mocks.exec).toHaveBeenCalledTimes(8)
+    expect(mocks.exec).toHaveBeenNthCalledWith(5, 'git', ['pull', '--rebase', 'origin', 'feat/loading'])
+    expect(mocks.exec).toHaveBeenNthCalledWith(7, 'git', ['pull', '--rebase', 'origin', 'feat/loading'])
     expect(pushAttempts).toBe(2)
   })
 })

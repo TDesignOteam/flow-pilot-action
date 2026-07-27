@@ -1,8 +1,8 @@
 import type { PullRequestData } from '../types'
 import { cwd } from 'node:process'
-import { getInput, info, setOutput } from '@actions/core'
+import { getInput, info, setOutput, warning } from '@actions/core'
 import * as github from '@actions/github'
-import { buildReleaseComments, extractChangelog, getConfiguredPackages, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, publishRelease, renderChangelogMarkdown, sortReleasePackages } from '../utils'
+import { buildReleaseComments, extractChangelog, getConfiguredPackages, getInputPkgs, getPullRequestNumber, getPullRequestReleaseDirs, getStashChangelog, getTagChangelog, isSingleMode, publishRelease, renderChangelogMarkdown, sortReleasePackages } from '../utils'
 import useGit from '../utils/git'
 import useGithub from '../utils/github'
 import { translateText } from '../utils/translate'
@@ -42,18 +42,20 @@ export async function pull_request(token: string) {
     if (isRelease && !isForkPr && github.context.payload.action === 'opened') {
       const prNumber = getPullRequestNumber()
       const { addComment, getPullRequestFiles } = useGithub(token)
-      const { cloneRepo, checkoutBranch } = useGit(token)
+      const { cloneRepo, checkoutBranch, getLatestTag } = useGit(token)
       await cloneRepo()
       await checkoutBranch(pullRequestData.head.ref)
       const changeFiles = await getPullRequestFiles(prNumber)
       info(`changeFiles: ${JSON.stringify(changeFiles, null, 2)}`)
-      const releaseDirs = await getPullRequestReleaseDirs(changeFiles, getConfiguredPackages(cwd()))
+      const configuredPackages = getConfiguredPackages(cwd())
+      const releaseDirs = await getPullRequestReleaseDirs(changeFiles, configuredPackages)
       info(`releaseDirs: ${JSON.stringify(releaseDirs, null, 2)}`)
       setOutput('changelog', '')
       if (!releaseDirs.length) {
         info('没有更新发布版本')
         return
       }
+      const useTagChangelog = isSingleMode()
       const zhComments: string[] = []
       const enComments: string[] = []
       const logHead = '(删除此行代表确认该日志): 修改并确认日志后删除这一行，机器人会提交到 本 PR 的 CHANGELOG.md 文件中\n'
@@ -63,13 +65,25 @@ export async function pull_request(token: string) {
       const day = String(currentDate.getDate()).padStart(2, '0')
 
       for (const release of releaseDirs) {
-        if (release.tag === 'latest') {
-          const changelogs = getStashChangelog(release.dir, release.type)
-          info(`changelogs: ${JSON.stringify(changelogs, null, 2)}`)
-          const md = renderChangelogMarkdown(changelogs.changelogs)
+        if (release.tag === 'latest' || useTagChangelog) {
+          let md: string
+          if (useTagChangelog) {
+            const configuredFromTag = getInput('from-tag', { trimWhitespace: true })
+            const toRef = getInput('to-tag', { trimWhitespace: true }) || pullRequestData.base.ref
+            const fromTag = configuredFromTag || await getLatestTag(toRef, release.tag === 'latest')
+            const strategy = configuredFromTag ? 'configured' : fromTag ? release.tag === 'latest' ? 'stable' : 'prerelease' : 'full-history'
+            info(`tag changelog: strategy=${strategy}, from=${fromTag || '<repository-start>'}, to=${toRef}`)
+            if (!fromTag)
+              warning(`未找到历史 tag,将扫描 ${toRef} 的全部提交`)
+            md = await getTagChangelog(token, [release.name], fromTag, toRef)
+          }
+          else {
+            const changelogs = getStashChangelog(release.dir, release.type)
+            md = renderChangelogMarkdown(changelogs.changelogs)
+          }
           info(`markdownChangelogs: ${md}`)
           // 中文日志
-          const zhBody = `# 🎉 发布 ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${md}`
+          const zhBody = `# 🎉 发布 ${release.name}\n## 🌈 ${release.version} \`${year}-${month}-${day}\` \n\n${md}`
           zhComments.push(zhBody)
 
           const secretId = getInput('translate-secret-id', { trimWhitespace: true })
@@ -79,7 +93,7 @@ export async function pull_request(token: string) {
             try {
               const text = await translateText(secretId, secretKey, md)
               info(`en_md: ${text}`)
-              const enBody = `# 🎉 Release ${changelogs.pkg}\n## 🌈 ${changelogs.version} \`${year}-${month}-${day}\` \n\n${text}`
+              const enBody = `# 🎉 Release ${release.name}\n## 🌈 ${release.version} \`${year}-${month}-${day}\` \n\n${text}`
               enComments.push(enBody)
             }
             catch (err) {
@@ -118,8 +132,9 @@ export async function pull_request(token: string) {
         return
       }
       for (const release of releaseDirs) {
-        const title = `${release.name}@${release.version}`
-        const shouldCreateRelease = release.type === 'flutter' || Boolean(release.changelog && release.tag === 'latest')
+        const usePlainTag = isSingleMode()
+        const title = usePlainTag ? release.version : `${release.name}@${release.version}`
+        const shouldCreateRelease = usePlainTag || release.type === 'flutter' || Boolean(release.changelog && release.tag === 'latest')
 
         if (release.private) {
           info(`${release.name} is private package, skip publish`)
@@ -131,10 +146,12 @@ export async function pull_request(token: string) {
         if (shouldCreateRelease) {
           try {
             info(`Creating release for ${release.name}: ${title}`)
-            await createRelease(title, title, release.changelog, pullRequestData.merge_commit_sha)
+            await createRelease(title, title, release.changelog, pullRequestData.merge_commit_sha, usePlainTag && release.tag !== 'latest')
             info(`${release.name} release created: ${title}`)
           }
           catch (err) {
+            if (usePlainTag)
+              throw err
             info(`Failed to create release for ${release.name}: ${err}`)
           }
         }

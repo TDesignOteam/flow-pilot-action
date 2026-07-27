@@ -95,3 +95,25 @@ export function getPackages(path: string): Package[] {
     }
   }).sort((a, b) => a.relativeDir.localeCompare(b.relativeDir) || a.type.localeCompare(b.type))
 }
+
+export function getSinglePackage(rootDir: string, manifestPath: string): Package {
+  const absolutePath = resolve(rootDir, manifestPath)
+  const manifest = parseManifest(absolutePath)
+  if (!manifest || typeof manifest !== 'object' || !('name' in manifest) || typeof manifest.name !== 'string' || !manifest.name.trim()) {
+    throw new Error(`Package manifest "${absolutePath}" is missing a valid "name" field`)
+  }
+
+  const dir = dirname(absolutePath)
+  const relativeDir = relative(rootDir, dir).split(sep).join('/') || '.'
+  const type = basename(absolutePath) === 'package.json' ? 'node' as const : 'flutter' as const
+
+  return {
+    name: manifest.name,
+    version: typeof manifest.version === 'string' ? manifest.version : undefined,
+    type,
+    private: type === 'node' ? manifest.private === true : manifest.publish_to === 'none',
+    dependencies: type === 'node' ? getNodeDependencies(manifest) : [],
+    dir,
+    relativeDir,
+  }
+}

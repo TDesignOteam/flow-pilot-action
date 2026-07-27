@@ -1,6 +1,6 @@
 # FlowPilot
 
-FlowPilot 是用于 monorepo 发布流程的 GitHub Action。它从 PR 描述中收集 Changelog，将日志暂存到对应包，在 release PR 中生成发布日志，并在 release PR 合并后发布 Node 包或创建 GitHub Release/tag。
+FlowPilot 是用于 monorepo 和单仓发布流程的 GitHub Action。它从 PR 描述中收集 Changelog，在 release PR 中生成发布日志，并在 release PR 合并后发布 Node 包或创建 GitHub Release/tag。
 
 FlowPilot 支持包含 `package.json` 的 Node 包和包含 `pubspec.yaml` 的 Flutter 包。版本更新、`release/*` 分支及 release PR 需要由 Changesets、自有脚本或其他发布工具创建，FlowPilot 不负责修改包版本或创建 release PR。
 
@@ -10,7 +10,7 @@ FlowPilot 支持包含 `package.json` 的 Node 包和包含 `pubspec.yaml` 的 F
 - 通过 `/changelog` 指令、Review 通过或编辑确认评论提交日志。
 - 按包生成 `.changelog/pr-<PR number>.md` 暂存文件，并补充贡献者和 PR 链接。
 - 在 release PR 中按类型和 scope 汇总日志，生成中英文 Changelog 确认评论。
-- release PR 合并后发布 Node 包，并按规则创建 GitHub Release 及 `${name}@${version}` tag。
+- release PR 合并后发布 Node 包，并按仓库模式创建 `${name}@${version}` 或纯版本号 tag。
 - 识别同一仓库中的 Node 和 Flutter 包。
 
 ## 接入示例
@@ -157,10 +157,15 @@ jobs:
 | 参数 | 是否必需 | 说明 |
 | --- | --- | --- |
 | `token` | 按流程 | GitHub API、Git clone/push 和创建 Release 使用的 token。仅生成普通 PR 的 `changelog` output 时可为空，完整流程需要有效 token。 |
-| `packages` | Changelog 流程必需 | 参与日志提取的包名。支持逗号或多行输入，名称必须与 manifest 中的 `name` 完全一致。release 检测未配置时会使用发现的全部包。 |
+| `packages` | monorepo Changelog 流程必需 | 参与日志提取的包名。支持逗号或多行输入，名称必须与 manifest 中的 `name` 完全一致。release 检测未配置时会使用发现的全部包；`single` 模式无需配置。 |
 | `pr_number` | `workflow_run` 必需 | `workflow_run` 无法从事件直接获得 PR 编号时使用，其他事件不需要。 |
 | `translate-secret-id` | 否 | 腾讯混元翻译 SecretId；与 `translate-secret-key` 同时配置后生成英文 release 日志评论。 |
 | `translate-secret-key` | 否 | 腾讯混元翻译 SecretKey。 |
+| `mode` | 否 | 仓库模式：`single`(单仓) 或 `monorepo`(monorepo)。默认 `monorepo`。`single` 模式下不依赖 `.changelog/*.md` 暂存文件,直接从 tag 区间已合并 PR 的 body 生成发布日志,且使用纯版本号 git tag(如 `1.2.3`)。 |
+| `package-json-path` | 否 | `single` 模式下指定 `package.json` 的相对路径,默认读取仓库根目录的 `package.json`。仅 `single` 模式生效。 |
+| `changelog-path` | 否 | `single` 模式下指定 `CHANGELOG.md` 的相对路径,默认在包目录下读写 `CHANGELOG.md` / `CHANGELOG.en-US.md`。仅 `single` 模式生效。 |
+| `from-tag` | 否 | 覆盖日志区间起始 tag。单仓预发布默认取目标 ref 可达的最近 tag，稳定版默认取最近稳定 tag；目标历史无 tag 时扫描全部历史。 |
+| `to-tag` | 否 | 覆盖日志区间结束 ref。默认取 release PR 的 base 分支。 |
 
 | Output | 说明 |
 | --- | --- |
@@ -274,6 +279,42 @@ release PR 打开时，FlowPilot 读取各包的 `.changelog/*.md`，按类型�
 | `docs`、`doc` | 📝 Documentation |
 | 其他类型 | 🚧 Others |
 
+## 基于 tag 的发布日志(单仓)
+
+单仓场景下,各 PR 的更新日志直接写在 PR 描述的 `### 📝 更新日志` 下(扁平列表,无 `#### package` 分段):
+
+```md
+### 📝 更新日志
+
+- fix(aa): aa
+```
+
+设置 `mode: single` 后,release PR 打开时 FlowPilot 会:
+
+1. 预发布版本取目标 ref 可达的最近 tag，稳定版取最近的非 alpha/beta tag；`from-tag` 可覆盖起点，目标历史无 tag 时扫描全部历史。release PR 的 base 分支(或 `to-tag`)作为终点。
+2. 分页获取区间内全部 commit，并关联出对应的已合并 PR 编号(去重)，兼容 merge、squash 和 rebase 合并。
+3. 逐个拉取 PR body,复用与普通 PR 相同的跳过规则(Bot / `skip-changelog` 标签 / release 分支 / 手动勾选),从 `### 📝 更新日志` 抓取日志。
+4. 拼接贡献者与 PR 链接,按类型分组渲染,生成与暂存模式完全一致的 `# 🎉 发布` / `# 🎉 Release` 确认评论;下游确认与 Release 创建流程不变。
+
+PR body 没有有效的 `type(scope): message` 日志且未显式跳过时，FlowPilot 会使用 PR 标题作为回退。符合该格式的标题会保留类型与 scope；其他标题自动归入 `Others`。模板中未勾选的“不需要纳入 Changelog”选项不视为有效日志。
+
+单仓模式下,release PR 合并后的 GitHub tag 使用纯版本号(如 `1.2.3`)而非 `${name}@${version}`。alpha/beta 会创建 GitHub prerelease，并生成相对最近 tag 的增量日志；稳定版会汇总最近稳定 tag 之后的完整日志。
+
+可通过 `package-json-path` 指定非根目录的 `package.json`,通过 `changelog-path` 指定自定义的 `CHANGELOG.md` 读写位置。
+
+所有触发 FlowPilot 的 workflow（release PR 打开、确认评论、release PR 关闭）必须传入相同的单仓配置，例如：
+
+```yaml
+- uses: TDesignOteam/flow-pilot-action@develop
+  with:
+    token: ${{ secrets.TDESIGN_BOT_TOKEN }}
+    mode: single
+    package-json-path: package.json
+    changelog-path: CHANGELOG.md
+```
+
+扫描单个 commit 或 PR 失败时会产生 GitHub Actions warning 并继续，因此应检查 warning 以确认日志是否完整。仓库没有任何 tag 时会分页扫描目标分支的全部提交，历史较长的仓库可通过 `from-tag` 限定首次纳入日志的范围。
+
 ## Release 流程
 
 ### 1. 创建 release PR
@@ -289,7 +330,7 @@ FlowPilot 根据 GitHub API 返回的 `package.json` 或 `pubspec.yaml` patch �
 
 ### 2. 确认 release 日志
 
-release PR 打开后，FlowPilot 为 `latest` 版本生成以 `# 🎉 发布` 开头的中文确认评论。配置两个翻译参数后，还会生成以 `# 🎉 Release` 开头的英文评论。
+release PR 打开后，FlowPilot 为 monorepo 的 `latest` 版本以及单仓的所有版本生成以 `# 🎉 发布` 开头的中文确认评论。配置两个翻译参数后，还会生成以 `# 🎉 Release` 开头的英文评论。
 
 检查评论内容并删除第一行提示后，FlowPilot 会：
 
@@ -301,7 +342,7 @@ release PR 打开后，FlowPilot 为 `latest` 版本生成以 `# 🎉 发布` �
 
 ### 3. 合并并发布
 
-release PR 合并后，各类包的处理方式如下：
+release PR 合并后，monorepo 各类包的处理方式如下：
 
 | 包类型 | Registry 发布 | GitHub Release/tag |
 | --- | --- | --- |
@@ -312,9 +353,11 @@ release PR 合并后，各类包的处理方式如下：
 
 GitHub Release 标题和 tag 均为 `${name}@${version}`。Flutter 包可使用该 tag 触发独立的 OIDC 发布工作流。
 
+`single` 模式下，所有版本均尝试创建纯版本号 GitHub Release/tag；alpha/beta 标记为 prerelease。Node registry 发布和私有包跳过规则保持不变。单仓 Release/tag 创建失败会使 workflow 失败，以避免后续版本缺少日志起始 tag。
+
 Node 发布固定使用 pnpm 的 `--filter`，因此 Node monorepo 必须配置 pnpm workspace，并在运行 FlowPilot 前安装 pnpm；仅包含 Flutter 包时不需要 pnpm。
 
-Registry 发布失败会使 workflow 失败；创建 GitHub Release/tag 失败时，FlowPilot 当前只记录日志并继续处理其他包，应结合 Action 日志或后续检查确认 Release 已创建。
+Registry 发布失败会使 workflow 失败；monorepo 创建 GitHub Release/tag 失败时只记录日志并继续处理其他包，单仓模式则会使 workflow 失败。
 
 release PR 合并发布必须使用 `pull_request: closed`。FlowPilot 不支持 `pull_request_target`，避免由该事件创建的 Release/tag 导致后续 OIDC 发布被拒绝。
 
