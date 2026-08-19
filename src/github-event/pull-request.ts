@@ -119,7 +119,8 @@ export async function pull_request(token: string) {
       }
       for (const release of releaseDirs) {
         // Flutter tag 使用 `${name}-${version}`,Node 使用 `${name}@${version}`
-        const title = `${release.name}${release.type === 'flutter' ? '-' : '@'}${release.version}`
+        const title = `${release.name}@${release.version}`
+        const tagName = `${release.name}${release.type === 'flutter' ? '-' : '@'}${release.version}`
         const shouldCreateRelease = release.type === 'flutter' || Boolean(release.changelog && release.tag === 'latest')
 
         if (release.private) {
@@ -132,7 +133,7 @@ export async function pull_request(token: string) {
         if (shouldCreateRelease) {
           try {
             info(`Creating release for ${release.name}: ${title}`)
-            await createRelease(title, title, release.changelog, pullRequestData.merge_commit_sha)
+            await createRelease(tagName, title, release.changelog, pullRequestData.merge_commit_sha)
             info(`${release.name} release created: ${title}`)
           }
           catch (err) {

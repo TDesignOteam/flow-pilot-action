@@ -82930,13 +82930,14 @@ async function pull_request(token) {
 				return;
 			}
 			for (const release of releaseDirs) {
-				const title = `${release.name}${release.type === "flutter" ? "-" : "@"}${release.version}`;
+				const title = `${release.name}@${release.version}`;
+				const tagName = `${release.name}${release.type === "flutter" ? "-" : "@"}${release.version}`;
 				const shouldCreateRelease = release.type === "flutter" || Boolean(release.changelog && release.tag === "latest");
 				if (release.private) info(`${release.name} is private package, skip publish`);
 				else if (release.type === "node") await publishRelease(release);
 				if (shouldCreateRelease) try {
 					info(`Creating release for ${release.name}: ${title}`);
-					await createRelease(title, title, release.changelog, pullRequestData.merge_commit_sha);
+					await createRelease(tagName, title, release.changelog, pullRequestData.merge_commit_sha);
 					info(`${release.name} release created: ${title}`);
 				} catch (err) {
 					info(`Failed to create release for ${release.name}: ${err}`);
