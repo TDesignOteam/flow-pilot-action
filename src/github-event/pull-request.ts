@@ -118,7 +118,8 @@ export async function pull_request(token: string) {
         return
       }
       for (const release of releaseDirs) {
-        const title = `${release.name}@${release.version}`
+        // Flutter tag 使用 `${name}-${version}`,Node 使用 `${name}@${version}`
+        const title = `${release.name}${release.type === 'flutter' ? '-' : '@'}${release.version}`
         const shouldCreateRelease = release.type === 'flutter' || Boolean(release.changelog && release.tag === 'latest')
 
         if (release.private) {

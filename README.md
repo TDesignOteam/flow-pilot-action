@@ -10,7 +10,7 @@ FlowPilot 支持包含 `package.json` 的 Node 包和包含 `pubspec.yaml` 的 F
 - 通过 `/changelog` 指令、Review 通过或编辑确认评论提交日志。
 - 按包生成 `.changelog/pr-<PR number>.md` 暂存文件，并补充贡献者和 PR 链接。
 - 在 release PR 中按类型和 scope 汇总日志，生成中英文 Changelog 确认评论。
-- release PR 合并后发布 Node 包，并按规则创建 GitHub Release 及 `${name}@${version}` tag。
+- release PR 合并后发布 Node 包，并按规则创建 GitHub Release 及 `${name}@${version}`(Flutter 为 `${name}-${version}`)tag。
 - 识别同一仓库中的 Node 和 Flutter 包。
 
 ## 接入示例
@@ -310,7 +310,7 @@ release PR 合并后，各类包的处理方式如下：
 | 公共 Flutter 包 | FlowPilot 不执行 `flutter pub publish` | 所有版本均尝试创建 |
 | `publish_to: none` 的 Flutter 包 | 跳过 | 所有版本均尝试创建 |
 
-GitHub Release 标题和 tag 均为 `${name}@${version}`。Flutter 包可使用该 tag 触发独立的 OIDC 发布工作流。
+GitHub Release 标题和 tag 均为 `${name}@${version}`(Flutter 包为 `${name}-${version}`)。Flutter 包可使用该 tag 触发独立的 OIDC 发布工作流。
 
 Node 发布固定使用 pnpm 的 `--filter`，因此 Node monorepo 必须配置 pnpm workspace，并在运行 FlowPilot 前安装 pnpm；仅包含 Flutter 包时不需要 pnpm。
 
