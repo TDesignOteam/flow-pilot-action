@@ -41,9 +41,9 @@ function getChangelogHeading() {
 }
 
 export function isExtractPRLog(prData: PullRequestData) {
-  if (prData.user.type === 'Bot') {
-    return false
-  }
+  // if (prData.user.type === 'Bot') {
+  //   return false
+  // }
 
   if (prData.labels.some(label => label.name === 'skip-changelog')) {
     return false
