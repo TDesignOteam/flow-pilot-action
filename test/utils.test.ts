@@ -73,10 +73,16 @@ describe('utils', () => {
       prData.body = '### 📝 更新日志 \n\n - [x] 本条 PR 不需要纳入 Changelog'
       expect(isExtractPRLog(prData)).toBe(false)
     })
-    it('pr user type 是 Bot', () => {
+    it('pr user type 是非 Copilot Bot', () => {
       const prData: PullRequestData = JSON.parse(JSON.stringify(pull_request_data))
       prData.user.type = 'Bot'
       expect(isExtractPRLog(prData)).toBe(false)
+    })
+    it('copilot Bot PR', () => {
+      const prData: PullRequestData = JSON.parse(JSON.stringify(pull_request_data))
+      prData.user.type = 'Bot'
+      prData.user.login = 'Copilot'
+      expect(isExtractPRLog(prData)).toBe(true)
     })
     it('正常PR 数据', () => {
       expect(isExtractPRLog(pull_request_data)).toBe(true)

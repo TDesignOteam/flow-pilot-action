@@ -30885,6 +30885,7 @@ function getChangelogHeading() {
 	return parseMarkdown("### 📝 更新日志")[0];
 }
 function isExtractPRLog(prData) {
+	if (prData.user.type === "Bot" && prData.user.login.toLowerCase() !== "copilot") return false;
 	if (prData.labels.some((label) => label.name === "skip-changelog")) return false;
 	if (prData.head.ref.startsWith("release/")) return false;
 	if (prData.body && SKIP_CHANGELOG_REG.test(prData.body)) return false;
