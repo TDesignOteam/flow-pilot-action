@@ -283,6 +283,23 @@ describe('utils', () => {
     ])
   })
 
+  it('extractReleaseLogs preserves rich content (blockquote, code, table, paragraph)', () => {
+    const body = readFileSync('fixtures/release_comment/confirm-rich.md', 'utf8').replaceAll('\n', '\r\n')
+    const releaseLogs = extractReleaseLogs(body, '🎉 发布')
+
+    expect(releaseLogs).toHaveLength(2)
+    expect(releaseLogs.map(l => l.pkgName)).toEqual(['@tdesign/web-components-chat', '@tdesign/web-components'])
+    for (const { changelog } of releaseLogs) {
+      expect(changelog).toContain('> [!WARNING]')
+      expect(changelog).toContain('| 用途 | 原引入路径 | 新引入路径 |')
+    }
+    expect(releaseLogs[0].changelog).toContain('依赖关系：')
+    expect(releaseLogs[0].changelog).toContain('```text')
+    expect(releaseLogs[0].changelog).toContain('├── @tdesign/web-components（基础 UI）')
+    expect(releaseLogs[0].changelog).not.toContain('\n---\n')
+    expect(releaseLogs[1].changelog).toContain('`Space`: 修复在 React 中无法正确显示子内容')
+  })
+
   it('extractReleaseLogs rejects a nested package heading', () => {
     const body = '# 🎉 发布 pkg-a\n## 🌈 1.0.0\n\n- feature a\n\n## 🎉 发布 pkg-b\n## 🌈 2.0.0\n\n- feature b'
 

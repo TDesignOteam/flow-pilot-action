@@ -30922,7 +30922,7 @@ function extractChangelog(markdown, pkgNames) {
 function extractReleaseLogs(markdown, expectedHeading) {
 	const releaseLogs = [];
 	let currentLog;
-	parseMarkdown(markdown.replace(RN_TO_LF_REG, "\n")).forEach((token) => {
+	parseMarkdown(markdown.replace(RN_TO_LF_REG, "\n")).forEach((token, index, tokens) => {
 		if (token.type === "heading") {
 			const heading = token.text.startsWith("🎉 Release") ? "🎉 Release" : token.text.startsWith("🎉 发布") ? "🎉 发布" : void 0;
 			if (heading && token.depth !== 1) throw new Error(`Release package heading must be level 1: ${token.raw.trim()}`);
@@ -30940,9 +30940,16 @@ function extractReleaseLogs(markdown, expectedHeading) {
 			if (currentLog) releaseLogs.push(currentLog);
 			return;
 		}
-		if (currentLog && token.type === "list") currentLog.changelog += `${token.raw.trimEnd()}\n\n`;
+		if (currentLog && token.type !== "space") {
+			if (token.type === "hr" && isSectionSeparator(tokens, index)) return;
+			currentLog.changelog += `${token.raw.trimEnd()}\n\n`;
+		}
 	});
 	return releaseLogs;
+}
+function isSectionSeparator(tokens, index) {
+	const nextToken = tokens.slice(index + 1).find((token) => token.type !== "space");
+	return !nextToken || nextToken.type === "heading" && nextToken.depth === 1;
 }
 function buildReleaseComments(logHead, sections, maxLength = GITHUB_COMMENT_MAX_LENGTH) {
 	const separator = "\n\n---\n\n";

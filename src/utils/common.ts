@@ -1,4 +1,4 @@
-import type { Tokens, TokensList } from 'marked'
+import type { Token, Tokens, TokensList } from 'marked'
 import type { PackagesChangelog, PackageType, PullRequestData, PullRequestFiles, ReleasePackage } from '../types'
 import type { Package } from './get-packages'
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
@@ -114,7 +114,7 @@ export function extractReleaseLogs(markdown: string, expectedHeading?: ReleaseHe
   const releaseLogs: Array<{ pkgName: string, changelog: string }> = []
   let currentLog: { pkgName: string, changelog: string } | undefined
 
-  parseMarkdown(markdown.replace(RN_TO_LF_REG, '\n')).forEach((token) => {
+  parseMarkdown(markdown.replace(RN_TO_LF_REG, '\n')).forEach((token, index, tokens) => {
     if (token.type === 'heading') {
       const heading: ReleaseHeading | undefined = token.text.startsWith('🎉 Release')
         ? '🎉 Release'
@@ -145,12 +145,20 @@ export function extractReleaseLogs(markdown: string, expectedHeading?: ReleaseHe
       return
     }
 
-    if (currentLog && token.type === 'list') {
+    if (currentLog && token.type !== 'space') {
+      if (token.type === 'hr' && isSectionSeparator(tokens, index)) {
+        return
+      }
       currentLog.changelog += `${token.raw.trimEnd()}\n\n`
     }
   })
 
   return releaseLogs
+}
+
+function isSectionSeparator(tokens: Token[], index: number) {
+  const nextToken = tokens.slice(index + 1).find(token => token.type !== 'space')
+  return !nextToken || (nextToken.type === 'heading' && nextToken.depth === 1)
 }
 
 export function buildReleaseComments(logHead: string, sections: string[], maxLength = GITHUB_COMMENT_MAX_LENGTH) {
