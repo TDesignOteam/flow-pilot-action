@@ -31,7 +31,7 @@
     "@actions/exec": "^3.0.0",
     "@actions/github": "^9.1.1",
     "camelcase": "^9.0.0",
-    "marked": "^18.0.7",
+    "marked": "^18.0.11",
     "tencentcloud-sdk-nodejs-hunyuan": "^4.1.188",
     "tinyglobby": "^0.2.17",
     "yaml": "^2.9.0"
@@ -43,9 +43,9 @@
     "eslint": "^10.9.1",
     "nano-staged": "^1.0.2",
     "simple-git-hooks": "^2.14.0",
-    "tsdown": "^0.22.13",
+    "tsdown": "^0.22.14",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm nano-staged"
