@@ -31,15 +31,15 @@
     "@actions/exec": "^3.0.0",
     "@actions/github": "^9.1.1",
     "camelcase": "^9.0.0",
-    "marked": "^18.0.13",
-    "tencentcloud-sdk-nodejs-hunyuan": "^4.1.188",
+    "marked": "^18.0.14",
+    "tencentcloud-sdk-nodejs-hunyuan": "^4.1.318",
     "tinyglobby": "^0.2.17",
     "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.3.0",
     "@octokit/plugin-rest-endpoint-methods": "^18.0.0",
-    "@types/node": "^24.13.5",
+    "@types/node": "^24.13.6",
     "eslint": "^10.9.1",
     "nano-staged": "^1.0.2",
     "simple-git-hooks": "^2.14.0",
